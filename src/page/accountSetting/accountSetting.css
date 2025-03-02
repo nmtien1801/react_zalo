@@ -111,3 +111,57 @@
     font-size: 1.75rem;
     line-height: 0;
 }
+
+/** Test **/
+
+.zl-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .zl-modal__dialog {
+    background: white;
+    border-radius: 8px;
+    width: 800px;
+    max-height: 800px;
+    overflow: hidden;
+    animation: zoomIn 0.3s ease;
+  }
+  
+  @keyframes zoomIn {
+    from {
+      transform: scale(0);
+    }
+    to {
+      transform: scale(1);
+    }
+  }
+  
+  .setting-button {
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  
+  .setting__close {
+    background: none;
+    border: none;
+    cursor: pointer;
+  }
+
+  p {
+    margin-top: auto;
+    margin-bottom: auto;
+  }
+
+  

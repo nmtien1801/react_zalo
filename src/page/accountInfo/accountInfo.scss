@@ -1,0 +1,234 @@
+.profile-modal-container {
+    .open-btn {
+        padding      : 10px 20px;
+        background   : #1da1f2;
+        color        : white;
+        border       : none;
+        border-radius: 4px;
+        cursor       : pointer;
+        margin       : 20px;
+
+        &:hover {
+            background: #0d8bf2;
+        }
+    }
+
+    .modal-overlay {
+        position       : fixed;
+        top            : 0;
+        left           : 0;
+        right          : 0;
+        bottom         : 0;
+        background     : rgba(0, 0, 0, 0.5);
+        display        : flex;
+        justify-content: center;
+        align-items    : center;
+        z-index        : 1000;
+    }
+
+    .modal-content {
+        background   : white;
+        width        : 30%;
+        height       : 100%;
+        border-radius: 8px;
+        box-shadow   : 0 2px 4px rgba(0, 0, 0, 0.1);
+        font-family  : Arial, sans-serif;
+        overflow-y   : auto; // Enables vertical scrolling when content overflows
+        animation    : slideIn 0.3s ease-out;
+
+        /* Optional: Customize scrollbar appearance */
+        &::-webkit-scrollbar {
+            width: 8px; // Width of the scrollbar
+        }
+
+        &::-webkit-scrollbar-track {
+            background   : #f1f1f1; // Background of the scrollbar track
+            border-radius: 4px;
+        }
+
+        &::-webkit-scrollbar-thumb {
+            background   : #888; // Color of the scrollbar thumb
+            border-radius: 4px;
+        }
+
+        &::-webkit-scrollbar-thumb:hover {
+            background: #555; // Color when hovering over the scrollbar
+        }
+
+        .header {
+            display        : flex;
+            justify-content: space-between;
+            align-items    : center;
+            padding        : 10px;
+            background     : #f5f5f5;
+            border-bottom  : 1px solid #ddd;
+
+            .header-text {
+                font-size  : 16px;
+                font-weight: bold;
+            }
+
+            .close-btn {
+                background: none;
+                border    : none;
+                font-size : 20px;
+                cursor    : pointer;
+            }
+        }
+
+        .profile-header {
+            padding      : 15px;
+            text-align   : center;
+            border-bottom: 1px solid #ddd;
+            padding      : 0;
+
+            .profile-image-background {
+                width : 100%;
+                height: 200px;
+            }
+
+            .horizontal-row {
+                display        : flex;
+                justify-content: flex-start;
+                align-items    : center;
+                padding        : 10px;
+                position       : relative;
+                top            : -30px;
+
+                .profile-image {
+                    width        : 80px;
+                    height       : 80px;
+                    border-radius: 50%;
+                    margin-right : 10px;
+                }
+
+                .profile-name {
+                    font-size  : 18px;
+                    font-weight: bold;
+
+                    .verified-icon {
+                        color    : #1da1f2;
+                        font-size: 14px;
+                    }
+                }
+            }
+
+            .profile-actions {
+                padding       : 10px;
+                padding-top   : 0;
+                flex-direction: row;
+
+                .action-btn {
+                    padding      : 8px 0px;
+                    margin       : 5px 5px;
+                    border       : 1px solid #ddd;
+                    border-radius: 4px;
+                    background   : white;
+                    cursor       : pointer;
+                    width        : 47%;
+                    font-weight  : bold;
+
+
+                }
+
+                .call {
+                    background: #e5e7eb;
+                    color     : #2d3c57;
+
+                    &:hover {
+                        background: #f5f5f5;
+                    }
+                }
+
+                .text {
+                    background: #dbebff;
+                    color     : #0a4caf;
+
+                    &:hover {
+                        background: #f5f5f5;
+                    }
+                }
+            }
+        }
+
+        .info-section {
+            padding      : 0px 10px;
+            border-bottom: 1px solid #ddd;
+
+            .bio-text {
+                font-weight  : bold;
+                margin-bottom: 15px;
+            }
+
+            .info-item {
+                display        : flex;
+                justify-content: flex-start;
+
+                margin-bottom: 15px;
+                color        : #666;
+
+                .info-label {
+                    width: 100px;
+                }
+            }
+        }
+
+        .photos-section {
+            padding      : 5px 15px;
+            border-bottom: 1px solid #ddd;
+
+            .photo-grid {
+                display              : grid;
+                grid-template-columns: repeat(4, 1fr);
+                gap                  : 5px;
+                margin-top           : 10px;
+
+                .photo-item {
+                    width        : 100%;
+                    aspect-ratio : 1;
+                    object-fit   : cover;
+                    border-radius: 4px;
+                    cursor       : pointer;
+                }
+            }
+        }
+
+        .footer-section {
+            padding: 15px 0;
+
+            .footer-actions {
+                .groups {
+                    display        : flex;
+                    justify-content: flex-start;
+                    align-items    : center;
+                    gap            : 10px;
+                    font-size      : 25px;
+                    padding        : 15px;
+
+                    &:hover {
+                        background: #f5f5f5;
+                    }
+
+                    .footer-btn {
+                        font-size : 15px;
+                        border    : none;
+                        background: none;
+                        cursor    : pointer;
+                    }
+                }
+            }
+        }
+    }
+}
+
+@keyframes slideIn {
+    from {
+        transform: scale(0.5); // Start with 50% scale (smaller size)
+        opacity  : 0;
+    }
+
+    to {
+        transform: scale(1); // Grow to full size
+        opacity  : 1;
+    }
+}

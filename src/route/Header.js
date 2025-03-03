@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 import Container from "react-bootstrap/Container";
 import Nav from "react-bootstrap/Nav";
@@ -12,8 +12,13 @@ import {
   Briefcase,
   Settings,
 } from "lucide-react";
+import AccountSetting from "../page/accountSetting/accountSetting";
 
 const Header = () => {
+
+  const [showModal, setShowModal] = useState(false);
+  const [modalContent, setModalContent] = useState('');
+
   return (
     <Navbar
       className="d-flex flex-column bg-primary h-100 py-2"
@@ -58,11 +63,16 @@ const Header = () => {
           <Briefcase size={24} />
         </button>
         <button className="btn btn-link p-0 text-white opacity-75 hover-opacity-100">
-          <Settings size={24} />
+          {/* <Settings size={24} /> */}
+          <AccountSetting
+            handleClose={() => setShowModal(false)}
+            content={modalContent}
+        />
         </button>
       </div>
     </Navbar>
   );
 };
+
 
 export default Header;

@@ -15,9 +15,8 @@ import {
 import AccountSetting from "../page/accountSetting/accountSetting";
 
 const Header = () => {
-
   const [showModal, setShowModal] = useState(false);
-  const [modalContent, setModalContent] = useState('');
+  const [modalContent, setModalContent] = useState("");
 
   return (
     <Navbar
@@ -44,7 +43,7 @@ const Header = () => {
           <Nav.Link as={NavLink} to="/danh-ba" className="fw-normal">
             <Users size={24} />
           </Nav.Link>
-          
+
           <Nav.Link as={NavLink} to="/to-do" className="fw-normal">
             <CheckSquare size={24} />
           </Nav.Link>
@@ -67,12 +66,11 @@ const Header = () => {
           <AccountSetting
             handleClose={() => setShowModal(false)}
             content={modalContent}
-        />
+          />
         </button>
       </div>
     </Navbar>
   );
 };
-
 
 export default Header;

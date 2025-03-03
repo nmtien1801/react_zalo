@@ -6,6 +6,7 @@ import { Dropdown } from 'react-bootstrap';
 import './accountSetting.css';
 
 import SettingModel from "./settingModel";
+import InfomationAccount from "./infomationAccount";
 
 const CustomModal = () => {
 
@@ -15,6 +16,7 @@ const CustomModal = () => {
     const [isChatHelpSubmenuOpen, setIsChatHelpSubmenuOpen] = useState(false);
 
     const [isOpenModelSetting, setIsOpenModelSetting] = useState(false);
+    const [isOpenModelInfomationAccount, setIsOpenModelInfomationAccount] = useState(false);
 
     const toggleDropdown = () => {
         if(!isOpen) {
@@ -49,6 +51,13 @@ const CustomModal = () => {
         }
         setIsOpenModelSetting(!isOpenModelSetting);
     };
+
+    const toggleModalInfomation = () => {
+        if(!isOpenModelInfomationAccount) {
+            toggleDropdown();
+        }
+        setIsOpenModelInfomationAccount(!isOpenModelInfomationAccount);
+    };
     
     const handleItemClick = (content) => {
         setIsOpen(false); 
@@ -65,7 +74,7 @@ const CustomModal = () => {
           </button>
           {isOpen && (
             <div className="zmenu-body has-submenu">
-                <div className="zmenu-item" onClick={() => handleItemClick('Thông tin tài khoản')}>
+                <div className="zmenu-item" onClick={toggleModalInfomation}>
                     <i className="fa fa-user menu-icon left"></i>
                     <span>Thông tin tài khoản</span>
                 </div>
@@ -146,6 +155,10 @@ const CustomModal = () => {
 
         {isOpenModelSetting && (
             <SettingModel toggleModalSetting={toggleModalSetting} />
+        )}
+
+        {isOpenModelInfomationAccount && (
+            <InfomationAccount toggleModalInfomation={toggleModalInfomation} />
         )}
 
         </div>

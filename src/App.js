@@ -14,6 +14,8 @@ import Login from "./page/auth/Login";
 import Header from "./route/Header";
 import Chat from "./page/chat/Chat";
 import DanhBa from "./page/danhBa/DanhBa";
+import AccountInfo from "./page/info/accountInfo";
+import GroupInfo from "./page/info/groupInfo";
 
 function App() {
   return (

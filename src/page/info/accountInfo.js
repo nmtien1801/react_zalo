@@ -4,19 +4,10 @@ import { TiBusinessCard } from "react-icons/ti";
 import { MdBlock } from "react-icons/md";
 import { IoWarningOutline } from "react-icons/io5";
 import './accountInfo.scss';
-const AccountInfo = () => {
-    const [isOpen, setIsOpen] = useState(false);
 
-    const openModal = () => setIsOpen(true);
-    const closeModal = () => setIsOpen(false);
-
+const AccountInfo = ({ isOpen, closeModal }) => {
     return (
         <div className="profile-modal-container">
-            {/* Button to trigger the modal */}
-            <button className="open-btn" onClick={openModal}>
-                Xem thông tin tài khoản
-            </button>
-
             {/* Modal */}
             {isOpen && (
                 <div className="modal-overlay" onClick={closeModal}>

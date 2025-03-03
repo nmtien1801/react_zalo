@@ -7,19 +7,9 @@ import { RiShareForwardLine } from "react-icons/ri";
 import { IoSettingsOutline, IoExitOutline } from "react-icons/io5";
 import './groupInfo.scss';
 
-const GroupInfo = () => {
-    const [isOpen, setIsOpen] = useState(false);
-
-    const openModal = () => setIsOpen(true);
-    const closeModal = () => setIsOpen(false);
-
+const GroupInfo = ({ isOpen, closeModal }) => {
     return (
         <div className="group-modal-container">
-            {/* Button to trigger the modal */}
-            <button className="open-btn" onClick={openModal}>
-                Xem thông tin nhóm
-            </button>
-
             {/* Modal */}
             {isOpen && (
                 <div className="modal-overlay" onClick={closeModal}>

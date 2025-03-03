@@ -22,6 +22,7 @@ import {
   Trash2,
 } from "lucide-react";
 import "./Chat.scss";
+import AccountInfo from "../info/accountInfo";
 
 export default function ChatInterface() {
   const [conversations] = useState([
@@ -55,6 +56,11 @@ export default function ChatInterface() {
     { id: "links", title: "Link", icon: LinkIcon },
   ]);
 
+  const [isOpen, setIsOpen] = useState(false);
+
+  const openModal = () => setIsOpen(true);
+  const closeModal = () => setIsOpen(false);
+
   return (
     <div className="row g-0 h-100">
       {/* Main Chat Area */}
@@ -66,7 +72,11 @@ export default function ChatInterface() {
             className="rounded-circle"
             alt=""
             style={{ width: "40px", height: "40px" }}
+            onClick={openModal}
           />
+
+          <AccountInfo isOpen={isOpen} closeModal={closeModal} />
+
           <div className="ms-2">
             <div className="fw-medium">Võ Trường Khang</div>
             <small className="text-muted">Hoạt động 2 giờ trước</small>
@@ -103,7 +113,10 @@ export default function ChatInterface() {
       </div>
 
       {/* Right Sidebar */}
-      <div className="col-auto bg-white border-start" style={{ width: "300px", height: "100vh" , overflowY: "auto"}}>
+      <div
+        className="col-auto bg-white border-start"
+        style={{ width: "300px", height: "100vh", overflowY: "auto" }}
+      >
         {/* Header */}
         <div className="p-3 border-bottom ">
           <h6 className=" text-center">Thông tin hội thoại</h6>
@@ -117,6 +130,7 @@ export default function ChatInterface() {
               alt="Profile"
               className="rounded-circle"
               style={{ width: "80px", height: "80px" }}
+              onClick={openModal}
             />
             <button className="btn btn-light btn-sm rounded-circle position-absolute bottom-0 end-0 p-1">
               <Edit2 size={14} />

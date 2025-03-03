@@ -3,17 +3,14 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
-import AccountInfo from './page/accountInfo/accountInfo';
-import GroupInfo from './page/groupInfo/groupInfo';
-import Index from './page';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    {/* <App /> */}
+    <App />
     {/* <AccountInfo /> */}
     {/* <GroupInfo /> */}
-    <Index />
+    {/* <Index /> */}
   </React.StrictMode>
 );
 

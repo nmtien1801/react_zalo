@@ -2,8 +2,14 @@
 
 import { useState } from "react"
 import { Eye, EyeOff, RefreshCw } from "lucide-react"
+import {Login} from "../../redux/authSlice"
+import { useSelector, useDispatch } from "react-redux";
+import { useNavigate } from "react-router-dom";
 
 export default function LoginForm() {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+
   const [showPassword, setShowPassword] = useState(false)
   const [formData, setFormData] = useState({
     phoneNumber: "",
@@ -19,10 +25,14 @@ export default function LoginForm() {
     }))
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     // Handle login logic here
-    console.log("Form submitted:", formData)
+    let res = await dispatch(Login(formData));
+    if(res.payload.EC === 0){
+      navigate("/chat");
+    }
+    
   }
 
   return (

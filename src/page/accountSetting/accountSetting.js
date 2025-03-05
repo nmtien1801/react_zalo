@@ -66,9 +66,9 @@ const CustomModal = () => {
     return (
         <div className="custom-dropdown">
           <button className="leftbar-tab" onClick={toggleDropdown}>
-            <div class="mmi-icon-wr">
-                <div class="z-noti-badge-container">
-                    <i class="fa fa-cog internal-icon"></i>
+            <div className="mmi-icon-wr">
+                <div className="z-noti-badge-container">
+                    <i className="fa fa-cog internal-icon"></i>
                 </div>
             </div>
           </button>

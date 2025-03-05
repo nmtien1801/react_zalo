@@ -61,13 +61,13 @@ const Header = () => {
         <button className="btn btn-link p-0 text-white opacity-75 hover-opacity-100">
           <Briefcase size={24} />
         </button>
-        <button className="btn btn-link p-0 text-white opacity-75 hover-opacity-100">
+        <div className="btn btn-link p-0 text-white opacity-75 hover-opacity-100">
           {/* <Settings size={24} /> */}
           <AccountSetting
             handleClose={() => setShowModal(false)}
             content={modalContent}
           />
-        </button>
+        </div>
       </div>
     </Navbar>
   );

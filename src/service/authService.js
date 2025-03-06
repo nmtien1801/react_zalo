@@ -1,8 +1,9 @@
-import customizeAxios from "../component/setup/customizeAxios";
+import customizeAxios from "../component/customizeAxios";
 
-const loginService = (formData) => {
+const loginService = (phoneNumber, password) => {
   return customizeAxios.post("/api/login", {
-    formData,
+    phoneNumber,
+    password,
   });
 };
 
@@ -20,4 +21,9 @@ const doGetAccountService = () => {
   return customizeAxios.get("/api/account");
 };
 
-export {loginService, registerNewUser, logoutUserService,doGetAccountService };
+export {
+  loginService,
+  registerNewUser,
+  logoutUserService,
+  doGetAccountService,
+};

@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Eye, EyeOff, RefreshCw } from "lucide-react"
-import {Login} from "../../redux/authSlice"
+import { useState } from "react";
+import { Eye, EyeOff, RefreshCw } from "lucide-react";
+import { Login } from "../../redux/authSlice";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 
@@ -10,34 +10,38 @@ export default function LoginForm() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  const [showPassword, setShowPassword] = useState(false)
+  const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     phoneNumber: "",
     password: "",
     captcha: "",
-  })
+  });
 
   const handleChange = (e) => {
-    const { name, value } = e.target
+    const { name, value } = e.target;
     setFormData((prevState) => ({
       ...prevState,
       [name]: value,
-    }))
-  }
+    }));
+  };
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
+    e.preventDefault();
     // Handle login logic here
     let res = await dispatch(Login(formData));
-    if(res.payload.EC === 0){
-      navigate("/chat");
+    if (res.payload.EC === 0) {
+      // navigate("/chat");
+      localStorage.setItem("access_Token", res.payload.DT.access_Token);
+      localStorage.setItem("refresh_Token", res.payload.DT.refresh_Token);
     }
-    
-  }
+  };
 
   return (
     <div className="container-fluid bg-light min-vh-100 d-flex align-items-center justify-content-center py-4">
-      <div className="card shadow-lg" style={{ maxWidth: "400px", width: "100%" }}>
+      <div
+        className="card shadow-lg"
+        style={{ maxWidth: "400px", width: "100%" }}
+      >
         <div className="card-body p-4">
           {/* Logo and Title */}
           <div className="text-center mb-4">
@@ -107,13 +111,21 @@ export default function LoginForm() {
             </div>
 
             {/* Submit Button */}
-            <button type="submit" className="btn btn-primary w-100 py-2 mb-3" style={{ backgroundColor: "#2962ff" }}>
+            <button
+              type="submit"
+              className="btn btn-primary w-100 py-2 mb-3"
+              style={{ backgroundColor: "#2962ff" }}
+            >
               Đăng nhập
             </button>
 
             {/* Forgot Password Link */}
             <div className="text-center mb-3">
-              <a href="#" className="text-decoration-none" style={{ color: "#2962ff" }}>
+              <a
+                href="#"
+                className="text-decoration-none"
+                style={{ color: "#2962ff" }}
+              >
                 Quên mật khẩu?
               </a>
             </div>
@@ -121,13 +133,16 @@ export default function LoginForm() {
 
           {/* QR Code Login Link */}
           <div className="text-center">
-            <a href="#" className="text-decoration-none" style={{ color: "#2962ff" }}>
+            <a
+              href="#"
+              className="text-decoration-none"
+              style={{ color: "#2962ff" }}
+            >
               Đăng nhập qua mã QR
             </a>
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }
-

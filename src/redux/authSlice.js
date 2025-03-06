@@ -10,8 +10,8 @@ const initialState = {
 
 export const Login = createAsyncThunk(
   "auth/Login",
-  async (formData, thunkAPI) => {
-    const response = await loginService(formData);
+  async ({ phoneNumber, password }, thunkAPI) => {
+    const response = await loginService(phoneNumber, password );
     return response;
   }
 );

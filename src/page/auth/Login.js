@@ -30,7 +30,7 @@ export default function LoginForm() {
     // Handle login logic here
     let res = await dispatch(Login(formData));
     if (res.payload.EC === 0) {
-      // navigate("/chat");
+      navigate("/chat");
       localStorage.setItem("access_Token", res.payload.DT.access_Token);
       localStorage.setItem("refresh_Token", res.payload.DT.refresh_Token);
     }

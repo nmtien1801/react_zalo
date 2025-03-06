@@ -16,22 +16,6 @@ export const Login = createAsyncThunk(
   }
 );
 
-// export const doGetAccount = createAsyncThunk(
-//   "auth/doGetAccount",
-//   async (thunkAPI) => {
-//     const response = await doGetAccountService();
-//     return response;
-//   }
-// );
-
-// export const logoutUser = createAsyncThunk(
-//   "auth/logoutUser",
-//   async (thunkAPI) => {
-//     const response = await logoutUserService();
-//     return response;
-//   }
-// );
-
 const authSlice = createSlice({
   name: "auth",
   initialState,
@@ -50,29 +34,6 @@ const authSlice = createSlice({
       })
       .addCase(Login.rejected, (state, action) => {});
 
-    // doGetAccount
-    // builder
-    //   .addCase(doGetAccount.pending, (state) => {})
-    //   .addCase(doGetAccount.fulfilled, (state, action) => {
-    //     if (action.payload.EC === 0) {
-    //       state.userInfo = action.payload.DT || {};
-    //       state.isLoggedIn = true;
-    //     }
-    //   })
-    //   .addCase(doGetAccount.rejected, (state, action) => {});
-
-    // logoutUser
-    // builder
-    //   .addCase(logoutUser.pending, (state) => {})
-    //   .addCase(logoutUser.fulfilled, (state, action) => {
-    //     if (action.payload.EC === 0) {
-    //       state.userInfo = {};
-    //       state.isLoggedIn = false;
-    //       localStorage.removeItem("access_Token");
-    //       localStorage.removeItem("refresh_Token");
-    //     }
-    //   })
-    //   .addCase(logoutUser.rejected, (state, action) => {});
   },
 });
 

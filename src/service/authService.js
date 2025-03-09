@@ -25,5 +25,5 @@ export {
   loginService,
   registerNewUser,
   logoutUserService,
-  doGetAccountService,
+  doGetAccountService
 };

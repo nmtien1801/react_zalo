@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   Search,
   Phone,
@@ -23,32 +23,10 @@ import {
 } from "lucide-react";
 import "./Chat.scss";
 import AccountInfo from "../info/accountInfo";
+import { useSelector, useDispatch } from "react-redux";
+// import { getMessages, sendMessages } from "../../redux/chatSlice";
 
 export default function ChatInterface() {
-  const [conversations] = useState([
-    {
-      id: 1,
-      name: "Võ Trường Khang",
-      message: "[Thông báo] Giới thiệu về Trường Kha...",
-      time: "26/07/24",
-      avatar: "/placeholder.svg",
-    },
-    {
-      id: 2,
-      name: "Thu",
-      message: "[Thông báo] Giới thiệu thêm Thu",
-      time: "23/07/24",
-      avatar: "/placeholder.svg",
-    },
-    {
-      id: 3,
-      name: "IGH - DHKTPMTB - CT7",
-      message: "Võ Văn Hòa, Dung",
-      time: "20/07/24",
-      avatar: "/placeholder.svg",
-    },
-    // Add more conversations as needed
-  ]);
 
   const [sections] = useState([
     { id: "media", title: "Ảnh/Video", icon: ImageIcon },
@@ -60,6 +38,41 @@ export default function ChatInterface() {
 
   const openModal = () => setIsOpen(true);
   const closeModal = () => setIsOpen(false);
+
+  const [input, setInput] = useState("");
+
+  const messages = useSelector((state) => state.chat.message);
+  const messagesEndRef = useRef(null);
+  const prevMessagesCount = useRef(messages.length);
+  const dispatch = useDispatch();
+
+  const sendMessage = async () => {
+      if (!input.trim()) return;
+      // let res = await dispatch(sendMessages({ clientId: 2, senderId: 1, message: input }));
+      // if (res.payload.EC === 0) {
+      //     setInput("");
+      //     await dispatch(getMessages());
+      // }
+  };
+
+  // const fetchMessages = async () => {
+  // await dispatch(getMessages());
+  // };
+
+  // useEffect(() => {
+  //     dispatch(getMessages());
+  //     const interval = setInterval(fetchMessages, 1000); // Lặp lại mỗi 1 giây
+  //     return () => clearInterval(interval); // Cleanup khi component unmount
+  // }, []);
+
+  // Tự động cuộn xuống tin nhắn mới nhất
+  useEffect(() => {
+    if (messages.length > prevMessagesCount.current) {
+      const chatContent = document.querySelector(".chat-content");
+      chatContent.scrollTop = chatContent.scrollHeight; // Cuộn đến cuối phần Chat Content
+    }
+    prevMessagesCount.current = messages.length;
+  }, [messages]);
 
   return (
     <div className="row g-0 h-100">
@@ -89,6 +102,19 @@ export default function ChatInterface() {
           style={{ height: "calc(100vh - 128px)", overflowY: "auto" }}
         >
           {/* Chat messages would go here */}
+          {messages.map((msg, index) => (
+            <div
+              key={index}
+              className={`p-2 my-1 max-w-[80%] rounded-lg ${
+                msg.senderId === 2
+                  ? "bg-blue-100 self-end ml-auto"
+                  : "bg-gray-200"
+              }`}
+            >
+              {msg.message}
+            </div>
+          ))}
+          <div ref={messagesEndRef} />
         </div>
 
         {/* Message Input */}
@@ -101,11 +127,14 @@ export default function ChatInterface() {
               <Paperclip size={20} />
             </button>
             <input
+              className="form-control flex-1 p-2 border rounded-lg outline-none"
               type="text"
-              className="form-control"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && sendMessage()}
               placeholder="Nhập tin nhắn..."
             />
-            <button className="btn btn-primary ms-2">
+            <button className="btn btn-primary ms-2" onClick={sendMessage}>
               <Send size={20} />
             </button>
           </div>

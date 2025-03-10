@@ -42,6 +42,7 @@ function App() {
         {/* Nội dung chính */}
         <div className="content flex-grow-1 d-flex justify-content-center align-items-center">
           <Routes>
+            <Route path="/" element={<Login />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
 

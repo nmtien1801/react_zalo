@@ -18,6 +18,7 @@ import Register from "./page/auth/Register";
 import { useSelector, useDispatch } from "react-redux";
 import { doGetAccount } from "./redux/authSlice";
 
+
 function App() {
   const dispatch = useDispatch();
   let isLoggedIn = useSelector((state) => state.auth.isLoggedIn);
@@ -47,6 +48,7 @@ function App() {
 
             <Route path="/chat" element={isLoggedIn && <Chat />} />
             <Route path="/danh-ba" element={isLoggedIn && <DanhBa />} />
+
           </Routes>
         </div>
       </div>

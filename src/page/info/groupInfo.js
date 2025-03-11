@@ -5,7 +5,7 @@ import { IoIosLink } from "react-icons/io";
 import { PiCopySimple } from "react-icons/pi";
 import { RiShareForwardLine } from "react-icons/ri";
 import { IoSettingsOutline, IoExitOutline } from "react-icons/io5";
-import './groupInfo.scss';
+import './GroupInfo.scss';
 
 const GroupInfo = ({ isOpen, closeModal }) => {
     return (

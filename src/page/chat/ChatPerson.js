@@ -22,7 +22,7 @@ import {
   Trash2,
 } from "lucide-react";
 import "./Chat.scss";
-import AccountInfo from "../info/accountInfo";
+import AccountInfo from "../info/AccountInfo";
 import { useSelector, useDispatch } from "react-redux";
 // import { getMessages, sendMessages } from "../../redux/chatSlice";
 
@@ -47,12 +47,12 @@ export default function ChatInterface() {
   const dispatch = useDispatch();
 
   const sendMessage = async () => {
-      if (!input.trim()) return;
-      // let res = await dispatch(sendMessages({ clientId: 2, senderId: 1, message: input }));
-      // if (res.payload.EC === 0) {
-      //     setInput("");
-      //     await dispatch(getMessages());
-      // }
+    if (!input.trim()) return;
+    // let res = await dispatch(sendMessages({ clientId: 2, senderId: 1, message: input }));
+    // if (res.payload.EC === 0) {
+    //     setInput("");
+    //     await dispatch(getMessages());
+    // }
   };
 
   // const fetchMessages = async () => {
@@ -105,11 +105,10 @@ export default function ChatInterface() {
           {messages.map((msg, index) => (
             <div
               key={index}
-              className={`p-2 my-1 max-w-[80%] rounded-lg ${
-                msg.senderId === 2
+              className={`p-2 my-1 max-w-[80%] rounded-lg ${msg.senderId === 2
                   ? "bg-blue-100 self-end ml-auto"
                   : "bg-gray-200"
-              }`}
+                }`}
             >
               {msg.message}
             </div>

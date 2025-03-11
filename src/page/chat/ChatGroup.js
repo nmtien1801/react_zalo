@@ -21,7 +21,7 @@ import {
   Trash2,
 } from "lucide-react";
 import "./Chat.scss";
-import GroupInfo from "../info/groupInfo";
+import GroupInfo from "../info/GroupInfo";
 
 export default function ChatInterface() {
   const [conversations] = useState([

@@ -147,8 +147,8 @@ export default function ChatInterface() {
         style={{ width: "300px", height: "100vh", overflowY: "auto" }}
       >
         {/* Header */}
-        <div className="p-3 border-bottom ">
-          <h6 className=" text-center">Thông tin hội thoại</h6>
+        <div className="border-bottom header-right-sidebar">
+          <h6 className="text-center">Thông tin hội thoại</h6>
         </div>
 
         {/* Profile Section */}

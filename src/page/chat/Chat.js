@@ -12,6 +12,7 @@ export default function ChatInterface() {
       message: "[Thông báo] Giới thiệu về Trường Kha...",
       time: "26/07/24",
       avatar: "/placeholder.svg",
+      type: 1,
     },
     {
       id: 2,
@@ -19,6 +20,7 @@ export default function ChatInterface() {
       message: "[Thông báo] Giới thiệu thêm Thu",
       time: "23/07/24",
       avatar: "/placeholder.svg",
+      type: 1,
     },
     {
       id: 3,
@@ -26,6 +28,7 @@ export default function ChatInterface() {
       message: "Võ Văn Hòa, Dung",
       time: "20/07/24",
       avatar: "/placeholder.svg",
+      type: 2,
     },
     // Add more conversations as needed
   ]);
@@ -36,7 +39,17 @@ export default function ChatInterface() {
     { id: "links", title: "Link", icon: LinkIcon },
   ]);
 
-  const [isChatGroup, setIsChatGroup] = useState(false);
+  const [typeChatRoom, setTypeChatRoom] = useState("cloud");
+
+  const handleTypeChat = (type) => {
+    if (type === 1) {
+      setTypeChatRoom("single");
+    } else if (type === 2) {
+      setTypeChatRoom("group");
+    } else {
+      setTypeChatRoom("cloud");
+    }
+  };
 
   return (
     <div className="container-fluid vh-100 p-0">
@@ -77,7 +90,7 @@ export default function ChatInterface() {
               <div
                 key={chat.id}
                 className="d-flex align-items-center p-2 border-bottom hover-bg-light cursor-pointer"
-                onClick={() => setIsChatGroup(!isChatGroup)}
+                onClick={() => handleTypeChat(chat.type)}
               >
                 <img
                   src={chat.avatar || "/placeholder.svg"}
@@ -98,7 +111,13 @@ export default function ChatInterface() {
         </div>
 
         <div className="col">
-            {isChatGroup ? <ChatGroup /> : <ChatPerson />}
+          {typeChatRoom === "group" ? (
+            <ChatGroup />
+          ) : typeChatRoom === "single" ? (
+            <ChatPerson />
+          ) : (
+            <></>
+          )}
         </div>
       </div>
     </div>

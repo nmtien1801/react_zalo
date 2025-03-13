@@ -1,18 +1,20 @@
 import { useState } from "react";
-import { Search, ImageIcon, File, LinkIcon } from "lucide-react";
+import { Search, UserPlus, Users } from "lucide-react";
 import "./Chat.scss";
 import ChatPerson from "./ChatPerson";
 import ChatGroup from "./ChatGroup";
+import ChatCloud from "./ChatCloud";
 
 export default function ChatInterface() {
+  const [selected, setSelected] = useState(0);
   const [conversations] = useState([
     {
       id: 1,
-      name: "Võ Trường Khang",
+      name: "Cloud",
       message: "[Thông báo] Giới thiệu về Trường Kha...",
       time: "26/07/24",
-      avatar: "/placeholder.svg",
-      type: 1,
+      avatar: "/cloud.jpg",
+      type: 3,
     },
     {
       id: 2,
@@ -31,12 +33,6 @@ export default function ChatInterface() {
       type: 2,
     },
     // Add more conversations as needed
-  ]);
-
-  const [sections] = useState([
-    { id: "media", title: "Ảnh/Video", icon: ImageIcon },
-    { id: "files", title: "File", icon: File },
-    { id: "links", title: "Link", icon: LinkIcon },
   ]);
 
   const [typeChatRoom, setTypeChatRoom] = useState("cloud");
@@ -59,25 +55,48 @@ export default function ChatInterface() {
           className="col-3 border-end bg-white"
           style={{ maxWidth: "300px" }}
         >
-          {/* Profile and Search */}
-          <div className="p-3 border-bottom">
-            <div className="d-flex align-items-center ">
-              <img
-                src="/placeholder.svg"
-                className="rounded-circle"
-                alt=""
-                style={{ width: "32px", height: "32px" }}
-              />
-              <div className="input-group ms-2">
+          {/*  Search */}
+          <div className="p-2 border-bottom">
+            <div className="d-flex align-items-center pb-3">
+              <div className="input-group me-3">
                 <input
                   type="text"
                   className="form-control form-control-sm bg-light"
                   placeholder="Tìm kiếm"
                 />
-                <span className="input-group-text bg-light border-start-0">
+                <button className="btn btn-light  cursor-pointer border">
                   <Search size={16} />
-                </span>
+                </button>
               </div>
+
+              <button className="btn btn-light rounded-circle mb-1">
+                <UserPlus size={20} />
+              </button>
+
+              <button className="btn btn-light rounded-circle mb-1">
+                <Users size={20} />
+              </button>
+            </div>
+
+            <div className="d-flex align-items-center justify-content-between">
+              <div className="d-flex align-items-center gap-4">
+                {["Tất cả", "Chưa đọc"].map((item, index) => (
+                  <span
+                    key={index}
+                    onClick={() => setSelected(index)}
+                    style={{
+                      textDecoration: selected === index ? "underline" : "none",
+                      color: selected === index ? "#0d6efd" : "black", // Đổi màu xanh khi chọn
+                      cursor: "pointer",
+                      textDecorationThickness: "4px", // Độ dày gạch chân
+                      textUnderlineOffset: "5px", // Khoảng cách gạch chân so với chữ
+                    }}
+                  >
+                    {item}
+                  </span>
+                ))}
+              </div>
+              <div className="cursor-pointer hover-bg-light p-1">Phân loại</div>
             </div>
           </div>
 
@@ -116,7 +135,7 @@ export default function ChatInterface() {
           ) : typeChatRoom === "single" ? (
             <ChatPerson />
           ) : (
-            <></>
+            <ChatCloud />
           )}
         </div>
       </div>

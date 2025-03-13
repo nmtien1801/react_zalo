@@ -10,19 +10,6 @@ const instance = axios.create({
   withCredentials: true, // để FE có thể nhận cookie từ BE
 });
 
-// Cấu hình retry -> khi sử dụng refresh token
-axiosRetry(instance, {
-  retries: 3, // Số lần retry tối đa
-  retryDelay: (retryCount) => {
-    console.log(`Retry attempt: ${retryCount}`);
-    return retryCount * 100; // Thời gian delay giữa các lần retry (ms)
-  },
-  retryCondition: (error) => {
-    // Điều kiện để thực hiện retry -> retry refresh token khi bất đồng bộ
-    return error.response?.status === 400; // Retry nếu lỗi là 400
-  },
-});
-
 // Alter defaults after instance has been created
 //Search: what is brearer token
 instance.defaults.headers.common[
@@ -40,6 +27,33 @@ instance.interceptors.request.use(
   }
 );
 
+const refreshAccessToken = async () => {
+  try {
+    const refreshToken = localStorage.getItem("refresh_Token");
+    if (!refreshToken) throw new Error("No refresh token available");
+
+    const response = await axios.post(
+      `${process.env.REACT_APP_BACKEND_URL}/api/refreshToken`,
+      {
+        refresh_Token: refreshToken,
+      }
+    );
+
+    console.log(">>>access_Token: ", response);
+    const access_Token = response.data.DT.newAccessToken;
+    const refresh_Token = response.data.DT.newRefreshToken;
+
+    // Cập nhật token mới vào localStorage
+    localStorage.setItem("access_Token", access_Token);
+    localStorage.setItem("refresh_Token", refresh_Token);
+
+    return access_Token;
+  } catch (error) {
+    console.error("Refresh token failed:", error);
+    return null;
+  }
+};
+
 // search: How can you use axios interceptors?
 // Add a response interceptor
 instance.interceptors.response.use(
@@ -48,9 +62,7 @@ instance.interceptors.response.use(
     // Do something with response data
     return response && response.data ? response.data : response;
   },
-  function (error) {
-    // Any status codes that falls outside the range of 2xx cause this function to trigger
-    // Do something with response error
+  async function (error) {
     const status = error.response?.status || 500;
     switch (status) {
       // authentication (token related issues)
@@ -75,9 +87,18 @@ instance.interceptors.response.use(
         return Promise.reject(error);
       }
 
-      // bad request
+      // bad request => refresh token
       case 400: {
-        return Promise.reject(error);
+        const newToken = await refreshAccessToken();
+
+        if (newToken) {
+          error.config.headers["Authorization"] = `Bearer ${newToken}`;
+          return instance(error.config);
+        } else {
+          toast.error("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.");
+          localStorage.removeItem("access_Token");
+          // window.location.href = "/login"; // Chuyển hướng về trang đăng nhập nếu cần
+        }
       }
 
       // not found get /post / delete /put

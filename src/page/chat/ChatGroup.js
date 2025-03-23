@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   LogOut,
   UserPlus,
@@ -24,34 +24,25 @@ import {
 } from "lucide-react";
 import "./Chat.scss";
 import GroupInfo from "../info/groupInfo";
+import { useSelector, useDispatch } from "react-redux";
 
-export default function ChatGroup() {
+export default function ChatGroup(props) {
+  const dispatch = useDispatch();
+  const user = useSelector((state) => state.auth.userInfo);
   const [showSidebar, setShowSidebar] = useState(true);
+  const [message, setMessage] = useState(""); // input
+  const [messages, setMessages] = useState([]); // all hội thoại
 
-  const [conversations] = useState([
-    {
-      id: 1,
-      name: "Võ Trường Khang",
-      message: "[Thông báo] Giới thiệu về Trường Kha...",
-      time: "26/07/24",
-      avatar: "/placeholder.svg",
-    },
-    {
-      id: 2,
-      name: "Thu",
-      message: "[Thông báo] Giới thiệu thêm Thu",
-      time: "23/07/24",
-      avatar: "/placeholder.svg",
-    },
-    {
-      id: 3,
-      name: "IGH - DHKTPMTB - CT7",
-      message: "Võ Văn Hòa, Dung",
-      time: "20/07/24",
-      avatar: "/placeholder.svg",
-    },
-    // Add more conversations as needed
-  ]);
+  useEffect(() => {
+    if (props.allMsg) {
+      setMessages(props.allMsg);
+    }
+  }, [props.allMsg]);
+
+  const sendMessage = async () => {
+    props.handleSendMsg(message);
+    setMessage("");
+  };
 
   const [sections] = useState([
     { id: "media", title: "Ảnh/Video", icon: ImageIcon },
@@ -109,7 +100,27 @@ export default function ChatGroup() {
           className="p-3"
           style={{ height: "calc(100vh - 128px)", overflowY: "auto" }}
         >
-          {/* Chat messages would go here */}
+          <div className="flex flex-col justify-end">
+            {messages &&
+              messages.map((msg, index) => (
+                <div
+                  key={index}
+                  className={`p-2 my-1 d-flex ${
+                    msg.sender._id === user._id && "justify-content-end"
+                  }`}
+                >
+                  <span
+                    className={`p-3 ${
+                      msg.sender._id === user._id
+                        ? "bg-primary border rounded-pill" // Tin nhắn của user căn phải
+                        : "bg-white border rounded-pill" // Tin nhắn của người khác căn trái
+                    }`}
+                  >
+                    {msg.msg}
+                  </span>
+                </div>
+              ))}
+          </div>
         </div>
 
         {/* Message Input */}
@@ -121,12 +132,16 @@ export default function ChatGroup() {
             <button className="btn btn-light me-2">
               <Paperclip size={20} />
             </button>
+
             <input
+              className="form-control flex-1 p-2 border rounded-lg outline-none"
               type="text"
-              className="form-control"
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && sendMessage()}
               placeholder="Nhập tin nhắn..."
             />
-            <button className="btn btn-primary ms-2">
+            <button className="btn btn-primary ms-2" onClick={sendMessage}>
               <Send size={20} />
             </button>
           </div>

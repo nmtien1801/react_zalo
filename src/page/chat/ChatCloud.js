@@ -16,9 +16,10 @@ import {
 import "./Chat.scss";
 import AccountInfo from "../info/accountInfo";
 import { useSelector, useDispatch } from "react-redux";
-// import { getMessages, sendMessages } from "../../redux/chatSlice";
 
-export default function ChatCloud() {
+export default function ChatCloud(props) {
+  const dispatch = useDispatch();
+  const user = useSelector((state) => state.auth.userInfo);
   const [showSidebar, setShowSidebar] = useState(true);
 
   const [sections] = useState([
@@ -32,20 +33,19 @@ export default function ChatCloud() {
   const openModal = () => setIsOpen(true);
   const closeModal = () => setIsOpen(false);
 
-  const [input, setInput] = useState("");
+  const [message, setMessage] = useState(""); // input
+  const [messages, setMessages] = useState([]); // all hội thoại
 
-  const messages = useSelector((state) => state.chat.message);
-  const messagesEndRef = useRef(null);
-  const prevMessagesCount = useRef(messages.length);
-  const dispatch = useDispatch();
+  // console.log("props: ", props);
+  useEffect(() => {
+    if (props.allMsg) {
+      setMessages(props.allMsg);
+    }
+  }, [props.allMsg]);
 
   const sendMessage = async () => {
-    if (!input.trim()) return;
-    // let res = await dispatch(sendMessages({ clientId: 2, senderId: 1, message: input }));
-    // if (res.payload.EC === 0) {
-    //     setInput("");
-    //     await dispatch(getMessages());
-    // }
+    props.handleSendMsg(message);
+    setMessage("");
   };
 
   // const fetchMessages = async () => {
@@ -57,15 +57,6 @@ export default function ChatCloud() {
   //     const interval = setInterval(fetchMessages, 1000); // Lặp lại mỗi 1 giây
   //     return () => clearInterval(interval); // Cleanup khi component unmount
   // }, []);
-
-  // Tự động cuộn xuống tin nhắn mới nhất
-  useEffect(() => {
-    if (messages.length > prevMessagesCount.current) {
-      const chatContent = document.querySelector(".chat-content");
-      chatContent.scrollTop = chatContent.scrollHeight; // Cuộn đến cuối phần Chat Content
-    }
-    prevMessagesCount.current = messages.length;
-  }, [messages]);
 
   return (
     <div className="row g-0 h-100">
@@ -111,20 +102,27 @@ export default function ChatCloud() {
           className="p-3"
           style={{ height: "calc(100vh - 128px)", overflowY: "auto" }}
         >
-          {/* Chat messages would go here */}
-          {messages.map((msg, index) => (
-            <div
-              key={index}
-              className={`p-2 my-1 max-w-[80%] rounded-lg ${
-                msg.senderId === 2
-                  ? "bg-blue-100 self-end ml-auto"
-                  : "bg-gray-200"
-              }`}
-            >
-              {msg.message}
-            </div>
-          ))}
-          <div ref={messagesEndRef} />
+          <div className="flex flex-col justify-end">
+            {messages &&
+              messages.map((msg, index) => (
+                <div
+                  key={index}
+                  className={`p-2 my-1 d-flex ${
+                    msg.sender._id === user._id && "justify-content-end"
+                  }`}
+                >
+                  <span
+                    className={`p-3 ${
+                      msg.sender._id === user._id
+                        ? "bg-primary border rounded-pill" // Tin nhắn của user căn phải
+                        : "bg-white border rounded-pill" // Tin nhắn của người khác căn trái
+                    }`}
+                  >
+                    {msg.msg}
+                  </span>
+                </div>
+              ))}
+          </div>
         </div>
 
         {/* Message Input */}
@@ -139,8 +137,8 @@ export default function ChatCloud() {
             <input
               className="form-control flex-1 p-2 border rounded-lg outline-none"
               type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && sendMessage()}
               placeholder="Nhập tin nhắn..."
             />

@@ -44,8 +44,11 @@ const authSlice = createSlice({
       .addCase(Login.pending, (state) => {})
       .addCase(Login.fulfilled, (state, action) => {
         if (action.payload.EC === 0) {
-          state.userInfo = action.payload.DT || {};
+          state.userInfo = action.payload.DT || {};          
           state.isLoggedIn = true;
+        }
+        else{
+          alert(action.payload.EM)
         }
       })
       .addCase(Login.rejected, (state, action) => {});
@@ -56,6 +59,8 @@ const authSlice = createSlice({
       .addCase(doGetAccount.fulfilled, (state, action) => {
         if (action.payload.EC === 0) {
           state.userInfo = action.payload.DT || {};
+          console.log("state.userInfo: ", action.payload );
+
           state.isLoggedIn = true;
         }
       })

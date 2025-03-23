@@ -1,51 +1,150 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Search, UserPlus, Users } from "lucide-react";
 import "./Chat.scss";
 import ChatPerson from "./ChatPerson";
 import ChatGroup from "./ChatGroup";
 import ChatCloud from "./ChatCloud";
+import { loadMessages, getConversations } from "../../redux/chatSlice";
+import { useSelector, useDispatch } from "react-redux";
+import io from "socket.io-client";
 
 export default function ChatInterface() {
+  const dispatch = useDispatch();
+  const socketRef = useRef();
+
+  const [allMsg, setAllMsg] = useState([]);
+  const user = useSelector((state) => state.auth.userInfo);
+  const conversationRedux = useSelector((state) => state.chat.conversations);
+  const [isConnect, setIsConnect] = useState(false); // connect socket
   const [selected, setSelected] = useState(0);
-  const [conversations] = useState([
+  const [roomData, setRoomData] = useState({
+    room: null,
+    receiver: null,
+  });
+  const [conversations, setConversations] = useState([
     {
-      id: 1,
-      name: "Cloud",
+      _id: 1,
+      username: "Cloud",
       message: "[Thông báo] Giới thiệu về Trường Kha...",
       time: "26/07/24",
       avatar: "/cloud.jpg",
       type: 3,
     },
-    {
-      id: 2,
-      name: "Thu",
-      message: "[Thông báo] Giới thiệu thêm Thu",
-      time: "23/07/24",
-      avatar: "/placeholder.svg",
-      type: 1,
-    },
-    {
-      id: 3,
-      name: "IGH - DHKTPMTB - CT7",
-      message: "Võ Văn Hòa, Dung",
-      time: "20/07/24",
-      avatar: "/placeholder.svg",
-      type: 2,
-    },
-    // Add more conversations as needed
   ]);
 
   const [typeChatRoom, setTypeChatRoom] = useState("cloud");
 
-  const handleTypeChat = (type) => {
-    if (type === 1) {
-      setTypeChatRoom("single");
-    } else if (type === 2) {
-      setTypeChatRoom("group");
-    } else {
-      setTypeChatRoom("cloud");
+  // connect docket
+  useEffect(() => {
+    const socket = io.connect(process.env.REACT_APP_BACKEND_URL);
+
+    socketRef.current = socket;
+    socket.on("connect", () => setIsConnect(true));
+    socket.off("disconnect", () => setIsConnect(false));
+  }, []);
+
+  // action socket
+  useEffect(() => {
+    if (isConnect) {
+      socketRef.current.on("RECEIVED_MSG", (data) => {
+        console.log(data, "form another users");
+        setAllMsg((prevState) => [...prevState, data]);
+      });
+      socketRef.current.on("DELETED_MSG", (data) => {
+        setAllMsg((prevState) =>
+          prevState.filter((item) => item._id != data.msg._id)
+        );
+      });
+
+      return () => socketRef.current.disconnect();
+    }
+  }, [isConnect]);
+
+  const handleSendMsg = (msg) => {
+    if (socketRef.current.connected) {
+      let sender = { ...user };
+      sender.socketId = socketRef.current.id;
+
+      const data = {
+        msg,
+        receiver: roomData.receiver,
+        sender,
+      };
+      console.log("data: ", data);
+
+      socketRef.current.emit("SEND_MSG", data);
     }
   };
+
+  // const handleDelete = (id) => {
+  //   axios
+  //     .delete(`http://localhost:8080/message/${id}`)
+  //     .then((res) => {
+  //       if (socketRef.current.connected) {
+  //         const data = {
+  //           msg: res.data.data,
+  //           receiver: roomData.receiver,
+  //         };
+  //         socketRef.current.emit("DELETE_MSG", data);
+  //         setAllMsg((prevState) =>
+  //           prevState.filter((data) => data._id != res.data.data._id)
+  //         );
+  //       }
+  //     })
+  //     .catch((err) => {
+  //       console.log(err);
+  //     });
+  // };
+
+  const handleTypeChat = (type, receiver) => {
+
+    if (type === 1) {
+      setTypeChatRoom("single");
+      handleLoadMessages(receiver._id, receiver.type);
+
+      setRoomData({ ...roomData, room: "single", receiver: receiver });
+    } else if (type === 2) {
+      setTypeChatRoom("group");
+      handleLoadMessages(receiver._id, receiver.type);
+      setRoomData({ ...roomData, room: "group", receiver: receiver });
+    } else {
+      setTypeChatRoom("cloud");
+      handleLoadMessages(receiver._id, receiver.type);
+      setRoomData({ ...roomData, room: "cloud", receiver: user });
+    }
+  };
+
+  const handleLoadMessages = async (receiver, type) => {
+    const res = await dispatch(
+      loadMessages({ sender: user._id, receiver: receiver, type: type})
+    );
+
+    if (res.payload.EC === 0) {
+      setAllMsg(res.payload.DT);
+    }
+  };
+
+  useEffect(() => {
+    dispatch(getConversations(user._id));
+  }, []);
+
+  useEffect(() => {
+    if (conversationRedux) {
+      let _conversations = conversationRedux.map((item) => {
+        return {
+          _id: item.receiver._id,
+          username: item.receiver.username,
+          message: item.message,
+          time: item.time,
+          avatar: item.avatar,
+          type: item.type,
+          phone: item.receiver.phone,
+        };
+      });
+
+      setConversations(_conversations);
+    }
+  }, [conversationRedux]);
 
   return (
     <div className="container-fluid vh-100 p-0">
@@ -105,37 +204,64 @@ export default function ChatInterface() {
             className="overflow-auto"
             style={{ height: "calc(100vh - 60px)" }}
           >
-            {conversations.map((chat) => (
-              <div
-                key={chat.id}
-                className="d-flex align-items-center p-2 border-bottom hover-bg-light cursor-pointer"
-                onClick={() => handleTypeChat(chat.type)}
-              >
-                <img
-                  src={chat.avatar || "/placeholder.svg"}
-                  className="rounded-circle"
-                  alt=""
-                  style={{ width: "48px", height: "48px" }}
-                />
-                <div className="ms-2 overflow-hidden ">
-                  <div className="text-truncate fw-medium ">{chat.name}</div>
-                  <div className="text-truncate small text-muted ">
-                    {chat.message}
+            {conversations &&
+              conversations.map((chat) => (
+                <div
+                  key={chat._id}
+                  className="d-flex align-items-center p-2 border-bottom hover-bg-light cursor-pointer"
+                  onClick={() => handleTypeChat(chat.type, chat)}
+                >
+                  <img
+                    src={chat.avatar || "/placeholder.svg"}
+                    className="rounded-circle"
+                    alt=""
+                    style={{ width: "48px", height: "48px" }}
+                  />
+                  <div className="ms-2 overflow-hidden ">
+                    <div className="text-truncate fw-medium ">
+                      {chat.username}
+                    </div>
+                    <div className="text-truncate small text-muted ">
+                      {chat.message}
+                    </div>
                   </div>
+                  <small className="text-muted ms-auto">{chat.time}</small>
                 </div>
-                <small className="text-muted ms-auto">{chat.time}</small>
-              </div>
-            ))}
+              ))}
           </div>
         </div>
 
         <div className="col">
-          {typeChatRoom === "group" ? (
-            <ChatGroup />
-          ) : typeChatRoom === "single" ? (
-            <ChatPerson />
+          {roomData.room ? (
+            <>
+              {typeChatRoom === "group" ? (
+                <ChatGroup
+                  roomData={roomData}
+                  handleSendMsg={handleSendMsg}
+                  allMsg={allMsg}
+                  user={user}
+                  // handleDelete={handleDelete}
+                />
+              ) : typeChatRoom === "single" ? (
+                <ChatPerson
+                  roomData={roomData}
+                  handleSendMsg={handleSendMsg}
+                  allMsg={allMsg}
+                  user={user}
+                  // handleDelete={handleDelete}
+                />
+              ) : (
+                <ChatCloud
+                  roomData={roomData}
+                  handleSendMsg={handleSendMsg}
+                  allMsg={allMsg}
+                  user={user}
+                  // handleDelete={handleDelete}
+                />
+              )}
+            </>
           ) : (
-            <ChatCloud />
+            <>Chào mừng bạn đến với chúng tôi</>
           )}
         </div>
       </div>

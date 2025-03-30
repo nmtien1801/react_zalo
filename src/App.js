@@ -17,8 +17,9 @@ import DanhBa from "./page/danhBa/DanhBa";
 import Register from "./page/auth/Register";
 import { useSelector, useDispatch } from "react-redux";
 import { doGetAccount } from "./redux/authSlice";
+import CallScreen from "./component/CallScreen";
 
-function App() {
+function App() {  
   const dispatch = useDispatch();
   let isLoggedIn = useSelector((state) => state.auth.isLoggedIn);
   const user = useSelector((state) => state.auth.userInfo);
@@ -47,7 +48,7 @@ function App() {
             <Route path="/register" element={<Register />} />
 
             <Route path="/chat" element={isLoggedIn && <Chat />} />
-            <Route path="/danh-ba" element={isLoggedIn && <DanhBa />} />
+            <Route path="/danh-ba" element={isLoggedIn && <CallScreen roomId={"room1"}/>} />
           </Routes>
         </div>
       </div>

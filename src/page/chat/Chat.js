@@ -76,26 +76,6 @@ export default function ChatInterface() {
     }
   };
 
-  // const handleDelete = (id) => {
-  //   axios
-  //     .delete(`http://localhost:8080/message/${id}`)
-  //     .then((res) => {
-  //       if (socketRef.current.connected) {
-  //         const data = {
-  //           msg: res.data.data,
-  //           receiver: roomData.receiver,
-  //         };
-  //         socketRef.current.emit("DELETE_MSG", data);
-  //         setAllMsg((prevState) =>
-  //           prevState.filter((data) => data._id != res.data.data._id)
-  //         );
-  //       }
-  //     })
-  //     .catch((err) => {
-  //       console.log(err);
-  //     });
-  // };
-
   const handleTypeChat = (type, receiver) => {
 
     if (type === 1) {
@@ -123,6 +103,26 @@ export default function ChatInterface() {
       setAllMsg(res.payload.DT);
     }
   };
+
+  //  const handleDelete = (id) => {
+  //   axios
+  //     .delete(`http://localhost:8080/message/${id}`)
+  //     .then((res) => {
+  //       if (socketRef.current.connected) {
+  //         const data = {
+  //           msg: res.data.data,
+  //           receiver: roomData.receiver,
+  //         };
+  //         socketRef.current.emit("DELETE_MSG", data);
+  //         setAllMsg((prevState) =>
+  //           prevState.filter((data) => data._id != res.data.data._id)
+  //         );
+  //       }
+  //     })
+  //     .catch((err) => {
+  //       console.log(err);
+  //     });
+  // };
 
   useEffect(() => {
     dispatch(getConversations(user._id));

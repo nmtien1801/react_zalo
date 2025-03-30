@@ -18,18 +18,23 @@ import {
   Trash2,
   Search,
   Layout,
+  Phone,
+  Video,
 } from "lucide-react";
 import "./Chat.scss";
 import AccountInfo from "../info/accountInfo";
 import { useSelector, useDispatch } from "react-redux";
+import CallScreen from "../../component/CallScreen"; 
 
 export default function ChatPerson(props) {
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.userInfo);
+  const receiver = props.roomData.receiver;
 
   const [showSidebar, setShowSidebar] = useState(true);
   const [message, setMessage] = useState(""); // input
   const [messages, setMessages] = useState([]); // all hội thoại
+  const [showCallScreen, setShowCallScreen] = useState(false);  // Hiển thị cuộc gọi
 
   useEffect(() => {
     if (props.allMsg) {
@@ -52,6 +57,7 @@ export default function ChatPerson(props) {
 
   const openModal = () => setIsOpen(true);
   const closeModal = () => setIsOpen(false);
+console.log("props", receiver);
 
   return (
     <div className="row g-0 h-100">
@@ -77,6 +83,25 @@ export default function ChatPerson(props) {
           </div>
 
           <div className="d-flex align-items-center gap-2">
+            <span
+              className="btn btn-light rounded-circle mb-1"
+              onClick={() => setShowCallScreen(true)}
+            >
+              <Phone size={16} />
+            </span>
+            {/* Hiển thị modal cuộc gọi */}
+            <CallScreen
+              roomId={"room1"}
+              show={showCallScreen}
+              onHide={() => setShowCallScreen(false)}
+              user={user}
+              receiver={receiver}
+            />
+
+            <span className="btn btn-light rounded-circle mb-1">
+              <Video size={16} />
+            </span>
+
             <span className="btn btn-light rounded-circle mb-1">
               <Search size={16} />
             </span>

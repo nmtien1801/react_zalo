@@ -37,7 +37,7 @@ export default function ChatInterface() {
   // connect docket
   useEffect(() => {
     const socket = io.connect(process.env.REACT_APP_BACKEND_URL);
-
+    console.log("Connected to socket server with ID:", socket.id);
     socketRef.current = socket;
     socket.on("connect", () => setIsConnect(true));
     socket.off("disconnect", () => setIsConnect(false));

@@ -1,165 +1,308 @@
-import React, { useEffect, useRef, useState } from "react";
-import { io } from "socket.io-client";
-import { Modal, Button } from "react-bootstrap";
+import React, { useEffect, useRef, useState } from 'react';
+import { Modal, Button } from 'react-bootstrap';
+import { io } from 'socket.io-client';
 
-const socket = io("http://localhost:8080");
+const VideoCallModal = ({ 
+  show, 
+  onHide, 
+  senderId, 
+  receiverId,
+  callerName = "Caller",
+  receiverName = "Receiver"
+}) => {
+  const socket = useRef(null);
+  const pc = useRef(null);
+  const localVideo = useRef(null);
+  const remoteVideo = useRef(null);
+  const [callStatus, setCallStatus] = useState('idle');
+  const [callDuration, setCallDuration] = useState(0);
+  const candidateBuffer = useRef([]);
+  const timerRef = useRef(null);
 
-const CallScreen = ({ roomId, show, onHide, user, receiver }) => {
-  const localVideoRef = useRef(null); // video của người gọi
-  const remoteVideoRef = useRef(null); // video của người đối diện
-  const peerConnection = useRef(null); // kết nối WebRTC
-  const localStream = useRef(null);
-  const [callTimer, setCallTimer] = useState(60);
+  // Xử lý candidate buffer
+  const processCandidateBuffer = async () => {
+    while (candidateBuffer.current.length > 0 && pc.current?.remoteDescription) {
+      const candidate = candidateBuffer.current.shift();
+      try {
+        await pc.current.addIceCandidate(new RTCIceCandidate(candidate));
+      } catch (err) {
+        console.error('Failed to process buffered candidate:', err);
+      }
+    }
+  };
 
+  // Khởi tạo kết nối
   useEffect(() => {
-    if (!show) return; // Chỉ chạy khi modal mở
-    startCall();
+    if (!show) return;
 
-    socket.emit("join-call", roomId, socket.id, user, receiver);
+    const initializeCall = async () => {
+      try {
+        socket.current = io('http://localhost:8080');
+        socket.current.emit('register', senderId);
 
-    // xử lý WebRTC -> call
-    peerConnection.current = new RTCPeerConnection({
-      iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
-    });
+        pc.current = new RTCPeerConnection({
+          iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            // Có thể thêm TURN server nếu cần
+          ]
+        });
 
-    // những người tham gia nhóm gọi
-    peerConnection.current.onicecandidate = (event) => {
-      if (event.candidate) {
-        socket.emit("candidate", roomId, event.candidate);
+        // Xử lý ICE Candidate
+        pc.current.onicecandidate = (e) => {
+          if (e.candidate) {
+            socket.current.emit('relay-signal', {
+              targetUserId: receiverId,
+              signal: { type: 'candidate', candidate: e.candidate }
+            });
+          }
+        };
+
+        // Nhận stream từ xa
+        pc.current.ontrack = (e) => {
+          if (!remoteVideo.current.srcObject) {
+            remoteVideo.current.srcObject = e.streams[0];
+            setCallStatus('connected');
+          }
+        };
+
+        // Xử lý sự kiện từ server
+        socket.current.on('incoming-call', handleIncomingCall);
+        socket.current.on('signal', handleSignal);
+        socket.current.on('call-ended', handleCallEnded);
+        socket.current.on('call-error', handleCallError);
+
+        // Heartbeat
+        const heartbeatInterval = setInterval(() => {
+          socket.current?.emit('heartbeat', senderId);
+        }, 15000);
+
+        return () => clearInterval(heartbeatInterval);
+      } catch (err) {
+        console.error('Initialization error:', err);
+        setCallStatus('failed');
       }
     };
 
-    // xử lý khi có video/audio từ người gọi
-    peerConnection.current.ontrack = (event) => {
-      console.log("Remote stream received: ", event.streams[0]);
-      if (remoteVideoRef.current) {
-        remoteVideoRef.current.srcObject = event.streams[0];
-      }
-    };
-
-    // Nhận lời mời kết nối từ người gọi
-    socket.on("offer", async (offer) => {
-      await peerConnection.current.setRemoteDescription(
-        new RTCSessionDescription(offer)
-      );
-      const answer = await peerConnection.current.createAnswer();
-      await peerConnection.current.setLocalDescription(answer);
-      socket.emit("answer", roomId, answer);
-    });
-
-    // Nhận câu trả lời
-    socket.on("answer", (answer) => {
-      peerConnection.current.setRemoteDescription(
-        new RTCSessionDescription(answer)
-      );
-    });
-
-    // giúp hai thiết bị tìm cách kết nối trực tiếp với nhau trong WebRTC
-    socket.on("candidate", (candidate) => {
-      peerConnection.current.addIceCandidate(new RTCIceCandidate(candidate));
-    });
-
-    // Xử lý khi cuộc gọi kết thúc
-    socket.on("call-ended", () => {
-      endCall();
-    });
-console.log("receiver: ", receiver);
+    initializeCall();
 
     return () => {
-      socket.off("offer");
-      socket.off("answer");
-      socket.off("candidate");
-      socket.off("call-ended");
-      if (peerConnection.current) {
-        peerConnection.current.close();
-        peerConnection.current = null;
-      }
+      endCall();
+      socket.current?.disconnect();
     };
-  }, [roomId, show]);
+  }, [show, senderId, receiverId]);
 
   const startCall = async () => {
     try {
-      localStream.current = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: true,
+      setCallStatus('calling');
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: true, 
+        audio: true 
       });
-
-      console.log("Local stream: ", localStream.current);
-
-      if (localVideoRef.current) {
-        localVideoRef.current.srcObject = localStream.current;
+      
+      if (localVideo.current) {
+        localVideo.current.srcObject = stream;
       }
 
-      localStream.current.getTracks().forEach((track) => {
-        peerConnection.current.addTrack(track, localStream.current);
+      stream.getTracks().forEach(track => {
+        pc.current.addTrack(track, stream);
       });
 
-      const offer = await peerConnection.current.createOffer();
+      const offer = await pc.current.createOffer({
+        offerToReceiveAudio: true,
+        offerToReceiveVideo: true
+      });
       
-      await peerConnection.current.setLocalDescription(offer);
-      socket.emit("offer", roomId, offer);
+      await pc.current.setLocalDescription(offer);
+      
+      socket.current.emit('call-user', {
+        senderId,
+        receiverId,
+        offer
+      });
 
-      startTimer();
-    } catch (error) {
-      console.error("Lỗi khi lấy camera/micro: ", error);
+      // Bắt đầu đếm thời gian
+      timerRef.current = setInterval(() => {
+        setCallDuration(prev => prev + 1);
+      }, 1000);
+
+    } catch (err) {
+      console.error('Call setup error:', err);
+      setCallStatus('failed');
+      endCall();
     }
   };
 
-  const startTimer = () => {
-    let interval = setInterval(() => {
-      setCallTimer((prev) => {
-        if (prev === 1) {
-          clearInterval(interval);
-          endCall();
-        }
-        return prev - 1;
+  const handleIncomingCall = async ({ senderId, offer }) => {
+    try {
+      setCallStatus('receiving');
+      
+      if (!pc.current) {
+        throw new Error('PeerConnection not initialized');
+      }
+
+      await pc.current.setRemoteDescription(new RTCSessionDescription(offer));
+      const answer = await pc.current.createAnswer();
+      await pc.current.setLocalDescription(answer);
+      
+      socket.current.emit('relay-signal', {
+        targetUserId: senderId,
+        signal: { type: 'answer', answer }
       });
-    }, 1000);
+
+      // Xử lý candidate đã buffer
+      processCandidateBuffer();
+    } catch (err) {
+      console.error('Error handling incoming call:', err);
+      setCallStatus('failed');
+      endCall();
+    }
+  };
+
+  const handleSignal = async ({ type, answer, candidate }) => {
+    try {
+      if (!pc.current) return;
+
+      switch (type) {
+        case 'answer':
+          await pc.current.setRemoteDescription(new RTCSessionDescription(answer));
+          break;
+          
+        case 'candidate':
+          if (pc.current.remoteDescription) {
+            await pc.current.addIceCandidate(new RTCIceCandidate(candidate));
+          } else {
+            console.log('Buffering candidate...');
+            candidateBuffer.current.push(candidate);
+          }
+          break;
+          
+        default:
+          console.warn('Unknown signal type:', type);
+      }
+    } catch (err) {
+      console.error('Signal processing error:', err);
+    }
+  };
+
+  const handleCallEnded = () => {
+    setCallStatus('ended');
+    endCall();
+  };
+
+  const handleCallError = ({ message }) => {
+    console.error('Call error:', message);
+    setCallStatus('failed');
+    alert(`Call failed: ${message}`);
+    endCall();
   };
 
   const endCall = () => {
-    socket.emit("end-call", roomId);
-    if (localStream.current) {
-      localStream.current.getTracks().forEach((track) => track.stop());
-      localStream.current = null;
+    // Dừng timer
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
     }
-    if (peerConnection.current) {
-      peerConnection.current.close();
-      peerConnection.current = null;
+    
+    // Đóng kết nối peer
+    if (pc.current) {
+      pc.current.close();
+      pc.current = null;
     }
-    onHide(); // Ẩn modal khi kết thúc cuộc gọi
+    
+    // Dừng stream local
+    if (localVideo.current?.srcObject) {
+      localVideo.current.srcObject.getTracks().forEach(track => track.stop());
+      localVideo.current.srcObject = null;
+    }
+    
+    // Reset remote video
+    if (remoteVideo.current) {
+      remoteVideo.current.srcObject = null;
+    }
+    
+    // Xóa buffer candidate
+    candidateBuffer.current = [];
+    
+    // Gửi thông báo kết thúc cuộc gọi
+    if (socket.current) {
+      socket.current.emit('end-call', { targetUserId: receiverId });
+    }
+    
+    // Reset state
+    setCallDuration(0);
+    onHide();
+  };
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
   return (
-    <Modal show={show} onHide={onHide} centered size="lg">
+    <Modal show={show} onHide={endCall} centered size="lg" backdrop="static">
       <Modal.Header closeButton>
-        <Modal.Title>Video Call (Room: {roomId})</Modal.Title>
+        <Modal.Title>
+          {callStatus === 'calling' ? `Calling ${receiverName}...` : 
+           callStatus === 'receiving' ? `Incoming call from ${callerName}` :
+           callStatus === 'connected' ? `In call with ${receiverName}` : 
+           `Call ${callStatus}`}
+        </Modal.Title>
       </Modal.Header>
       <Modal.Body>
-        <p>Thời gian còn lại: {callTimer}s</p>
-        <div className="d-flex justify-content-center">
-          <video
-            ref={localVideoRef}
-            autoPlay
-            playsInline
-            muted
-            style={{ width: "300px", border: "1px solid black" }}
-          />
-          <video
-            ref={remoteVideoRef}
-            autoPlay
-            playsInline
-            style={{ width: "300px", border: "1px solid black" }}
-          />
+        <div className="d-flex justify-content-between">
+          <div className="text-center">
+            <p>{callerName} ({senderId})</p>
+            <video
+              ref={localVideo}
+              autoPlay
+              muted
+              playsInline
+              style={{ width: '300px', border: '1px solid #ccc' }}
+            />
+          </div>
+          <div className="text-center">
+            <p>{receiverName} ({receiverId})</p>
+            <video
+              ref={remoteVideo}
+              autoPlay
+              playsInline
+              style={{ width: '300px', border: '1px solid #ccc' }}
+            />
+          </div>
         </div>
+        
+        {callStatus === 'connected' && (
+          <div className="text-center mt-3">
+            <p>Duration: {formatTime(callDuration)}</p>
+          </div>
+        )}
       </Modal.Body>
       <Modal.Footer>
-        <Button variant="danger" onClick={endCall}>
-          End Call
-        </Button>
+        {callStatus === 'receiving' ? (
+          <>
+            <Button variant="success" onClick={() => {}}>
+              Accept
+            </Button>
+            <Button variant="danger" onClick={endCall}>
+              Decline
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button variant="danger" onClick={endCall}>
+              End Call
+            </Button>
+            {callStatus === 'idle' && (
+              <Button variant="primary" onClick={startCall}>
+                Start Call
+              </Button>
+            )}
+          </>
+        )}
       </Modal.Footer>
     </Modal>
   );
 };
 
-export default CallScreen;
+export default VideoCallModal;

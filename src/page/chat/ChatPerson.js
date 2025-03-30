@@ -24,7 +24,7 @@ import {
 import "./Chat.scss";
 import AccountInfo from "../info/accountInfo";
 import { useSelector, useDispatch } from "react-redux";
-import CallScreen from "../../component/CallScreen"; 
+import CallScreen from "../../component/CallScreen";
 
 export default function ChatPerson(props) {
   const dispatch = useDispatch();
@@ -34,7 +34,7 @@ export default function ChatPerson(props) {
   const [showSidebar, setShowSidebar] = useState(true);
   const [message, setMessage] = useState(""); // input
   const [messages, setMessages] = useState([]); // all hội thoại
-  const [showCallScreen, setShowCallScreen] = useState(false);  // Hiển thị cuộc gọi
+  const [showCallScreen, setShowCallScreen] = useState(false); // Hiển thị cuộc gọi
 
   useEffect(() => {
     if (props.allMsg) {
@@ -57,7 +57,7 @@ export default function ChatPerson(props) {
 
   const openModal = () => setIsOpen(true);
   const closeModal = () => setIsOpen(false);
-console.log("props", receiver);
+  console.log("props", receiver);
 
   return (
     <div className="row g-0 h-100">
@@ -91,11 +91,13 @@ console.log("props", receiver);
             </span>
             {/* Hiển thị modal cuộc gọi */}
             <CallScreen
-              roomId={"room1"}
+              receiverSocketId="sdfsfsfd"
               show={showCallScreen}
               onHide={() => setShowCallScreen(false)}
-              user={user}
-              receiver={receiver}
+              senderId={user._id}
+              receiverId={receiver._id}
+              callerName={user.username}
+              receiverName={receiver.username}
             />
 
             <span className="btn btn-light rounded-circle mb-1">

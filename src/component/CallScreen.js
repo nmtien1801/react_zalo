@@ -20,6 +20,7 @@ const CallScreen = ({
   const peerConnectionRef = useRef(null);
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
+  const [callerId, setCallerId] = useState(null); // Thêm state mới
 
   // Kiểm tra hỗ trợ WebRTC
   useEffect(() => {
@@ -34,18 +35,19 @@ const CallScreen = ({
     (pc, targetUserId) => {
       pc.onicecandidate = (event) => {
         if (event.candidate) {
+          console.log("Người gọi gửi ICE Candidate:", event.candidate);
           socketRef.current.emit("relay-signal", {
-            targetUserId,
+            targetUserId: targetUserId === receiverId ? receiverId : callerId, // Dùng callerId nếu là người nhận
             signal: {
               type: "candidate",
               candidate: event.candidate.candidate,
-              sdpMid: event.candidate.sdpMid,
-              sdpMLineIndex: event.candidate.sdpMLineIndex,
+              sdpMid: event.candidate.sdpMid || "0",
+              sdpMLineIndex: event.candidate.sdpMLineIndex || 0,
             },
           });
         }
       };
-
+  
       pc.onconnectionstatechange = () => {
         if (pc.connectionState === "connected") {
           setCallStatus("connected");
@@ -56,7 +58,7 @@ const CallScreen = ({
         }
       };
     },
-    [socketRef]
+    [socketRef, receiverId, callerId] // Thêm callerId vào dependencies
   );
 
   // Dọn dẹp khi kết thúc call
@@ -156,45 +158,26 @@ const CallScreen = ({
     async (offer) => {
       try {
         setCallStatus("ringing");
-
+        setIncomingCall(true);
+  
         const pc = new RTCPeerConnection();
         peerConnectionRef.current = pc;
-        setupPeerConnection(pc, callerSocketId); // Đảm bảo setup connection đúng
-
-        // Lấy media stream của người nhận
+        setupPeerConnection(pc, callerId); // Dùng callerId thay vì callerSocketId
+  
         const stream = await navigator.mediaDevices.getUserMedia({
           video: true,
           audio: true,
         });
         stream.getTracks().forEach((track) => pc.addTrack(track, stream));
-        // 🔹 Hiển thị video local của người nhận
         if (localVideoRef.current) localVideoRef.current.srcObject = stream;
-
+  
         pc.ontrack = (event) => {
-          console.log("Nhận được stream từ người gọi:", event.streams[0]);
           if (remoteVideoRef.current) {
             remoteVideoRef.current.srcObject = event.streams[0];
           }
         };
-
-        // **Bước quan trọng: Đặt Remote từ người gọi
+  
         await pc.setRemoteDescription(new RTCSessionDescription(offer));
-
-        // **Tạo Answer**
-        const answer = await pc.createAnswer();
-        await pc.setLocalDescription(answer);
-
-        // **Gửi Answer về cho người gọi**
-        console.log("📨 Gửi Answer về cho người gọi");
-        socketRef.current.emit("relay-signal", {
-          targetUserId: callerSocketId,
-          signal: {
-            type: "answer",
-            sdp: answer.sdp,
-          },
-        });
-
-        setCallStatus("connected");
       } catch (err) {
         console.error("Lỗi khi nhận cuộc gọi:", err);
         setErrorMessage("Không thể thiết lập kết nối");
@@ -202,38 +185,41 @@ const CallScreen = ({
         endCall();
       }
     },
-    [callerSocketId, setupPeerConnection, endCall]
+    [callerId, setupPeerConnection, endCall] // Thêm callerId vào dependencies
   );
 
   // Trả lời cuộc gọi
   const answerCall = useCallback(async () => {
     try {
       const pc = peerConnectionRef.current;
-      if (!pc || !pc.remoteDescription) {
-        throw new Error("Kết nối không khả dụng");
+      if (!pc || pc.signalingState !== "have-remote-offer" || pc.iceConnectionState === "closed") {
+        throw new Error("PeerConnection không ở trạng thái phù hợp");
       }
-
+  
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
-
+  
       socketRef.current.emit("relay-signal", {
-        targetUserId: callerSocketId,
+        targetUserId: callerId, // Dùng callerId thay vì callerSocketId
         signal: {
           type: "answer",
           sdp: answer.sdp,
         },
       });
-
+  
       setIncomingCall(false);
       setCallStatus("connected");
     } catch (err) {
-      console.error("Lỗi khi trả lời cuộc gọi:", err);
+      console.error("Lỗi khi trả lời cuộc gọi:", {
+        error: err,
+        pcState: peerConnectionRef.current?.signalingState,
+        iceState: peerConnectionRef.current?.iceConnectionState
+      });
       setErrorMessage("Không thể trả lời cuộc gọi");
       setCallStatus("error");
       endCall();
     }
-  }, [callerSocketId, socketRef, endCall]);
-
+  }, [callerId, socketRef, endCall]); // Thêm callerId vào dependencies
   // Thiết lập socket listeners
   useEffect(() => {
     if (!socketRef.current) return;
@@ -246,66 +232,81 @@ const CallScreen = ({
     socket.on("incoming-call", ({ senderId, offer, callerSocketId }) => {
       setIncomingCall(true);
       setCallerSocketId(callerSocketId);
+      setCallerId(senderId); // Lưu senderId từ BE
       handleIncomingCall(offer);
     });
 
     socket.on("call-error", ({ message }) => {
       setErrorMessage(message || "Lỗi cuộc gọi");
       setCallStatus("error");
-      endCall();
     });
 
     // Người gọi nhận Answer:
     socket.on("signal", async ({ signal }) => {
-      if (!signal || !signal.type) {
+      // Thêm kiểm tra chặt chẽ hơn
+      if (!signal || typeof signal !== "object" || !signal.type) {
         console.error("Signal không hợp lệ:", signal);
         return;
       }
 
-      let pc = peerConnectionRef.current;
+      const pc = peerConnectionRef.current;
       if (!pc) {
-        console.error("PeerConnection chưa được khởi tạo.");
+        console.error("PeerConnection chưa được khởi tạo");
         return;
       }
 
       try {
-        if (signal.type === "offer") {
-          console.log("Nhận offer từ người gọi:", signal);
-          await pc.setRemoteDescription(new RTCSessionDescription(signal));
+        switch (signal.type) {
+          case "offer":
+            if (incomingCall) {
+              await pc.setRemoteDescription(new RTCSessionDescription(signal));
+            }
+            break;
 
-          // Lấy video/audio của người nhận
-          const stream = await navigator.mediaDevices.getUserMedia({
-            video: true,
-            audio: true,
-          });
-          stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+          case "answer":
+            if (!incomingCall) {
+              await pc.setRemoteDescription(new RTCSessionDescription(signal));
+            }
+            break;
 
-          if (localVideoRef.current) localVideoRef.current.srcObject = stream;
+            case "candidate":
+              let candidateStr = signal.candidate;
+              if (typeof candidateStr === "object" && candidateStr.candidate) {
+                candidateStr = candidateStr.candidate; // Trích xuất chuỗi từ RTCIceCandidate
+              }
+              if (
+                !candidateStr ||
+                (typeof candidateStr === "string" &&
+                  candidateStr.indexOf("candidate:") === -1 &&
+                  candidateStr.indexOf("a=candidate:") === -1)
+              ) {
+                console.warn("Candidate không hợp lệ:", signal.candidate);
+                return;
+              }
+            
+              const iceCandidate = {
+                candidate: candidateStr,
+                sdpMid: signal.sdpMid || "0",
+                sdpMLineIndex: signal.sdpMLineIndex || 0,
+              };
+            
+              try {
+                await pc.addIceCandidate(new RTCIceCandidate(iceCandidate));
+                console.log("Thêm ICE Candidate thành công:", iceCandidate);
+              } catch (err) {
+                console.error("Lỗi khi thêm ICE Candidate:", err);
+              }
+              break;
 
-          const answer = await pc.createAnswer();
-          await pc.setLocalDescription(answer);
-
-          socketRef.current.emit("relay-signal", {
-            targetUserId: callerSocketId,
-            signal: {
-              type: "answer",
-              sdp: answer.sdp,
-            },
-          });
-        } else if (signal.type === "answer") {
-          console.log("Nhận answer từ người nhận:", signal);
-          if (!pc.remoteDescription) {
-            console.warn("Chưa có Remote Description trước khi nhận answer.");
-          }
-          await pc.setRemoteDescription(new RTCSessionDescription(signal));
-        } else if (signal.type === "candidate" && signal.candidate) {
-          console.log("Nhận ICE Candidate:", signal.candidate);
-          await pc.addIceCandidate(new RTCIceCandidate(signal));
-        } else {
-          console.warn("Loại tín hiệu không được hỗ trợ:", signal);
+          default:
+            console.warn("Loại signal không được hỗ trợ:", signal.type);
         }
       } catch (err) {
-        console.error("Lỗi xử lý signal:", err);
+        console.error("Lỗi xử lý signal:", {
+          error: err,
+          signalType: signal?.type,
+          pcState: pc?.signalingState,
+        });
       }
     });
 
@@ -364,7 +365,7 @@ const CallScreen = ({
           )}
         </div>
       </Modal.Body>
-      
+
       <Modal.Footer>
         {callStatus === "ringing" ? (
           <Button variant="success" onClick={answerCall}>

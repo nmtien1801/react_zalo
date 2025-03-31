@@ -37,15 +37,19 @@ export default function ChatInterface() {
   // connect docket
   useEffect(() => {
     const socket = io.connect(process.env.REACT_APP_BACKEND_URL);
-    console.log("Connected to socket server with ID:", socket.id);
+
     socketRef.current = socket;
     socket.on("connect", () => setIsConnect(true));
     socket.off("disconnect", () => setIsConnect(false));
   }, []);
+  // console.log("Connected to socket server with ID:", socketRef);
 
   // action socket
   useEffect(() => {
     if (isConnect) {
+
+      socketRef.current.emit("register", user._id);
+
       socketRef.current.on("RECEIVED_MSG", (data) => {
         console.log(data, "form another users");
         setAllMsg((prevState) => [...prevState, data]);
@@ -249,6 +253,7 @@ export default function ChatInterface() {
                   allMsg={allMsg}
                   user={user}
                   // handleDelete={handleDelete}
+                  socketRef={socketRef}
                 />
               ) : (
                 <ChatCloud

@@ -57,7 +57,7 @@ export default function ChatPerson(props) {
 
   const openModal = () => setIsOpen(true);
   const closeModal = () => setIsOpen(false);
-  console.log("props", receiver);
+  // console.log("props", receiver);
 
   return (
     <div className="row g-0 h-100">
@@ -91,13 +91,13 @@ export default function ChatPerson(props) {
             </span>
             {/* Hiển thị modal cuộc gọi */}
             <CallScreen
-              receiverSocketId="sdfsfsfd"
               show={showCallScreen}
               onHide={() => setShowCallScreen(false)}
               senderId={user._id}
               receiverId={receiver._id}
               callerName={user.username}
               receiverName={receiver.username}
+              socketRef={props.socketRef}
             />
 
             <span className="btn btn-light rounded-circle mb-1">

@@ -28,6 +28,7 @@ const CallScreen = ({
       setErrorMessage("Trình duyệt không hỗ trợ gọi video");
       setCallStatus("error");
     }
+    setCallerId(senderId); // Lưu senderId từ BE
   }, []);
 
   // Thiết lập kết nối Peer và xử lý signal
@@ -48,6 +49,15 @@ const CallScreen = ({
         }
       };
   
+      pc.ontrack = (event) => {
+        console.log("Nhận stream từ đối phương:", event.streams[0]);
+        if (remoteVideoRef.current) {
+          remoteVideoRef.current.srcObject = event.streams[0];
+        } else {
+          console.error("remoteVideoRef không tồn tại khi nhận stream");
+        }
+      };
+
       pc.onconnectionstatechange = () => {
         if (pc.connectionState === "connected") {
           setCallStatus("connected");

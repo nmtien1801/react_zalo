@@ -11,7 +11,7 @@ const CallScreen = ({
   callerName,
   receiverName,
   socketRef,
-  isInitiator = false, // Thêm prop để xác định ai là người khởi tạo cuộc gọi
+  isInitiator = false,
 }) => {
   const pendingCandidates = { current: [] };
   const [onlineUsers, setOnlineUsers] = useState([]);
@@ -29,15 +29,16 @@ const CallScreen = ({
       setErrorMessage("Trình duyệt không hỗ trợ gọi video");
       setCallStatus("error");
     }
-    setCallerId(senderId);
-  }, [senderId]);
+    if (isInitiator) {
+      setCallerId(senderId); // Người gọi: callerId là chính mình
+    }
+  }, [senderId, isInitiator]);
 
   const setupPeerConnection = useCallback(
     (pc, targetUserId) => {
       pc.onicecandidate = (event) => {
         if (event.candidate) {
-          console.log("targetUserId1", targetUserId);
-          
+          console.log("Sending ICE candidate to targetUserId:", targetUserId);
           socketRef.current.emit("relay-signal", {
             targetUserId,
             signal: {
@@ -122,7 +123,7 @@ const CallScreen = ({
   }, [receiverId, senderId, setupPeerConnection, socketRef, endCall]);
 
   const handleIncomingCall = useCallback(
-    async (offer) => {
+    async (offer, incomingCallerId) => {
       if (peerConnectionRef.current) {
         console.warn("⚠️ Đã có PeerConnection hiện tại, từ chối cuộc gọi đến");
         return;
@@ -130,10 +131,11 @@ const CallScreen = ({
       try {
         setCallStatus("ringing");
         setIncomingCall(true);
+        setCallerId(incomingCallerId); // Cập nhật callerId từ incoming-call
 
         const pc = new RTCPeerConnection();
         peerConnectionRef.current = pc;
-        setupPeerConnection(pc, callerId);
+        setupPeerConnection(pc, incomingCallerId); // Sử dụng incomingCallerId làm target
 
         const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         stream.getTracks().forEach((track) => pc.addTrack(track, stream));
@@ -146,7 +148,7 @@ const CallScreen = ({
         endCall();
       }
     },
-    [callerId, setupPeerConnection, endCall]
+    [setupPeerConnection, endCall]
   );
 
   const answerCall = useCallback(async () => {
@@ -159,7 +161,7 @@ const CallScreen = ({
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
 
-      console.log("targetUserId2", callerId);
+      console.log("Sending answer to targetUserId:", callerId);
       socketRef.current.emit("relay-signal", {
         targetUserId: callerId,
         signal: answer,
@@ -189,8 +191,7 @@ const CallScreen = ({
       console.log("Incoming call - senderId:", senderId);
       setIncomingCall(true);
       setCallerSocketId(callerSocketId);
-      setCallerId(senderId);
-      handleIncomingCall(offer);
+      handleIncomingCall(offer, senderId); // Truyền senderId vào handleIncomingCall
     });
 
     socket.on("call-error", ({ message }) => {
@@ -262,7 +263,9 @@ const CallScreen = ({
         {callStatus === "ringing" ? (
           <Button variant="success" onClick={answerCall}>Trả lời</Button>
         ) : callStatus === "calling" ? (
-          <Button variant="primary" disabled><Spinner animation="border" size="sm" /> Đang gọi...</Button>
+          <Button variant="primary" disabled>
+            <Spinner animation="border" size="sm" /> Đang gọi...
+          </Button>
         ) : null}
         <Button variant="danger" onClick={endCall}>Kết thúc</Button>
       </Modal.Footer>

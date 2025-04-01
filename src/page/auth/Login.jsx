@@ -29,6 +29,7 @@ export default function LoginForm() {
     e.preventDefault();
     // Handle login logic here
     let res = await dispatch(Login(formData));
+
     if (res.payload.EC === 0) {
       navigate("/chat");
       localStorage.setItem("access_Token", res.payload.DT.access_Token);
@@ -64,6 +65,7 @@ export default function LoginForm() {
                   name="phoneNumber"
                   value={formData.phoneNumber}
                   onChange={handleChange}
+                  autoComplete="tel"
                 />
               </div>
             </div>
@@ -78,6 +80,7 @@ export default function LoginForm() {
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
+                  autoComplete="current-password"
                 />
                 <button
                   type="button"

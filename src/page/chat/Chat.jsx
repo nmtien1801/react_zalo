@@ -36,7 +36,7 @@ export default function ChatInterface() {
 
   // connect docket
   useEffect(() => {
-    const socket = io.connect(process.env.REACT_APP_BACKEND_URL);
+    const socket = io.connect(import.meta.env.VITE_BACKEND_URL);
 
     socketRef.current = socket;
     socket.on("connect", () => setIsConnect(true));

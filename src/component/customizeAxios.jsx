@@ -6,7 +6,7 @@ import axiosRetry from "axios-retry";
 // Set config defaults when creating the instance
 const instance = axios.create({
   // baseURL: "http://localhost:8080",
-  baseURL: process.env.REACT_APP_BACKEND_URL,
+  baseURL: import.meta.env.VITE_BACKEND_URL,
   withCredentials: true, // để FE có thể nhận cookie từ BE
 });
 
@@ -33,7 +33,7 @@ const refreshAccessToken = async () => {
     if (!refreshToken) throw new Error("No refresh token available");
 
     const response = await axios.post(
-      `${process.env.REACT_APP_BACKEND_URL}/api/refreshToken`,
+      `${import.meta.env.VITE_BACKEND_URL}/api/refreshToken`,
       {
         refresh_Token: refreshToken,
       }

@@ -24,7 +24,7 @@ import {
 import "./Chat.scss";
 import AccountInfo from "../info/accountInfo";
 import { useSelector, useDispatch } from "react-redux";
-import CallScreen from "../../component/CallScreen";
+import CallScreen from "../../component/CallScreen.jsx";
 
 export default function ChatPerson(props) {
   const dispatch = useDispatch();
@@ -32,9 +32,10 @@ export default function ChatPerson(props) {
   const receiver = props.roomData.receiver;
 
   const [showSidebar, setShowSidebar] = useState(true);
-  const [message, setMessage] = useState(""); // input
-  const [messages, setMessages] = useState([]); // all hội thoại
-  const [showCallScreen, setShowCallScreen] = useState(false); // Hiển thị cuộc gọi
+  const [message, setMessage] = useState("");
+  const [messages, setMessages] = useState([]);
+  const [showCallScreen, setShowCallScreen] = useState(false);
+  const [isInitiator, setIsInitiator] = useState(false); // Thêm state để theo dõi người khởi tạo
 
   useEffect(() => {
     if (props.allMsg) {
@@ -57,7 +58,26 @@ export default function ChatPerson(props) {
 
   const openModal = () => setIsOpen(true);
   const closeModal = () => setIsOpen(false);
-  // console.log("props", receiver);
+
+  // Xử lý sự kiện incoming-call từ socket
+  useEffect(() => {
+    if (!props.socketRef.current) return;
+
+    const socket = props.socketRef.current;
+    socket.on("incoming-call", () => {
+      setShowCallScreen(true); // Hiển thị modal khi có cuộc gọi đến
+      setIsInitiator(false); // Người nhận không phải là người khởi tạo
+    });
+
+    return () => {
+      socket.off("incoming-call");
+    };
+  }, [props.socketRef]);
+
+  const handleStartCall = () => {
+    setShowCallScreen(true); // Mở modal
+    setIsInitiator(true); // Đặt người dùng hiện tại là người khởi tạo
+  };
 
   return (
     <div className="row g-0 h-100">
@@ -65,7 +85,7 @@ export default function ChatPerson(props) {
       <div className="col bg-light">
         {/* Chat Header */}
         <div className="bg-white p-2 d-flex align-items-center border-bottom justify-content-between">
-          <div className=" d-flex align-items-center">
+          <div className="d-flex align-items-center">
             <img
               src="/placeholder.svg"
               className="rounded-circle"
@@ -73,41 +93,25 @@ export default function ChatPerson(props) {
               style={{ width: "40px", height: "40px" }}
               onClick={openModal}
             />
-
             <AccountInfo isOpen={isOpen} closeModal={closeModal} />
-
             <div className="ms-2">
               <div className="fw-medium">Võ Trường Khang</div>
               <small className="text-muted">Hoạt động 2 giờ trước</small>
             </div>
           </div>
-
           <div className="d-flex align-items-center gap-2">
             <span
               className="btn btn-light rounded-circle mb-1"
-              onClick={() => setShowCallScreen(true)}
+              onClick={handleStartCall} // Gọi hàm handleStartCall khi bấm
             >
               <Phone size={16} />
             </span>
-            {/* Hiển thị modal cuộc gọi */}
-            <CallScreen
-              show={showCallScreen}
-              onHide={() => setShowCallScreen(false)}
-              senderId={user._id}
-              receiverId={receiver._id}
-              callerName={user.username}
-              receiverName={receiver.username}
-              socketRef={props.socketRef}
-            />
-
             <span className="btn btn-light rounded-circle mb-1">
               <Video size={16} />
             </span>
-
             <span className="btn btn-light rounded-circle mb-1">
               <Search size={16} />
             </span>
-
             <button
               className="btn btn-light rounded-circle mb-1"
               onClick={() => setShowSidebar(!showSidebar)}
@@ -118,10 +122,7 @@ export default function ChatPerson(props) {
         </div>
 
         {/* Chat Content */}
-        <div
-          className="p-3"
-          style={{ height: "calc(100vh - 128px)", overflowY: "auto" }}
-        >
+        <div className="p-3" style={{ height: "calc(100vh - 128px)", overflowY: "auto" }}>
           <div className="flex flex-col justify-end">
             {messages &&
               messages.map((msg, index) => (
@@ -134,8 +135,8 @@ export default function ChatPerson(props) {
                   <span
                     className={`p-3 ${
                       msg.sender._id === user._id
-                        ? "bg-primary border rounded-pill" // Tin nhắn của user căn phải
-                        : "bg-white border rounded-pill" // Tin nhắn của người khác căn trái
+                        ? "bg-primary border rounded-pill"
+                        : "bg-white border rounded-pill"
                     }`}
                   >
                     {msg.msg}
@@ -169,18 +170,27 @@ export default function ChatPerson(props) {
         </div>
       </div>
 
+      {/* Call Screen Modal */}
+      <CallScreen
+        show={showCallScreen}
+        onHide={() => {
+          setShowCallScreen(false);
+          setIsInitiator(false); // Reset khi đóng modal
+        }}
+        senderId={user._id}
+        receiverId={receiver._id}
+        callerName={user.username}
+        receiverName={receiver.username}
+        socketRef={props.socketRef}
+        isInitiator={isInitiator} // Truyền state isInitiator
+      />
+
       {/* Right Sidebar */}
       {showSidebar && (
-        <div
-          className="col-auto bg-white border-start"
-          style={{ width: "300px", height: "100vh", overflowY: "auto" }}
-        >
-          {/* Header */}
+        <div className="col-auto bg-white border-start" style={{ width: "300px", height: "100vh", overflowY: "auto" }}>
           <div className="border-bottom header-right-sidebar">
             <h6 className="text-center">Thông tin hội thoại</h6>
           </div>
-
-          {/* Profile Section */}
           <div className="text-center p-3 border-bottom">
             <div className="position-relative d-inline-block mb-2">
               <img
@@ -195,8 +205,6 @@ export default function ChatPerson(props) {
               </button>
             </div>
             <h6 className="mb-3">Võ Trường Khang</h6>
-
-            {/* Action Buttons */}
             <div className="d-flex justify-content-center gap-4">
               <div className="text-center">
                 <button className="btn btn-light rounded-circle mb-1">
@@ -218,8 +226,6 @@ export default function ChatPerson(props) {
               </div>
             </div>
           </div>
-
-          {/* Reminders & Groups */}
           <div className="border-bottom">
             <div className="d-flex align-items-center p-3 hover-bg-light cursor-pointer">
               <Clock size={20} className="text-muted me-2" />
@@ -230,8 +236,6 @@ export default function ChatPerson(props) {
               <div>20 nhóm chung</div>
             </div>
           </div>
-
-          {/* Collapsible Sections */}
           <div className="accordion accordion-flush" id="chatInfo">
             {sections.map(({ id, title, icon: Icon }) => (
               <div key={id} className="accordion-item">
@@ -245,10 +249,7 @@ export default function ChatPerson(props) {
                     {title}
                   </button>
                 </h2>
-                <div
-                  id={`${id}Collapse`}
-                  className="accordion-collapse collapse"
-                >
+                <div id={`${id}Collapse`} className="accordion-collapse collapse">
                   <div className="accordion-body text-center text-muted">
                     <small>{`Chưa có ${title} được chia sẻ trong hội thoại này`}</small>
                   </div>
@@ -256,8 +257,6 @@ export default function ChatPerson(props) {
               </div>
             ))}
           </div>
-
-          {/* Security Settings */}
           <div className="accordion accordion-flush" id="securitySettings">
             <div className="accordion-item">
               <h2 className="accordion-header">
@@ -270,13 +269,8 @@ export default function ChatPerson(props) {
                   Thiết lập bảo mật
                 </button>
               </h2>
-
-              <div
-                id="securityCollapse"
-                className="accordion-collapse collapse"
-              >
+              <div id="securityCollapse" className="accordion-collapse collapse">
                 <div className="accordion-body">
-                  {/* Self-destructing Messages */}
                   <div className="d-flex align-items-center justify-content-between p-2 hover-bg-light cursor-pointer">
                     <div className="d-flex align-items-center">
                       <Clock size={20} className="text-muted me-2" />
@@ -287,29 +281,19 @@ export default function ChatPerson(props) {
                     </div>
                     <ChevronDown size={20} className="text-muted" />
                   </div>
-
-                  {/* Hide Conversation */}
                   <div className="d-flex align-items-center justify-content-between p-2">
                     <div className="d-flex align-items-center">
                       <EyeOff size={20} className="text-muted me-2" />
                       <div>Ẩn trò chuyện</div>
                     </div>
                     <div className="form-check form-switch">
-                      <input
-                        className="form-check-input"
-                        type="checkbox"
-                        role="switch"
-                      />
+                      <input className="form-check-input" type="checkbox" role="switch" />
                     </div>
                   </div>
-
-                  {/* Report */}
                   <div className="d-flex align-items-center p-2 hover-bg-light cursor-pointer text-danger">
                     <AlertTriangle size={20} className="me-2" />
                     <div>Báo xấu</div>
                   </div>
-
-                  {/* Delete Chat History */}
                   <div className="d-flex align-items-center p-2 hover-bg-light cursor-pointer text-danger">
                     <Trash2 size={20} className="me-2" />
                     <div>Xóa lịch sử trò chuyện</div>

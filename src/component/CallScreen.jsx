@@ -11,6 +11,7 @@ const CallScreen = ({
   callerName,
   receiverName,
   socketRef,
+  isInitiator = false, // Thêm prop để xác định ai là người khởi tạo cuộc gọi
 }) => {
   const pendingCandidates = { current: [] };
   const [onlineUsers, setOnlineUsers] = useState([]);
@@ -29,12 +30,14 @@ const CallScreen = ({
       setCallStatus("error");
     }
     setCallerId(senderId);
-  }, []);
+  }, [senderId]);
 
   const setupPeerConnection = useCallback(
     (pc, targetUserId) => {
       pc.onicecandidate = (event) => {
         if (event.candidate) {
+          console.log("targetUserId1", targetUserId);
+          
           socketRef.current.emit("relay-signal", {
             targetUserId,
             signal: {
@@ -156,6 +159,7 @@ const CallScreen = ({
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
 
+      console.log("targetUserId2", callerId);
       socketRef.current.emit("relay-signal", {
         targetUserId: callerId,
         signal: answer,
@@ -170,15 +174,19 @@ const CallScreen = ({
     }
   }, [callerId, socketRef, endCall]);
 
+  // Tự động gọi startCall khi là người khởi tạo và modal mở
+  useEffect(() => {
+    if (show && isInitiator && callStatus === "idle") {
+      startCall();
+    }
+  }, [show, isInitiator, startCall, callStatus]);
+
   useEffect(() => {
     if (!socketRef.current) return;
     const socket = socketRef.current;
 
-    socket.on("user-list", (users) => {
-      setOnlineUsers(users);
-    });
-
     socket.on("incoming-call", ({ senderId, offer, callerSocketId }) => {
+      console.log("Incoming call - senderId:", senderId);
       setIncomingCall(true);
       setCallerSocketId(callerSocketId);
       setCallerId(senderId);
@@ -192,61 +200,29 @@ const CallScreen = ({
 
     socket.on("signal", async ({ signal }) => {
       if (!signal || !signal.type) return;
-    
+
       const pc = peerConnectionRef.current;
       if (!pc || pc.connectionState === "closed") {
         console.warn("⚠️ PeerConnection không hợp lệ hoặc đã đóng");
         return;
       }
-    
+
       try {
         switch (signal.type) {
           case "offer":
-            console.log("Nhận offer, đặt remoteDescription...");
             await pc.setRemoteDescription(new RTCSessionDescription(signal));
-            console.log("Đã đặt xong remoteDescription!");
-    
-            // 🟢 Xử lý ICE candidates bị chờ
-            while (pendingCandidates.current.length) {
-              const candidate = pendingCandidates.current.shift();
-              try {
-                console.log("Thêm ICE candidate bị chờ:", candidate);
-                await pc.addIceCandidate(new RTCIceCandidate(candidate));
-              } catch (err) {
-                console.error("❌ Lỗi khi thêm ICE candidate bị chờ:", err);
-              }
-            }
             break;
-    
           case "answer":
-            if (pc.signalingState === "stable") {
-              console.warn("⚠️ Đã nhận answer khi trạng thái stable, bỏ qua...");
-              break;
-            }
-            if (pc.signalingState !== "have-local-offer") {
-              console.error("❌ Trạng thái không phù hợp để nhận answer:", pc.signalingState);
-              break;
-            }
-            console.log("Nhận answer, đặt remoteDescription...");
+            if (pc.signalingState !== "have-local-offer") break;
             await pc.setRemoteDescription(new RTCSessionDescription(signal));
-            console.log("Đã đặt xong remoteDescription!");
             break;
-    
           case "candidate":
-            if (signal.candidate) {
-              if (pc.signalingState === "stable" || pc.remoteDescription) {
-                console.log("Thêm ICE candidate ngay:", signal.candidate);
-                await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
-              } else {
-                console.warn("⚠️ Chưa có remoteDescription, lưu ICE candidate lại.", {
-                  signalingState: pc.signalingState,
-                  candidate: signal.candidate,
-                });
-                pendingCandidates.current.push(signal.candidate);
-              }
+            if (signal.candidate && (pc.signalingState === "stable" || pc.remoteDescription)) {
+              await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
+            } else {
+              pendingCandidates.current.push(signal.candidate);
             }
             break;
-    
           default:
             console.warn("⚠️ Loại signal không được hỗ trợ:", signal.type);
         }
@@ -287,9 +263,7 @@ const CallScreen = ({
           <Button variant="success" onClick={answerCall}>Trả lời</Button>
         ) : callStatus === "calling" ? (
           <Button variant="primary" disabled><Spinner animation="border" size="sm" /> Đang gọi...</Button>
-        ) : (
-          <Button variant="primary" onClick={startCall}>Gọi</Button>
-        )}
+        ) : null}
         <Button variant="danger" onClick={endCall}>Kết thúc</Button>
       </Modal.Footer>
     </Modal>

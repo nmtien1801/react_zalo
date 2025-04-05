@@ -1,9 +1,7 @@
 import axios from "axios";
 import { toast } from "react-toastify";
 import axiosRetry from "axios-retry";
-//SEARCH: axios npm github
 
-// Set config defaults when creating the instance
 const instance = axios.create({
   // baseURL: "http://localhost:8080",
   baseURL: import.meta.env.VITE_BACKEND_URL,
@@ -19,6 +17,10 @@ instance.defaults.headers.common[
 // Add a request interceptor
 instance.interceptors.request.use(
   function (config) {
+    const token = localStorage.getItem("access_Token");
+    if (token) {
+      config.headers["Authorization"] = `Bearer ${token}`;
+    }
     return config;
   },
   function (error) {
@@ -27,6 +29,8 @@ instance.interceptors.request.use(
   }
 );
 
+let isRefreshing = false;
+let refreshSubscribers = [];
 const refreshAccessToken = async () => {
   try {
     const refreshToken = localStorage.getItem("refresh_Token");
@@ -69,36 +73,48 @@ instance.interceptors.response.use(
     switch (status) {
       // authentication (token related issues)
       case 401: {
+        // Nếu ở trang công khai, không làm gì
+        if (publicPaths.includes(window.location.pathname)) {
+          return Promise.reject(error);
+        }
 
+        // Nếu đã retry mà vẫn 401, chuyển hướng về login
+        if (originalRequest._retry) {
+          toast.error("Phiên đăng nhập hết hạn, vui lòng đăng nhập lại.");
+          window.location.href = "/login";
+          return Promise.reject(error);
+        }
 
-        // Chỉ log khi không có token mới (refresh thất bại)
-        if (
-          window.location.pathname !== "/" &&
-          window.location.pathname !== "/login" &&
-          window.location.pathname !== "/register"
-        ) {
-          console.log(">>>check error 401: ", error.response.data);
-          toast.error("Unauthorized the user. Please login ... ");
+        originalRequest._retry = true;
 
-          // Nếu request này đã từng retry rồi thì không retry nữa
-          if (originalRequest._retry) {
-            toast.error("Unauthorized. Please login again.");
-            return Promise.reject(error);
-          }
-
-          originalRequest._retry = true;
+        if (!isRefreshing) {
+          isRefreshing = true;
           const newToken = await refreshAccessToken();
+          isRefreshing = false;
 
           if (newToken) {
+            onRefreshed(newToken);
             originalRequest.headers["Authorization"] = `Bearer ${newToken}`;
             return instance(originalRequest);
+          } else {
+            onRefreshed(null);
+            toast.error("Phiên đăng nhập hết hạn, vui lòng đăng nhập lại.");
+            window.location.href = "/login";
+            return Promise.reject(error);
           }
         }
 
-        localStorage.removeItem("access_Token");
-        toast.error("Phiên đăng nhập hết hạn");
-
-        return error.response.data;
+        // Chờ token mới nếu đang refresh
+        return new Promise((resolve, reject) => {
+          subscribeTokenRefresh((token) => {
+            if (token) {
+              originalRequest.headers["Authorization"] = `Bearer ${token}`;
+              resolve(instance(originalRequest));
+            } else {
+              reject(error);
+            }
+          });
+        });
       }
 
       // forbidden (permission related issues)
@@ -119,6 +135,8 @@ instance.interceptors.response.use(
           toast.error("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.");
           localStorage.removeItem("access_Token");
         }
+
+        return error.response.data;
       }
 
       // not found get /post / delete /put

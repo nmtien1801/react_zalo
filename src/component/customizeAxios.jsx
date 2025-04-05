@@ -10,19 +10,6 @@ const instance = axios.create({
   withCredentials: true, // để FE có thể nhận cookie từ BE
 });
 
-// Cấu hình retry -> khi sử dụng refresh token
-// axiosRetry(instance, {
-//   retries: 3, // Số lần retry tối đa
-//   retryDelay: (retryCount) => {
-//     console.log(`Retry attempt: ${retryCount}`);
-//     return retryCount * 100; // Thời gian delay giữa các lần retry (ms)
-//   },
-//   retryCondition: (error) => {
-//     // Điều kiện để thực hiện retry -> retry refresh token khi bất đồng bộ
-//     return error.response?.status === 401; // Retry nếu lỗi là 401
-//   },
-// });
-
 // Alter defaults after instance has been created
 //Search: what is brearer token
 instance.defaults.headers.common[
@@ -59,6 +46,8 @@ const refreshAccessToken = async () => {
     localStorage.setItem("access_Token", access_Token);
     localStorage.setItem("refresh_Token", refresh_Token);
 
+    instance.defaults.headers.common["Authorization"] = `Bearer ${access_Token}`;
+
     return access_Token;
   } catch (error) {
     console.error("Refresh token failed:", error);
@@ -80,19 +69,7 @@ instance.interceptors.response.use(
     switch (status) {
       // authentication (token related issues)
       case 401: {
-        // Nếu request này đã từng retry rồi thì không retry nữa
-        if (originalRequest._retry) {
-          toast.error("Unauthorized. Please login again.");
-          return Promise.reject(error);
-        }
 
-        originalRequest._retry = true;
-        const newToken = await refreshAccessToken();
-
-        if (newToken) {
-          originalRequest.headers["Authorization"] = `Bearer ${newToken}`;
-          return instance(originalRequest);
-        }
 
         // Chỉ log khi không có token mới (refresh thất bại)
         if (
@@ -102,6 +79,20 @@ instance.interceptors.response.use(
         ) {
           console.log(">>>check error 401: ", error.response.data);
           toast.error("Unauthorized the user. Please login ... ");
+
+          // Nếu request này đã từng retry rồi thì không retry nữa
+          if (originalRequest._retry) {
+            toast.error("Unauthorized. Please login again.");
+            return Promise.reject(error);
+          }
+
+          originalRequest._retry = true;
+          const newToken = await refreshAccessToken();
+
+          if (newToken) {
+            originalRequest.headers["Authorization"] = `Bearer ${newToken}`;
+            return instance(originalRequest);
+          }
         }
 
         localStorage.removeItem("access_Token");

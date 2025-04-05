@@ -19,14 +19,14 @@ import { useSelector, useDispatch } from "react-redux";
 import { doGetAccount } from "./redux/authSlice";
 // import CallControls from "./component/CallControls";
 
-function App() {  
+function App() {
   const dispatch = useDispatch();
   let isLoggedIn = useSelector((state) => state.auth.isLoggedIn);
   const user = useSelector((state) => state.auth.userInfo);
 
   const fetchDataAccount = async () => {
     if (!user || !user?.access_Token) {
-      await dispatch(doGetAccount()); // Gọi API
+      await dispatch(doGetAccount()).unwrap(); // Chờ API hoàn tất
     }
   };
 

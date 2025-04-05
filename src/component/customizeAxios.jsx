@@ -10,6 +10,19 @@ const instance = axios.create({
   withCredentials: true, // để FE có thể nhận cookie từ BE
 });
 
+// Cấu hình retry -> khi sử dụng refresh token
+// axiosRetry(instance, {
+//   retries: 3, // Số lần retry tối đa
+//   retryDelay: (retryCount) => {
+//     console.log(`Retry attempt: ${retryCount}`);
+//     return retryCount * 100; // Thời gian delay giữa các lần retry (ms)
+//   },
+//   retryCondition: (error) => {
+//     // Điều kiện để thực hiện retry -> retry refresh token khi bất đồng bộ
+//     return error.response?.status === 401; // Retry nếu lỗi là 401
+//   },
+// });
+
 // Alter defaults after instance has been created
 //Search: what is brearer token
 instance.defaults.headers.common[
@@ -39,7 +52,6 @@ const refreshAccessToken = async () => {
       }
     );
 
-    console.log(">>>access_Token: ", response);
     const access_Token = response.data.DT.newAccessToken;
     const refresh_Token = response.data.DT.newRefreshToken;
 
@@ -63,22 +75,39 @@ instance.interceptors.response.use(
     return response && response.data ? response.data : response;
   },
   async function (error) {
+    const originalRequest = error.config;
     const status = error.response?.status || 500;
     switch (status) {
       // authentication (token related issues)
       case 401: {
-        // check quyền từ context chuyển qua
+        // Nếu request này đã từng retry rồi thì không retry nữa
+        if (originalRequest._retry) {
+          toast.error("Unauthorized. Please login again.");
+          return Promise.reject(error);
+        }
+
+        originalRequest._retry = true;
+        const newToken = await refreshAccessToken();
+
+        if (newToken) {
+          originalRequest.headers["Authorization"] = `Bearer ${newToken}`;
+          return instance(originalRequest);
+        }
+
+        // Chỉ log khi không có token mới (refresh thất bại)
         if (
           window.location.pathname !== "/" &&
           window.location.pathname !== "/login" &&
           window.location.pathname !== "/register"
         ) {
-          console.log(">>>check error 401: ", error.response.data); // SEARCH: axios get error body
-          toast.error("Unauthorized the user. please login ... ");
-          // window.location.href("/login");
+          console.log(">>>check error 401: ", error.response.data);
+          toast.error("Unauthorized the user. Please login ... ");
         }
 
-        return error.response.data; //getUserAccount response data(BE) nhưng bị chặn bên res(FE) dù đúng hay sai khi fetch account
+        localStorage.removeItem("access_Token");
+        toast.error("Phiên đăng nhập hết hạn");
+
+        return error.response.data;
       }
 
       // forbidden (permission related issues)
@@ -93,11 +122,11 @@ instance.interceptors.response.use(
 
         if (newToken) {
           error.config.headers["Authorization"] = `Bearer ${newToken}`;
+
           return instance(error.config);
         } else {
           toast.error("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.");
           localStorage.removeItem("access_Token");
-          // window.location.href = "/login"; // Chuyển hướng về trang đăng nhập nếu cần
         }
       }
 

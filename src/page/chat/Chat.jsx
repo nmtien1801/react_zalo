@@ -150,6 +150,8 @@ export default function ChatInterface() {
     }
   }, [conversationRedux]);
 
+ 
+
   return (
     <div className="container-fluid vh-100 p-0">
       <div className="row h-100 g-0 ">

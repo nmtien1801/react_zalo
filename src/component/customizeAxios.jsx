@@ -1,36 +1,42 @@
 import axios from "axios";
 import { toast } from "react-toastify";
 import axiosRetry from "axios-retry";
+import { doGetAccount } from "../redux/authSlice";
 
 const instance = axios.create({
-  // baseURL: "http://localhost:8080",
   baseURL: import.meta.env.VITE_BACKEND_URL,
-  withCredentials: true, // để FE có thể nhận cookie từ BE
+  withCredentials: true,
 });
 
-// Alter defaults after instance has been created
-//Search: what is brearer token
-instance.defaults.headers.common[
-  "Authorization"
-] = `Bearer ${localStorage.getItem("access_Token")}`; // sửa localStore or cookie
+// Cấu hình axios-retry
+// axiosRetry(instance, {
+//   retries: 3,
+//   retryDelay: (retryCount) => {
+//     console.log(`Retry attempt: ${retryCount}`);
+//     return retryCount * 200;
+//   },
+//   retryCondition: (error) => {
+//     const status = error.response?.status;
+//     return status === 400 || status === 401;
+//   },
+// });
 
-// Add a request interceptor
+// Cài đặt header mặc định
+instance.defaults.headers.common["Authorization"] = `Bearer ${localStorage.getItem("access_Token")}`;
+
+// Interceptor cho request
 instance.interceptors.request.use(
-  function (config) {
+  (config) => {
     const token = localStorage.getItem("access_Token");
     if (token) {
       config.headers["Authorization"] = `Bearer ${token}`;
     }
     return config;
   },
-  function (error) {
-    // Do something with request error
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-let isRefreshing = false;
-let refreshSubscribers = [];
+// Hàm làm mới token
 const refreshAccessToken = async () => {
   try {
     const refreshToken = localStorage.getItem("refresh_Token");
@@ -38,125 +44,143 @@ const refreshAccessToken = async () => {
 
     const response = await axios.post(
       `${import.meta.env.VITE_BACKEND_URL}/api/refreshToken`,
-      {
-        refresh_Token: refreshToken,
-      }
+      { refresh_Token: refreshToken }
     );
 
-    const access_Token = response.data.DT.newAccessToken;
-    const refresh_Token = response.data.DT.newRefreshToken;
-
-    // Cập nhật token mới vào localStorage
-    localStorage.setItem("access_Token", access_Token);
-    localStorage.setItem("refresh_Token", refresh_Token);
-
-    instance.defaults.headers.common["Authorization"] = `Bearer ${access_Token}`;
-
-    return access_Token;
+    const { newAccessToken, newRefreshToken } = response.data.DT;
+    localStorage.setItem("access_Token", newAccessToken);
+    localStorage.setItem("refresh_Token", newRefreshToken);
+    instance.defaults.headers.common["Authorization"] = `Bearer ${newAccessToken}`;
+    return newAccessToken;
   } catch (error) {
-    console.error("Refresh token failed:", error);
+    console.error("Refresh token failed:", error.response?.data || error.message);
+    localStorage.removeItem("access_Token");
+    localStorage.removeItem("refresh_Token");
     return null;
   }
 };
 
-// search: How can you use axios interceptors?
-// Add a response interceptor
+const processQueue = (error, token = null) => {
+  failedQueue.forEach(prom => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+
+  failedQueue = [];
+};
+
+let isRefreshing = false;
+let failedQueue = [];
+
 instance.interceptors.response.use(
-  function (response) {
-    // Any status code that lie within the range of 2xx cause this function to trigger
-    // Do something with response data
-    return response && response.data ? response.data : response;
-  },
-  async function (error) {
+  (response) => (response && response.data ? response.data : response),
+  async (error) => {
     const originalRequest = error.config;
     const status = error.response?.status || 500;
+
     switch (status) {
-      // authentication (token related issues)
+      // Xử lý lỗi 401 (token hết hạn)
       case 401: {
-        // Nếu ở trang công khai, không làm gì
-        if (publicPaths.includes(window.location.pathname)) {
-          return Promise.reject(error);
+        if (
+          window.location.pathname !== "/" &&
+          window.location.pathname !== "/login" &&
+          window.location.pathname !== "/register"
+        ) {
+          console.log(">>>check error 401: ", error.response.data);
+          toast.error("Unauthorized the user. Please login ... ");
         }
 
-        // Nếu đã retry mà vẫn 401, chuyển hướng về login
-        if (originalRequest._retry) {
-          toast.error("Phiên đăng nhập hết hạn, vui lòng đăng nhập lại.");
-          window.location.href = "/login";
-          return Promise.reject(error);
-        }
-
-        originalRequest._retry = true;
-
-        if (!isRefreshing) {
-          isRefreshing = true;
-          const newToken = await refreshAccessToken();
-          isRefreshing = false;
-
-          if (newToken) {
-            onRefreshed(newToken);
-            originalRequest.headers["Authorization"] = `Bearer ${newToken}`;
-            return instance(originalRequest);
-          } else {
-            onRefreshed(null);
-            toast.error("Phiên đăng nhập hết hạn, vui lòng đăng nhập lại.");
-            window.location.href = "/login";
-            return Promise.reject(error);
+        if (!originalRequest._retry) {
+          if (isRefreshing) {
+            return new Promise((resolve, reject) => {
+              failedQueue.push({ resolve, reject });
+            })
+              .then(token => {
+                originalRequest.headers['Authorization'] = 'Bearer ' + token;
+                return instance(originalRequest);
+              })
+              .catch(err => Promise.reject(err));
           }
         }
 
-        // Chờ token mới nếu đang refresh
-        return new Promise((resolve, reject) => {
-          subscribeTokenRefresh((token) => {
-            if (token) {
-              originalRequest.headers["Authorization"] = `Bearer ${token}`;
-              resolve(instance(originalRequest));
-            } else {
-              reject(error);
-            }
-          });
-        });
-      }
+        originalRequest._retry = true;
+        isRefreshing = true;
 
-      // forbidden (permission related issues)
-      case 403: {
-        toast.error(`you don't permission to access this resource`);
-        return Promise.reject(error);
-      }
+        try {
+          let newAccessToken = await refreshAccessToken();
 
-      // bad request => refresh token
-      case 400: {
-        const newToken = await refreshAccessToken();
+          localStorage.setItem('access_Token', newAccessToken);
+          instance.defaults.headers['Authorization'] = 'Bearer ' + newAccessToken;
+          processQueue(null, newAccessToken);
 
-        if (newToken) {
-          error.config.headers["Authorization"] = `Bearer ${newToken}`;
-
-          return instance(error.config);
-        } else {
-          toast.error("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.");
-          localStorage.removeItem("access_Token");
+          return instance(originalRequest);
+        } catch (err) {
+          processQueue(err, null);
+          // handle logout
+          localStorage.removeItem('access_Token');
+          localStorage.removeItem('refresh_Token');
+          window.location.href = '/login';
+          return Promise.reject(err);
+        } finally {
+          isRefreshing = false;
         }
 
-        return error.response.data;
       }
 
-      // not found get /post / delete /put
+      // Xử lý lỗi 400 (có thể cần retry với token mới)
+      case 400: {
+        // if (error.response.data.EM === "need to retry with new token") {
+        //   if (!isRefreshing) {
+        //     isRefreshing = true;
+        //     try {
+        //       const newToken = await refreshAccessToken();
+        //       if (newToken) {
+        //         isRefreshing = false;
+        //         onRefreshed(newToken);
+        //         originalRequest.headers["Authorization"] = `Bearer ${newToken}`;
+        //         return instance(originalRequest);
+        //       } else {
+        //         window.location.href = "/login";
+        //         return Promise.reject(error);
+        //       }
+        //     } catch (refreshError) {
+        //       isRefreshing = false;
+        //       window.location.href = "/login";
+        //       return Promise.reject(refreshError);
+        //     }
+        //   }
+
+        //   return new Promise((resolve) => {
+        //     subscribeTokenRefresh((token) => {
+        //       originalRequest.headers["Authorization"] = `Bearer ${token}`;
+        //       resolve(instance(originalRequest));
+        //     });
+        //   });
+        // }
+        return Promise.reject(error);
+      }
+
+      // Xử lý lỗi 403 (không có quyền)
+      case 403: {
+        toast.error("Bạn không có quyền truy cập tài nguyên này.");
+        return Promise.reject(error);
+      }
+
+      // Xử lý các lỗi khác
       case 404: {
-        return Promise.reject(error);
+        return Promise.reject(error); // Not found
       }
-
-      // conflict
       case 409: {
-        return Promise.reject(error);
+        return Promise.reject(error); // Conflict
       }
-
-      // unprocessable
       case 422: {
-        return Promise.reject(error);
+        return Promise.reject(error); // Unprocessable
       }
-
-      // generic api error (server related) unexpected
       default: {
-        return Promise.reject(error);
+        return Promise.reject(error); // Lỗi server bất ngờ
       }
     }
   }

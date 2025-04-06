@@ -27,7 +27,6 @@ instance.interceptors.request.use(
 const refreshAccessToken = async () => {
   try {
     const refreshToken = localStorage.getItem("refresh_Token");
-    if (!refreshToken) throw new Error("No refresh token available");
 
     const response = await axios.post(
       `${import.meta.env.VITE_BACKEND_URL}/api/refreshToken`,
@@ -37,7 +36,7 @@ const refreshAccessToken = async () => {
     const { newAccessToken, newRefreshToken } = response.data.DT;
     localStorage.setItem("access_Token", newAccessToken);
     localStorage.setItem("refresh_Token", newRefreshToken);
-    instance.defaults.headers.common["Authorization"] = `Bearer ${newAccessToken}`;
+    // instance.defaults.headers.common["Authorization"] = `Bearer ${newAccessToken}`;
     return newAccessToken;
   } catch (error) {
     console.error("Refresh token failed:", error.response?.data || error.message);
@@ -71,13 +70,11 @@ instance.interceptors.response.use(
     switch (status) {
       // Xử lý lỗi 401 (token hết hạn)
       case 401: {
-        if (
-          window.location.pathname !== "/" &&
-          window.location.pathname !== "/login" &&
-          window.location.pathname !== "/register"
-        ) {
-          console.log(">>>check error 401: ", error.response.data);
-          toast.error("Unauthorized the user. Please login ... ");
+        const path = window.location.pathname;
+
+        if (path === "/" || path === "/login" || path === "/register") {
+          console.warn("401 on auth page, skip refresh");
+          return Promise.reject(error); 
         }
 
         if (!originalRequest._retry) {
@@ -99,7 +96,12 @@ instance.interceptors.response.use(
         try {
           let newAccessToken = await refreshAccessToken();
 
-          localStorage.setItem('access_Token', newAccessToken);
+          if (!newAccessToken) {
+            window.location.href = '/login';
+            return Promise.reject(error);
+          }
+
+          // localStorage.setItem('access_Token', newAccessToken);
           instance.defaults.headers['Authorization'] = 'Bearer ' + newAccessToken;
           processQueue(null, newAccessToken);
 

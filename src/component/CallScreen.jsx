@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { Modal, Button, Spinner, Alert } from "react-bootstrap";
-import { io } from "socket.io-client";
 import "./CallControls.css";
 
 const CallScreen = ({

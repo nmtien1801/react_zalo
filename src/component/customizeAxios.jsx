@@ -8,19 +8,6 @@ const instance = axios.create({
   withCredentials: true,
 });
 
-// Cấu hình axios-retry
-// axiosRetry(instance, {
-//   retries: 3,
-//   retryDelay: (retryCount) => {
-//     console.log(`Retry attempt: ${retryCount}`);
-//     return retryCount * 200;
-//   },
-//   retryCondition: (error) => {
-//     const status = error.response?.status;
-//     return status === 400 || status === 401;
-//   },
-// });
-
 // Cài đặt header mặc định
 instance.defaults.headers.common["Authorization"] = `Bearer ${localStorage.getItem("access_Token")}`;
 
@@ -132,34 +119,6 @@ instance.interceptors.response.use(
 
       // Xử lý lỗi 400 (có thể cần retry với token mới)
       case 400: {
-        // if (error.response.data.EM === "need to retry with new token") {
-        //   if (!isRefreshing) {
-        //     isRefreshing = true;
-        //     try {
-        //       const newToken = await refreshAccessToken();
-        //       if (newToken) {
-        //         isRefreshing = false;
-        //         onRefreshed(newToken);
-        //         originalRequest.headers["Authorization"] = `Bearer ${newToken}`;
-        //         return instance(originalRequest);
-        //       } else {
-        //         window.location.href = "/login";
-        //         return Promise.reject(error);
-        //       }
-        //     } catch (refreshError) {
-        //       isRefreshing = false;
-        //       window.location.href = "/login";
-        //       return Promise.reject(refreshError);
-        //     }
-        //   }
-
-        //   return new Promise((resolve) => {
-        //     subscribeTokenRefresh((token) => {
-        //       originalRequest.headers["Authorization"] = `Bearer ${token}`;
-        //       resolve(instance(originalRequest));
-        //     });
-        //   });
-        // }
         return Promise.reject(error);
       }
 

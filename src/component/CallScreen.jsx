@@ -67,7 +67,7 @@ const CallScreen = ({
     [socketRef]
   );
 
-  const endCall = useCallback(() => {
+  const endCall = useCallback((isRemote = false) => {
     if (peerConnectionRef.current) {
       peerConnectionRef.current.close();
       peerConnectionRef.current = null;
@@ -82,11 +82,21 @@ const CallScreen = ({
       remoteVideoRef.current.srcObject = null;
     }
 
+    // Gửi tín hiệu kết thúc đến bên còn lại
+    const targetUserId = isInitiator ? receiverId : callerId;
+    if (socketRef.current && targetUserId) {
+      console.log("Sending end-call to:", targetUserId);
+      console.log("Socket connected:", socketRef.current.connected);
+      socketRef.current.emit("end-call", { targetUserId });
+    }else {
+      console.log("Cannot send end-call. Socket:", socketRef.current, "Target:", targetUserId);
+    }
+
     setIncomingCall(false);
     setCallerSocketId(null);
     setCallStatus("idle");
     onHide();
-  }, [onHide]);
+  }, [onHide, socketRef, isInitiator, receiverId, callerId]);
 
   const startCall = useCallback(async () => {
     if (peerConnectionRef.current) {
@@ -198,6 +208,11 @@ const CallScreen = ({
       setCallStatus("error");
     });
 
+    socket.on("call-ended", () => {
+      console.log("📞 Cuộc gọi đã bị kết thúc bởi người kia");
+      endCall(true); // gọi lại hàm để dọn dẹp và đóng modal
+    });
+
     socket.on("signal", async ({ signal }) => {
       if (!signal || !signal.type) return;
 
@@ -228,6 +243,7 @@ const CallScreen = ({
         }
       } catch (err) {
         console.error("❌ Lỗi xử lý signal:", err);
+        socket.off("call-ended"); // Dọn dẹp listener
       }
     });
 
@@ -247,8 +263,8 @@ const CallScreen = ({
           {callStatus === "ringing"
             ? `Cuộc gọi từ ${callerName}`
             : callStatus === "calling"
-            ? `Đang gọi ${receiverName}...`
-            : "Cuộc gọi video"}
+              ? `Đang gọi ${receiverName}...`
+              : "Cuộc gọi video"}
         </Modal.Title>
       </Modal.Header>
       <Modal.Body>
@@ -266,7 +282,7 @@ const CallScreen = ({
             <Spinner animation="border" size="sm" /> Đang gọi...
           </Button>
         ) : null}
-        <Button variant="danger" onClick={endCall}>Kết thúc</Button>
+        <Button variant="danger" onClick={() => endCall(false)}>Kết thúc</Button>
       </Modal.Footer>
     </Modal>
   );

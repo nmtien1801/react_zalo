@@ -32,6 +32,15 @@ export default function ChatGroup(props) {
   const [showSidebar, setShowSidebar] = useState(true);
   const [message, setMessage] = useState(""); // input
   const [messages, setMessages] = useState([]); // all hội thoại
+  const openModal = () => setIsOpen(true);
+  const closeModal = () => setIsOpen(false);
+
+  const [sections] = useState([
+    { id: "media", title: "Ảnh/Video", icon: ImageIcon },
+    { id: "files", title: "File", icon: File },
+    { id: "links", title: "Link", icon: LinkIcon },
+  ]);
+  const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     if (props.allMsg) {
@@ -43,16 +52,6 @@ export default function ChatGroup(props) {
     props.handleSendMsg(message);
     setMessage("");
   };
-
-  const [sections] = useState([
-    { id: "media", title: "Ảnh/Video", icon: ImageIcon },
-    { id: "files", title: "File", icon: File },
-    { id: "links", title: "Link", icon: LinkIcon },
-  ]);
-  const [isOpen, setIsOpen] = useState(false);
-
-  const openModal = () => setIsOpen(true);
-  const closeModal = () => setIsOpen(false);
 
   return (
     <div className="row g-0 h-100">
@@ -105,16 +104,14 @@ export default function ChatGroup(props) {
               messages.map((msg, index) => (
                 <div
                   key={index}
-                  className={`p-2 my-1 d-flex ${
-                    msg.sender._id === user._id && "justify-content-end"
-                  }`}
+                  className={`p-2 my-1 d-flex ${msg.sender._id === user._id && "justify-content-end"
+                    }`}
                 >
                   <span
-                    className={`p-3 ${
-                      msg.sender._id === user._id
-                        ? "bg-primary border rounded-pill" // Tin nhắn của user căn phải
-                        : "bg-white border rounded-pill" // Tin nhắn của người khác căn trái
-                    }`}
+                    className={`p-3 ${msg.sender._id === user._id
+                      ? "bg-primary border rounded-pill" // Tin nhắn của user căn phải
+                      : "bg-white border rounded-pill" // Tin nhắn của người khác căn trái
+                      }`}
                   >
                     {msg.msg}
                   </span>

@@ -56,9 +56,10 @@ export default function ChatInterface() {
       });
 
       socketRef.current.on("RECEIVED_MSG", (data) => {
-        console.log(data, "form another users");
+        console.log("form another users", data);
         setAllMsg((prevState) => [...prevState, data]);
       });
+      
       socketRef.current.on("DELETED_MSG", (data) => {
         setAllMsg((prevState) =>
           prevState.filter((item) => item._id != data.msg._id)
@@ -94,10 +95,11 @@ export default function ChatInterface() {
   };
 
   const handleTypeChat = (type, receiver) => {
-    const receiverOnline = onlineUsers.find((u) => u.userId === receiver._id);
+    let receiverOnline; // lấy socketId của người nhận từ danh sách onlineUsers
     if (type === 1) {
       setTypeChatRoom("single");
       handleLoadMessages(receiver._id, receiver.type);
+      receiverOnline = onlineUsers.find((u) => u.userId === receiver._id);
 
       setRoomData({
         ...roomData, room: "single", receiver: {
@@ -108,6 +110,11 @@ export default function ChatInterface() {
     } else if (type === 2) {
       setTypeChatRoom("group");
       handleLoadMessages(receiver._id, receiver.type);
+
+      receiverOnline = onlineUsers.find((u) =>
+        receiver.members.includes(u.userId)
+      );
+
       setRoomData({
         ...roomData, room: "group", receiver: {
           ...receiver,
@@ -166,14 +173,13 @@ export default function ChatInterface() {
           avatar: item.avatar,
           type: item.type,
           phone: item.receiver.phone,
+          members: item.receiver.members,
         };
       });
 
       setConversations(_conversations);
     }
   }, [conversationRedux]);
-
-
 
   return (
     <div className="container-fluid vh-100 p-0">
@@ -269,7 +275,8 @@ export default function ChatInterface() {
                   handleSendMsg={handleSendMsg}
                   allMsg={allMsg}
                   user={user}
-                // handleDelete={handleDelete}
+                  // handleDelete={handleDelete}
+                  socketRef={socketRef}
                 />
               ) : typeChatRoom === "single" ? (
                 <ChatPerson

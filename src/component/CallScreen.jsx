@@ -13,7 +13,6 @@ const CallScreen = ({
   isInitiator = false,
 }) => {
   const pendingCandidates = { current: [] };
-  const [onlineUsers, setOnlineUsers] = useState([]);
   const [incomingCall, setIncomingCall] = useState(false);
   const [callerSocketId, setCallerSocketId] = useState(null);
   const [callStatus, setCallStatus] = useState("idle");
@@ -84,7 +83,7 @@ const CallScreen = ({
 
     // Gửi tín hiệu kết thúc đến bên còn lại
     const targetUserId = isInitiator ? receiverId : callerId;
-    if (socketRef.current && targetUserId) {
+    if (socketRef.current && targetUserId && !isRemote) {
       console.log("Sending end-call to:", targetUserId);
       console.log("Socket connected:", socketRef.current.connected);
       socketRef.current.emit("end-call", { targetUserId });
@@ -225,6 +224,10 @@ const CallScreen = ({
       try {
         switch (signal.type) {
           case "offer":
+            if (pc.signalingState !== "stable") {
+              console.warn("⚠️ Nhận offer khi signalingState không phải stable:", pc.signalingState);
+              return;
+            }
             await pc.setRemoteDescription(new RTCSessionDescription(signal));
             break;
           case "answer":
@@ -253,11 +256,13 @@ const CallScreen = ({
 
     return () => {
       clearInterval(heartbeatInterval);
+      socket.off("call-ended");
+      socket.off("signal");
     };
   }, [senderId, socketRef, handleIncomingCall, endCall]);
 
   return (
-    <Modal show={show} onHide={endCall} centered size="lg">
+    <Modal show={show} onHide={() => endCall(false)} centered size="lg">
       <Modal.Header closeButton>
         <Modal.Title>
           {callStatus === "ringing"

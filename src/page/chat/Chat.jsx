@@ -33,6 +33,7 @@ export default function ChatInterface() {
   ]);
 
   const [typeChatRoom, setTypeChatRoom] = useState("cloud");
+  const [onlineUsers, setOnlineUsers] = useState([]);
 
   // connect docket
   useEffect(() => {
@@ -49,6 +50,10 @@ export default function ChatInterface() {
     if (isConnect) {
 
       socketRef.current.emit("register", user._id);
+
+      socketRef.current.on("user-list", (usersList) => {
+        setOnlineUsers(usersList); // Lưu danh sách user online
+      });
 
       socketRef.current.on("RECEIVED_MSG", (data) => {
         console.log(data, "form another users");
@@ -69,9 +74,17 @@ export default function ChatInterface() {
       let sender = { ...user };
       sender.socketId = socketRef.current.id;
 
+      // Lấy socketId của receiver từ danh sách onlineUsers
+      const receiverOnline = onlineUsers.find(
+        (u) => u.userId === roomData.receiver?._id
+      );
+
       const data = {
         msg,
-        receiver: roomData.receiver,
+        receiver: {
+          ...roomData.receiver,
+          socketId: receiverOnline ? receiverOnline.socketId : null,
+        },
         sender,
       };
       console.log("data: ", data);
@@ -81,16 +94,26 @@ export default function ChatInterface() {
   };
 
   const handleTypeChat = (type, receiver) => {
-
+    const receiverOnline = onlineUsers.find((u) => u.userId === receiver._id);
     if (type === 1) {
       setTypeChatRoom("single");
       handleLoadMessages(receiver._id, receiver.type);
 
-      setRoomData({ ...roomData, room: "single", receiver: receiver });
+      setRoomData({
+        ...roomData, room: "single", receiver: {
+          ...receiver,
+          socketId: receiverOnline ? receiverOnline.socketId : null,
+        },
+      });
     } else if (type === 2) {
       setTypeChatRoom("group");
       handleLoadMessages(receiver._id, receiver.type);
-      setRoomData({ ...roomData, room: "group", receiver: receiver });
+      setRoomData({
+        ...roomData, room: "group", receiver: {
+          ...receiver,
+          socketId: receiverOnline ? receiverOnline.socketId : null,
+        },
+      });
     } else {
       setTypeChatRoom("cloud");
       handleLoadMessages(receiver._id, receiver.type);
@@ -100,7 +123,7 @@ export default function ChatInterface() {
 
   const handleLoadMessages = async (receiver, type) => {
     const res = await dispatch(
-      loadMessages({ sender: user._id, receiver: receiver, type: type})
+      loadMessages({ sender: user._id, receiver: receiver, type: type })
     );
 
     if (res.payload.EC === 0) {
@@ -150,7 +173,7 @@ export default function ChatInterface() {
     }
   }, [conversationRedux]);
 
- 
+
 
   return (
     <div className="container-fluid vh-100 p-0">
@@ -246,7 +269,7 @@ export default function ChatInterface() {
                   handleSendMsg={handleSendMsg}
                   allMsg={allMsg}
                   user={user}
-                  // handleDelete={handleDelete}
+                // handleDelete={handleDelete}
                 />
               ) : typeChatRoom === "single" ? (
                 <ChatPerson
@@ -263,7 +286,7 @@ export default function ChatInterface() {
                   handleSendMsg={handleSendMsg}
                   allMsg={allMsg}
                   user={user}
-                  // handleDelete={handleDelete}
+                // handleDelete={handleDelete}
                 />
               )}
             </>

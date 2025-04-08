@@ -1,42 +1,150 @@
-import { useState } from "react";
-import { Search, ImageIcon, File, LinkIcon } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Search, UserPlus, Users } from "lucide-react";
 import "./Chat.scss";
 import ChatPerson from "./ChatPerson";
 import ChatGroup from "./ChatGroup";
+import ChatCloud from "./ChatCloud";
+import { loadMessages, getConversations } from "../../redux/chatSlice";
+import { useSelector, useDispatch } from "react-redux";
+import io from "socket.io-client";
 
 export default function ChatInterface() {
-  const [conversations] = useState([
+  const dispatch = useDispatch();
+  const socketRef = useRef();
+
+  const [allMsg, setAllMsg] = useState([]);
+  const user = useSelector((state) => state.auth.userInfo);
+  const conversationRedux = useSelector((state) => state.chat.conversations);
+  const [isConnect, setIsConnect] = useState(false); // connect socket
+  const [selected, setSelected] = useState(0);
+  const [roomData, setRoomData] = useState({
+    room: null,
+    receiver: null,
+  });
+  const [conversations, setConversations] = useState([
     {
-      id: 1,
-      name: "Võ Trường Khang",
+      _id: 1,
+      username: "Cloud",
       message: "[Thông báo] Giới thiệu về Trường Kha...",
       time: "26/07/24",
-      avatar: "/placeholder.svg",
+      avatar: "/cloud.jpg",
+      type: 3,
     },
-    {
-      id: 2,
-      name: "Thu",
-      message: "[Thông báo] Giới thiệu thêm Thu",
-      time: "23/07/24",
-      avatar: "/placeholder.svg",
-    },
-    {
-      id: 3,
-      name: "IGH - DHKTPMTB - CT7",
-      message: "Võ Văn Hòa, Dung",
-      time: "20/07/24",
-      avatar: "/placeholder.svg",
-    },
-    // Add more conversations as needed
   ]);
 
-  const [sections] = useState([
-    { id: "media", title: "Ảnh/Video", icon: ImageIcon },
-    { id: "files", title: "File", icon: File },
-    { id: "links", title: "Link", icon: LinkIcon },
-  ]);
+  const [typeChatRoom, setTypeChatRoom] = useState("cloud");
 
-  const [isChatGroup, setIsChatGroup] = useState(false);
+  // connect docket
+  useEffect(() => {
+    const socket = io.connect(process.env.REACT_APP_BACKEND_URL);
+
+    socketRef.current = socket;
+    socket.on("connect", () => setIsConnect(true));
+    socket.off("disconnect", () => setIsConnect(false));
+  }, []);
+
+  // action socket
+  useEffect(() => {
+    if (isConnect) {
+      socketRef.current.on("RECEIVED_MSG", (data) => {
+        console.log(data, "form another users");
+        setAllMsg((prevState) => [...prevState, data]);
+      });
+      socketRef.current.on("DELETED_MSG", (data) => {
+        setAllMsg((prevState) =>
+          prevState.filter((item) => item._id != data.msg._id)
+        );
+      });
+
+      return () => socketRef.current.disconnect();
+    }
+  }, [isConnect]);
+
+  const handleSendMsg = (msg) => {
+    if (socketRef.current.connected) {
+      let sender = { ...user };
+      sender.socketId = socketRef.current.id;
+
+      const data = {
+        msg,
+        receiver: roomData.receiver,
+        sender,
+      };
+      console.log("data: ", data);
+
+      socketRef.current.emit("SEND_MSG", data);
+    }
+  };
+
+  // const handleDelete = (id) => {
+  //   axios
+  //     .delete(`http://localhost:8080/message/${id}`)
+  //     .then((res) => {
+  //       if (socketRef.current.connected) {
+  //         const data = {
+  //           msg: res.data.data,
+  //           receiver: roomData.receiver,
+  //         };
+  //         socketRef.current.emit("DELETE_MSG", data);
+  //         setAllMsg((prevState) =>
+  //           prevState.filter((data) => data._id != res.data.data._id)
+  //         );
+  //       }
+  //     })
+  //     .catch((err) => {
+  //       console.log(err);
+  //     });
+  // };
+
+  const handleTypeChat = (type, receiver) => {
+
+    if (type === 1) {
+      setTypeChatRoom("single");
+      handleLoadMessages(receiver._id, receiver.type);
+
+      setRoomData({ ...roomData, room: "single", receiver: receiver });
+    } else if (type === 2) {
+      setTypeChatRoom("group");
+      handleLoadMessages(receiver._id, receiver.type);
+      setRoomData({ ...roomData, room: "group", receiver: receiver });
+    } else {
+      setTypeChatRoom("cloud");
+      handleLoadMessages(receiver._id, receiver.type);
+      setRoomData({ ...roomData, room: "cloud", receiver: user });
+    }
+  };
+
+  const handleLoadMessages = async (receiver, type) => {
+    const res = await dispatch(
+      loadMessages({ sender: user._id, receiver: receiver, type: type })
+    );
+
+    if (res.payload.EC === 0) {
+      setAllMsg(res.payload.DT);
+    }
+  };
+
+  useEffect(() => {
+    dispatch(getConversations(user._id));
+  }, []);
+
+  useEffect(() => {
+    if (conversationRedux) {
+      let _conversations = conversationRedux.map((item) => {
+        return {
+          _id: item.receiver._id,
+          username: item.receiver.username,
+          message: item.message,
+          time: item.time,
+          avatar: item.avatar,
+          type: item.type,
+          phone: item.receiver.phone,
+        };
+      });
+
+      setConversations(_conversations);
+    }
+  }, [conversationRedux]);
 
   return (
     <div className="container-fluid vh-100 p-0">
@@ -46,25 +154,48 @@ export default function ChatInterface() {
           className="col-3 border-end bg-white"
           style={{ maxWidth: "300px" }}
         >
-          {/* Profile and Search */}
-          <div className="p-3 border-bottom">
-            <div className="d-flex align-items-center ">
-              <img
-                src="/placeholder.svg"
-                className="rounded-circle"
-                alt=""
-                style={{ width: "32px", height: "32px" }}
-              />
-              <div className="input-group ms-2">
+          {/*  Search */}
+          <div className="p-2 border-bottom">
+            <div className="d-flex align-items-center pb-3">
+              <div className="input-group me-3">
                 <input
                   type="text"
                   className="form-control form-control-sm bg-light"
                   placeholder="Tìm kiếm"
                 />
-                <span className="input-group-text bg-light border-start-0">
+                <button className="btn btn-light  cursor-pointer border">
                   <Search size={16} />
-                </span>
+                </button>
               </div>
+
+              <button className="btn btn-light rounded-circle mb-1">
+                <UserPlus size={20} />
+              </button>
+
+              <button className="btn btn-light rounded-circle mb-1">
+                <Users size={20} />
+              </button>
+            </div>
+
+            <div className="d-flex align-items-center justify-content-between">
+              <div className="d-flex align-items-center gap-4">
+                {["Tất cả", "Chưa đọc"].map((item, index) => (
+                  <span
+                    key={index}
+                    onClick={() => setSelected(index)}
+                    style={{
+                      textDecoration: selected === index ? "underline" : "none",
+                      color: selected === index ? "#0d6efd" : "black", // Đổi màu xanh khi chọn
+                      cursor: "pointer",
+                      textDecorationThickness: "4px", // Độ dày gạch chân
+                      textUnderlineOffset: "5px", // Khoảng cách gạch chân so với chữ
+                    }}
+                  >
+                    {item}
+                  </span>
+                ))}
+              </div>
+              <div className="cursor-pointer hover-bg-light p-1">Phân loại</div>
             </div>
           </div>
 
@@ -73,32 +204,65 @@ export default function ChatInterface() {
             className="overflow-auto"
             style={{ height: "calc(100vh - 60px)" }}
           >
-            {conversations.map((chat) => (
-              <div
-                key={chat.id}
-                className="d-flex align-items-center p-2 border-bottom hover-bg-light cursor-pointer"
-                onClick={() => setIsChatGroup(!isChatGroup)}
-              >
-                <img
-                  src={chat.avatar || "/placeholder.svg"}
-                  className="rounded-circle"
-                  alt=""
-                  style={{ width: "48px", height: "48px" }}
-                />
-                <div className="ms-2 overflow-hidden ">
-                  <div className="text-truncate fw-medium ">{chat.name}</div>
-                  <div className="text-truncate small text-muted ">
-                    {chat.message}
+            {conversations &&
+              conversations.map((chat) => (
+                <div
+                  key={chat._id}
+                  className="d-flex align-items-center p-2 border-bottom hover-bg-light cursor-pointer"
+                  onClick={() => handleTypeChat(chat.type, chat)}
+                >
+                  <img
+                    src={chat.avatar || "/placeholder.svg"}
+                    className="rounded-circle"
+                    alt=""
+                    style={{ width: "48px", height: "48px" }}
+                  />
+                  <div className="ms-2 overflow-hidden ">
+                    <div className="text-truncate fw-medium ">
+                      {chat.username}
+                    </div>
+                    <div className="text-truncate small text-muted ">
+                      {chat.message}
+                    </div>
                   </div>
+                  <small className="text-muted ms-auto">{chat.time}</small>
                 </div>
-                <small className="text-muted ms-auto">{chat.time}</small>
-              </div>
-            ))}
+              ))}
           </div>
         </div>
 
         <div className="col">
-            {isChatGroup ? <ChatGroup /> : <ChatPerson />}
+          {roomData.room ? (
+            <>
+              {typeChatRoom === "group" ? (
+                <ChatGroup
+                  roomData={roomData}
+                  handleSendMsg={handleSendMsg}
+                  allMsg={allMsg}
+                  user={user}
+                // handleDelete={handleDelete}
+                />
+              ) : typeChatRoom === "single" ? (
+                <ChatPerson
+                  roomData={roomData}
+                  handleSendMsg={handleSendMsg}
+                  allMsg={allMsg}
+                  user={user}
+                // handleDelete={handleDelete}
+                />
+              ) : (
+                <ChatCloud
+                  roomData={roomData}
+                  handleSendMsg={handleSendMsg}
+                  allMsg={allMsg}
+                  user={user}
+                // handleDelete={handleDelete}
+                />
+              )}
+            </>
+          ) : (
+            <>Chào mừng bạn đến với chúng tôi</>
+          )}
         </div>
       </div>
     </div>

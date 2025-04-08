@@ -6,16 +6,10 @@ import {
   Shield,
   Clock,
   EyeOff,
-  ChevronDown,
   Smile,
   Paperclip,
   Send,
   Edit2,
-  BellOff,
-  Pin,
-  Users,
-  AlertTriangle,
-  Trash2,
   Search,
   Layout,
 } from "lucide-react";
@@ -23,24 +17,10 @@ import "./Chat.scss";
 import AccountInfo from "../info/AccountInfo";
 import { useSelector, useDispatch } from "react-redux";
 
-export default function ChatPerson(props) {
+export default function ChatCloud(props) {
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.userInfo);
-
   const [showSidebar, setShowSidebar] = useState(true);
-  const [message, setMessage] = useState(""); // input
-  const [messages, setMessages] = useState([]); // all hội thoại
-
-  useEffect(() => {
-    if (props.allMsg) {
-      setMessages(props.allMsg);
-    }
-  }, [props.allMsg]);
-
-  const sendMessage = () => {
-    props.handleSendMsg(message);
-    setMessage("");
-  };
 
   const [sections] = useState([
     { id: "media", title: "Ảnh/Video", icon: ImageIcon },
@@ -53,6 +33,31 @@ export default function ChatPerson(props) {
   const openModal = () => setIsOpen(true);
   const closeModal = () => setIsOpen(false);
 
+  const [message, setMessage] = useState(""); // input
+  const [messages, setMessages] = useState([]); // all hội thoại
+
+  // console.log("props: ", props);
+  useEffect(() => {
+    if (props.allMsg) {
+      setMessages(props.allMsg);
+    }
+  }, [props.allMsg]);
+
+  const sendMessage = async () => {
+    props.handleSendMsg(message);
+    setMessage("");
+  };
+
+  // const fetchMessages = async () => {
+  // await dispatch(getMessages());
+  // };
+
+  // useEffect(() => {
+  //     dispatch(getMessages());
+  //     const interval = setInterval(fetchMessages, 1000); // Lặp lại mỗi 1 giây
+  //     return () => clearInterval(interval); // Cleanup khi component unmount
+  // }, []);
+
   return (
     <div className="row g-0 h-100">
       {/* Main Chat Area */}
@@ -61,7 +66,7 @@ export default function ChatPerson(props) {
         <div className="bg-white p-2 d-flex align-items-center border-bottom justify-content-between">
           <div className=" d-flex align-items-center">
             <img
-              src="/placeholder.svg"
+              src="/cloud.jpg"
               className="rounded-circle"
               alt=""
               style={{ width: "40px", height: "40px" }}
@@ -71,8 +76,10 @@ export default function ChatPerson(props) {
             <AccountInfo isOpen={isOpen} closeModal={closeModal} />
 
             <div className="ms-2">
-              <div className="fw-medium">Võ Trường Khang</div>
-              <small className="text-muted">Hoạt động 2 giờ trước</small>
+              <div className="fw-medium">Cloud của tôi</div>
+              <small className="text-muted">
+                Lưu và đồng bộ dữ liệu giữa các thiết bị
+              </small>
             </div>
           </div>
 
@@ -155,7 +162,7 @@ export default function ChatPerson(props) {
           <div className="text-center p-3 border-bottom">
             <div className="position-relative d-inline-block mb-2">
               <img
-                src="/placeholder.svg"
+                src="/cloud.jpg"
                 alt="Profile"
                 className="rounded-circle"
                 style={{ width: "80px", height: "80px" }}
@@ -165,40 +172,18 @@ export default function ChatPerson(props) {
                 <Edit2 size={14} />
               </button>
             </div>
-            <h6 className="mb-3">Võ Trường Khang</h6>
-
-            {/* Action Buttons */}
-            <div className="d-flex justify-content-center gap-4">
-              <div className="text-center">
-                <button className="btn btn-light rounded-circle mb-1">
-                  <BellOff size={20} />
-                </button>
-                <div className="small">Tắt thông báo</div>
-              </div>
-              <div className="text-center">
-                <button className="btn btn-light rounded-circle mb-1">
-                  <Pin size={20} />
-                </button>
-                <div className="small">Ghim hội thoại</div>
-              </div>
-              <div className="text-center">
-                <button className="btn btn-light rounded-circle mb-1">
-                  <Users size={20} />
-                </button>
-                <div className="small">Tạo nhóm trò chuyện</div>
-              </div>
-            </div>
+            <h5 className="mb-3">Cloud của tôi</h5>
+            <small className="text-muted">
+              Lưu trữ và truy cập nhanh những nội dung quan trọng của bạn ngay
+              trên zalo
+            </small>
           </div>
 
-          {/* Reminders & Groups */}
+          {/* Reminders */}
           <div className="border-bottom">
             <div className="d-flex align-items-center p-3 hover-bg-light cursor-pointer">
               <Clock size={20} className="text-muted me-2" />
               <div>Danh sách nhắc hẹn</div>
-            </div>
-            <div className="d-flex align-items-center p-3 hover-bg-light cursor-pointer">
-              <Users size={20} className="text-muted me-2" />
-              <div>20 nhóm chung</div>
             </div>
           </div>
 
@@ -247,18 +232,6 @@ export default function ChatPerson(props) {
                 className="accordion-collapse collapse"
               >
                 <div className="accordion-body">
-                  {/* Self-destructing Messages */}
-                  <div className="d-flex align-items-center justify-content-between p-2 hover-bg-light cursor-pointer">
-                    <div className="d-flex align-items-center">
-                      <Clock size={20} className="text-muted me-2" />
-                      <div>
-                        <div>Tin nhắn tự xóa</div>
-                        <small className="text-muted">Không bao giờ</small>
-                      </div>
-                    </div>
-                    <ChevronDown size={20} className="text-muted" />
-                  </div>
-
                   {/* Hide Conversation */}
                   <div className="d-flex align-items-center justify-content-between p-2">
                     <div className="d-flex align-items-center">
@@ -272,18 +245,6 @@ export default function ChatPerson(props) {
                         role="switch"
                       />
                     </div>
-                  </div>
-
-                  {/* Report */}
-                  <div className="d-flex align-items-center p-2 hover-bg-light cursor-pointer text-danger">
-                    <AlertTriangle size={20} className="me-2" />
-                    <div>Báo xấu</div>
-                  </div>
-
-                  {/* Delete Chat History */}
-                  <div className="d-flex align-items-center p-2 hover-bg-light cursor-pointer text-danger">
-                    <Trash2 size={20} className="me-2" />
-                    <div>Xóa lịch sử trò chuyện</div>
                   </div>
                 </div>
               </div>

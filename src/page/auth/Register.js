@@ -5,6 +5,7 @@ import { Eye, EyeOff, RefreshCw } from "lucide-react";
 import { Login } from "../../redux/authSlice";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
+import { register } from "../../redux/authSlice";
 
 export default function LoginForm() {
   const dispatch = useDispatch();
@@ -37,9 +38,10 @@ export default function LoginForm() {
       alert("Mật khẩu và mật khẩu nhập lại không khớp!");
       return;
     }
+console.log("formData", formData);
 
     // Gửi thông tin đăng ký đi
-    let res = await dispatch(Login(formData));
+    let res = await dispatch(register(formData));
     if (res.payload.EC === 0) {
       navigate("/login");
     }

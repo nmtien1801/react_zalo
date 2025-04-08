@@ -132,13 +132,23 @@ export default function LoginForm() {
           </form>
 
           {/* QR Code Login Link */}
-          <div className="text-center">
+          <div className="text-center mb-3">
             <a
               href="#"
               className="text-decoration-none"
               style={{ color: "#2962ff" }}
             >
               Đăng nhập qua mã QR
+            </a>
+          </div>
+
+          <div className="text-center">
+            <a
+              href="/register"
+              className="text-decoration-none"
+              style={{ color: "#2962ff" }}
+            >
+              Đăng ký
             </a>
           </div>
         </div>

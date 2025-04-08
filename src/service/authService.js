@@ -7,7 +7,7 @@ const loginService = (phoneNumber, password) => {
   });
 };
 
-const registerNewUser = (formData) => {
+const registerService = (formData) => {
   return customizeAxios.post("/api/register", {
     formData,
   });
@@ -23,7 +23,7 @@ const doGetAccountService = () => {
 
 export {
   loginService,
-  registerNewUser,
+  registerService,
   logoutUserService,
   doGetAccountService
 };

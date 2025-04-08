@@ -12,5 +12,4 @@ const getConversationsService = (sender) => {
     `/api/getConversations/${sender}`
   );
 };
-
 export { loadMessagesService, getConversationsService };

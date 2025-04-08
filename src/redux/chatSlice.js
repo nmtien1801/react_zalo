@@ -28,6 +28,14 @@ export const getConversations = createAsyncThunk(
   }
 );
 
+export const getConversationsByMember = createAsyncThunk(
+  "chat/getConversationsByMember",
+  async (sender, thunkAPI) => {
+    let response = await getConversationsByMemberService(sender);
+    return response;
+  }
+);
+
 const chatSlice = createSlice({
   name: "chat",
   initialState,
@@ -50,6 +58,8 @@ const chatSlice = createSlice({
     builder
       .addCase(getConversations.fulfilled, (state, action) => {
         if (action.payload.EC === 0) {
+          console.log("getConversations: ", action.payload);
+
           state.conversations = action.payload.DT || [];
         }
       })

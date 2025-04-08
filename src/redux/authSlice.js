@@ -3,6 +3,8 @@ import {
   loginService,
   doGetAccountService,
   registerService,
+  sendCodeService,
+  resetPasswordService,
 } from "../service/authService";
 
 const initialState = {
@@ -31,6 +33,22 @@ export const register = createAsyncThunk(
   "auth/register",
   async (formData, thunkAPI) => {
     const response = await registerService(formData);
+    return response;
+  }
+);
+
+export const sendCode = createAsyncThunk(
+  "auth/sendCode",
+  async (email, thunkAPI) => {
+    const response = await sendCodeService(email);
+    return response;
+  }
+);
+
+export const resetPassword = createAsyncThunk(
+  "auth/resetPassword",
+  async ({ email, code, password }, thunkAPI) => {
+    const response = await resetPasswordService(email, code, password);
     return response;
   }
 );
@@ -96,6 +114,18 @@ const authSlice = createSlice({
       .addCase(register.pending, (state) => {})
       .addCase(register.fulfilled, (state, action) => {})
       .addCase(register.rejected, (state, action) => {});
+
+    // sendCode
+    builder
+      .addCase(sendCode.pending, (state) => {})
+      .addCase(sendCode.fulfilled, (state, action) => {})
+      .addCase(sendCode.rejected, (state, action) => {});
+
+    // resetPassword
+    builder
+      .addCase(resetPassword.pending, (state) => {})
+      .addCase(resetPassword.fulfilled, (state, action) => {})
+      .addCase(resetPassword.rejected, (state, action) => {});
   },
 });
 

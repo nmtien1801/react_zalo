@@ -72,7 +72,7 @@ instance.interceptors.response.use(
       case 401: {
         const path = window.location.pathname;
 
-        if (path === "/" || path === "/login" || path === "/register") {
+        if (path === "/" || path === "/login" || path === "/register" || path === "/forgot-password") {
           console.warn("401 on auth page, skip refresh");
           return Promise.reject(error); 
         }
@@ -119,9 +119,8 @@ instance.interceptors.response.use(
 
       }
 
-      // Xử lý lỗi 400 (có thể cần retry với token mới)
       case 400: {
-        return Promise.reject(error);
+        return error.response.data; // Bad request
       }
 
       // Xử lý lỗi 403 (không có quyền)

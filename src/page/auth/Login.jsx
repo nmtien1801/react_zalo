@@ -125,7 +125,7 @@ export default function LoginForm() {
             {/* Forgot Password Link */}
             <div className="text-center mb-3">
               <a
-                href="#"
+                href="/forgot-password"
                 className="text-decoration-none"
                 style={{ color: "#2962ff" }}
               >

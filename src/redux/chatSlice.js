@@ -11,25 +11,6 @@ const initialState = {
   conversations: [],
 };
 
-export const getMessages = createAsyncThunk(
-  "chat/getMessages",
-  async (thunkAPI) => {
-    let response = await axios.get("http://localhost:8080/show/2");
-    return response.data;
-  }
-);
-
-export const sendMessages = createAsyncThunk(
-  "chat/sendMessages",
-  async ({ clientId, senderId, message }, thunkAPI) => {
-    let response = await axios.post("http://localhost:8080/send", {
-      clientId,
-      senderId,
-      message,
-    });
-    return response.data;
-  }
-);
 
 export const loadMessages = createAsyncThunk(
   "chat/loadMessages",
@@ -52,25 +33,7 @@ const chatSlice = createSlice({
   initialState,
 
   extraReducers: (builder) => {
-    //  getMessages
-    builder
-      .addCase(getMessages.pending, (state) => { })
-      .addCase(getMessages.fulfilled, (state, action) => {
-        if (action.payload.EC === 0) {
-          state.message = action.payload.DT || [];
-        }
-      })
-      .addCase(getMessages.rejected, (state, action) => { });
 
-    //  sendMessages
-    builder
-      .addCase(sendMessages.pending, (state) => { })
-      .addCase(sendMessages.fulfilled, (state, action) => {
-        if (action.payload.EC === 0) {
-          state.message = action.payload.DT || [];
-        }
-      })
-      .addCase(sendMessages.rejected, (state, action) => { });
 
     //  loadMessages
     builder

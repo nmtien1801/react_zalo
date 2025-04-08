@@ -17,6 +17,7 @@ import DanhBa from "./page/danhBa/DanhBa";
 import Register from "./page/auth/Register";
 import { useSelector, useDispatch } from "react-redux";
 import { doGetAccount } from "./redux/authSlice";
+// import CallControls from "./component/CallControls";
 
 
 function App() {
@@ -26,7 +27,7 @@ function App() {
 
   const fetchDataAccount = async () => {
     if (!user || !user?.access_Token) {
-      await dispatch(doGetAccount()); // Gọi API
+      await dispatch(doGetAccount()).unwrap(); // Chờ API hoàn tất
     }
   };
 
@@ -48,13 +49,12 @@ function App() {
             <Route path="/register" element={<Register />} />
 
             <Route path="/chat" element={isLoggedIn && <Chat />} />
-            <Route path="/danh-ba" element={isLoggedIn && <DanhBa />} />
-
+            {/* <Route path="/danh-ba" element={isLoggedIn && <CallControls />} /> */}
           </Routes>
         </div>
       </div>
 
-      <ToastContainer
+      {/* <ToastContainer
         position="top-right"
         autoClose={3000}
         hideProgressBar={false}
@@ -65,7 +65,7 @@ function App() {
         draggable
         pauseOnHover
         theme="light"
-      />
+      /> */}
     </Router>
   );
 }

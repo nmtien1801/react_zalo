@@ -1,5 +1,8 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
+  LogOut,
+  UserPlus,
+  Settings,
   ImageIcon,
   File,
   LinkIcon,
@@ -16,20 +19,28 @@ import {
   Users,
   AlertTriangle,
   Trash2,
-  Search,
   Layout,
+  Search,
 } from "lucide-react";
 import "./Chat.scss";
-import AccountInfo from "../info/AccountInfo";
+import GroupInfo from "../info/GroupInfo";
 import { useSelector, useDispatch } from "react-redux";
 
-export default function ChatPerson(props) {
+export default function ChatGroup(props) {
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.userInfo);
-
   const [showSidebar, setShowSidebar] = useState(true);
   const [message, setMessage] = useState(""); // input
   const [messages, setMessages] = useState([]); // all hội thoại
+  const openModal = () => setIsOpen(true);
+  const closeModal = () => setIsOpen(false);
+
+  const [sections] = useState([
+    { id: "media", title: "Ảnh/Video", icon: ImageIcon },
+    { id: "files", title: "File", icon: File },
+    { id: "links", title: "Link", icon: LinkIcon },
+  ]);
+  const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     if (props.allMsg) {
@@ -37,21 +48,10 @@ export default function ChatPerson(props) {
     }
   }, [props.allMsg]);
 
-  const sendMessage = () => {
+  const sendMessage = async () => {
     props.handleSendMsg(message);
     setMessage("");
   };
-
-  const [sections] = useState([
-    { id: "media", title: "Ảnh/Video", icon: ImageIcon },
-    { id: "files", title: "File", icon: File },
-    { id: "links", title: "Link", icon: LinkIcon },
-  ]);
-
-  const [isOpen, setIsOpen] = useState(false);
-
-  const openModal = () => setIsOpen(true);
-  const closeModal = () => setIsOpen(false);
 
   return (
     <div className="row g-0 h-100">
@@ -68,7 +68,7 @@ export default function ChatPerson(props) {
               onClick={openModal}
             />
 
-            <AccountInfo isOpen={isOpen} closeModal={closeModal} />
+            <GroupInfo isOpen={isOpen} closeModal={closeModal} />
 
             <div className="ms-2">
               <div className="fw-medium">Võ Trường Khang</div>
@@ -77,6 +77,10 @@ export default function ChatPerson(props) {
           </div>
 
           <div className="d-flex align-items-center gap-2">
+            <button className="btn btn-light rounded-circle mb-1">
+              <Users size={20} />
+            </button>
+
             <span className="btn btn-light rounded-circle mb-1">
               <Search size={16} />
             </span>
@@ -105,8 +109,8 @@ export default function ChatPerson(props) {
                 >
                   <span
                     className={`p-3 ${msg.sender._id === user._id
-                        ? "bg-primary border rounded-pill" // Tin nhắn của user căn phải
-                        : "bg-white border rounded-pill" // Tin nhắn của người khác căn trái
+                      ? "bg-primary border rounded-pill" // Tin nhắn của user căn phải
+                      : "bg-white border rounded-pill" // Tin nhắn của người khác căn trái
                       }`}
                   >
                     {msg.msg}
@@ -125,6 +129,7 @@ export default function ChatPerson(props) {
             <button className="btn btn-light me-2">
               <Paperclip size={20} />
             </button>
+
             <input
               className="form-control flex-1 p-2 border rounded-lg outline-none"
               type="text"
@@ -151,12 +156,12 @@ export default function ChatPerson(props) {
             <h6 className="text-center">Thông tin hội thoại</h6>
           </div>
 
-          {/* Profile Section */}
+          {/* Group Profile Section */}
           <div className="text-center p-3 border-bottom">
             <div className="position-relative d-inline-block mb-2">
               <img
                 src="/placeholder.svg"
-                alt="Profile"
+                alt="Group"
                 className="rounded-circle"
                 style={{ width: "80px", height: "80px" }}
                 onClick={openModal}
@@ -165,7 +170,10 @@ export default function ChatPerson(props) {
                 <Edit2 size={14} />
               </button>
             </div>
-            <h6 className="mb-3">Võ Trường Khang</h6>
+            <h6 className="mb-3 d-flex align-items-center justify-content-center">
+              Công Nghệ Mới
+              <Edit2 size={16} className="ms-2 text-muted" />
+            </h6>
 
             {/* Action Buttons */}
             <div className="d-flex justify-content-center gap-4">
@@ -183,28 +191,22 @@ export default function ChatPerson(props) {
               </div>
               <div className="text-center">
                 <button className="btn btn-light rounded-circle mb-1">
-                  <Users size={20} />
+                  <UserPlus size={20} />
                 </button>
-                <div className="small">Tạo nhóm trò chuyện</div>
+                <div className="small">Thêm thành viên</div>
               </div>
-            </div>
-          </div>
-
-          {/* Reminders & Groups */}
-          <div className="border-bottom">
-            <div className="d-flex align-items-center p-3 hover-bg-light cursor-pointer">
-              <Clock size={20} className="text-muted me-2" />
-              <div>Danh sách nhắc hẹn</div>
-            </div>
-            <div className="d-flex align-items-center p-3 hover-bg-light cursor-pointer">
-              <Users size={20} className="text-muted me-2" />
-              <div>20 nhóm chung</div>
+              <div className="text-center">
+                <button className="btn btn-light rounded-circle mb-1">
+                  <Settings size={20} />
+                </button>
+                <div className="small">Quản lý nhóm</div>
+              </div>
             </div>
           </div>
 
           {/* Collapsible Sections */}
           <div className="accordion accordion-flush" id="chatInfo">
-            {sections.map(({ id, title, icon: Icon }) => (
+            {sections.map(({ id, title, icon: Icon, content, empty }) => (
               <div key={id} className="accordion-item">
                 <h2 className="accordion-header">
                   <button
@@ -216,16 +218,28 @@ export default function ChatPerson(props) {
                     {title}
                   </button>
                 </h2>
+
                 <div
                   id={`${id}Collapse`}
                   className="accordion-collapse collapse"
                 >
-                  <div className="accordion-body text-center text-muted">
-                    <small>{`Chưa có ${title} được chia sẻ trong hội thoại này`}</small>
+                  <div className="accordion-body">
+                    {content ? (
+                      content
+                    ) : empty ? (
+                      <div className="text-center text-muted">
+                        <small>{empty}</small>
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               </div>
             ))}
+          </div>
+
+          {/* View All Button */}
+          <div className="p-3 border-top border-bottom">
+            <button className="btn btn-light w-100">Xem tất cả</button>
           </div>
 
           {/* Security Settings */}
@@ -246,44 +260,89 @@ export default function ChatPerson(props) {
                 id="securityCollapse"
                 className="accordion-collapse collapse"
               >
-                <div className="accordion-body">
+                <div className="accordion-body p-0">
                   {/* Self-destructing Messages */}
-                  <div className="d-flex align-items-center justify-content-between p-2 hover-bg-light cursor-pointer">
+                  <div className="d-flex align-items-center justify-content-between p-3 border-bottom hover-bg-light cursor-pointer">
                     <div className="d-flex align-items-center">
-                      <Clock size={20} className="text-muted me-2" />
-                      <div>
-                        <div>Tin nhắn tự xóa</div>
-                        <small className="text-muted">Không bao giờ</small>
+                      <div
+                        className="d-flex align-items-center justify-content-center rounded-circle bg-light"
+                        style={{ width: "32px", height: "32px" }}
+                      >
+                        <Clock size={18} className="text-muted" />
+                      </div>
+                      <div className="ms-2">
+                        <div className="d-flex align-items-center">
+                          Tin nhắn tự xóa
+                          <small className="ms-1">
+                            <i
+                              className="text-muted"
+                              style={{ fontSize: "14px" }}
+                            >
+                              (?)
+                            </i>
+                          </small>
+                        </div>
+                        <small className="text-muted">
+                          Chỉ dành cho trưởng hoặc phó nhóm
+                        </small>
                       </div>
                     </div>
-                    <ChevronDown size={20} className="text-muted" />
                   </div>
 
                   {/* Hide Conversation */}
-                  <div className="d-flex align-items-center justify-content-between p-2">
+                  <div className="d-flex align-items-center justify-content-between p-3 border-bottom">
                     <div className="d-flex align-items-center">
-                      <EyeOff size={20} className="text-muted me-2" />
-                      <div>Ẩn trò chuyện</div>
+                      <div
+                        className="d-flex align-items-center justify-content-center rounded-circle bg-light"
+                        style={{ width: "32px", height: "32px" }}
+                      >
+                        <EyeOff size={18} className="text-muted" />
+                      </div>
+                      <div className="ms-2">Ẩn trò chuyện</div>
                     </div>
                     <div className="form-check form-switch">
                       <input
                         className="form-check-input"
                         type="checkbox"
                         role="switch"
+                        style={{ width: "40px", height: "20px" }}
                       />
                     </div>
                   </div>
 
                   {/* Report */}
-                  <div className="d-flex align-items-center p-2 hover-bg-light cursor-pointer text-danger">
-                    <AlertTriangle size={20} className="me-2" />
-                    <div>Báo xấu</div>
+                  <div className="d-flex align-items-center p-3 border-bottom hover-bg-light cursor-pointer">
+                    <div
+                      className="d-flex align-items-center justify-content-center rounded-circle bg-light"
+                      style={{ width: "32px", height: "32px" }}
+                    >
+                      <AlertTriangle size={18} className="text-danger" />
+                    </div>
+                    <div className="ms-2 text-danger">Báo xấu</div>
                   </div>
 
                   {/* Delete Chat History */}
-                  <div className="d-flex align-items-center p-2 hover-bg-light cursor-pointer text-danger">
-                    <Trash2 size={20} className="me-2" />
-                    <div>Xóa lịch sử trò chuyện</div>
+                  <div className="d-flex align-items-center p-3 border-bottom hover-bg-light cursor-pointer">
+                    <div
+                      className="d-flex align-items-center justify-content-center rounded-circle bg-light"
+                      style={{ width: "32px", height: "32px" }}
+                    >
+                      <Trash2 size={18} className="text-danger" />
+                    </div>
+                    <div className="ms-2 text-danger">
+                      Xóa lịch sử trò chuyện
+                    </div>
+                  </div>
+
+                  {/* Leave Group */}
+                  <div className="d-flex align-items-center p-3 hover-bg-light cursor-pointer">
+                    <div
+                      className="d-flex align-items-center justify-content-center rounded-circle bg-light"
+                      style={{ width: "32px", height: "32px" }}
+                    >
+                      <LogOut size={18} className="text-danger" />
+                    </div>
+                    <div className="ms-2 text-danger">Rời nhóm</div>
                   </div>
                 </div>
               </div>

@@ -44,7 +44,7 @@ const Header = () => {
             <Users size={24} />
           </Nav.Link>
 
-          <Nav.Link as={NavLink} to="/to-do" className="fw-normal">
+          <Nav.Link as={NavLink} to="/to-do/call/room1" className="fw-normal">
             <CheckSquare size={24} />
           </Nav.Link>
         </Nav>

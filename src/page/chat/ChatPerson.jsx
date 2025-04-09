@@ -22,7 +22,7 @@ import {
   Video,
 } from "lucide-react";
 import "./Chat.scss";
-import AccountInfo from "../info/AccountInfo";
+import AccountInfo from "../info/accountInfo";
 import { useSelector, useDispatch } from "react-redux";
 import CallScreen from "../../component/CallScreen.jsx";
 
@@ -128,14 +128,16 @@ export default function ChatPerson(props) {
               messages.map((msg, index) => (
                 <div
                   key={index}
-                  className={`p-2 my-1 d-flex ${msg.sender._id === user._id && "justify-content-end"
-                    }`}
+                  className={`p-2 my-1 d-flex ${
+                    msg.sender._id === user._id && "justify-content-end"
+                  }`}
                 >
                   <span
-                    className={`p-3 ${msg.sender._id === user._id
+                    className={`p-3 ${
+                      msg.sender._id === user._id
                         ? "bg-primary border rounded-pill"
                         : "bg-white border rounded-pill"
-                      }`}
+                    }`}
                   >
                     {msg.msg}
                   </span>

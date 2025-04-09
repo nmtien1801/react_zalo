@@ -13,4 +13,9 @@ const getConversationsService = (sender) => {
   );
 };
 
-export { loadMessagesService, getConversationsService };
+const createConversationGroupService = (data) => {
+  return customizeAxios.post(
+    `/api/createConversationGroup`, data);
+}
+
+export { loadMessagesService, getConversationsService, createConversationGroupService };

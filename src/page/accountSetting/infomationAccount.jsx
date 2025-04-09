@@ -1,8 +1,55 @@
 import React, { useEffect, useState } from "react";
 
+import { useSelector, useDispatch } from "react-redux";
+
 import './settingModel.css';
+import { updateAvatarService } from "../../service/authService";
+import { updateAvatar } from "../../redux/authSlice";
+
+
 
 const infomationAccount = ({toggleModalInfomation}) => {
+
+    const userInfo = useSelector((state) => state.auth.userInfo);
+
+    console.log(userInfo);
+
+    const [avatar, setAvatar] = useState(userInfo?.avatar || "https://i.imgur.com/cIRFqAL.png");
+
+    const [isUploading, setIsUploading] = useState(false);
+
+    const dispatch = useDispatch();
+
+    const handleUploadAvatar = async (e) => {
+        const file = e.target.files[0];
+        if (!file) {
+            toast.warn("Vui lòng chọn một file để upload!");
+            return;
+        }
+
+        setIsUploading(true); // Hiển thị trạng thái đang upload
+
+        try {
+            const response = await updateAvatarService(file);
+
+            if (response.EC === 0) {
+                const newAvatarUrl = response.DT.avatar;
+
+                dispatch(updateAvatar(newAvatarUrl));
+                setAvatar(newAvatarUrl);
+
+                alert("Cập nhật avatar thành công!");
+              } else {
+                alert(response.EM || "Lỗi khi cập nhật avatar.");
+              }
+        } catch (error) {
+            console.error("Lỗi khi upload avatar:", error);
+            alert("Lỗi khi upload avatar.");
+        } finally {
+            setIsUploading(false); // Tắt trạng thái upload
+        }
+    };
+
     return (
         <div className="zl-modal animated fadeIn">
         <div className="zl-modal__container flx-1 flx flx-center flx-al-c ovf-hidden">
@@ -23,18 +70,31 @@ const infomationAccount = ({toggleModalInfomation}) => {
                     <div className="k-body-container">
                         <div className="k-body-main">
                             <div className="pi-info-layout">
-                                <div className="pi-info-cover clickable rel"><img src="https://cover-talk.zadn.vn/8/4/5/f/12/0e029b40ab888036e163cd19734fe529.jpg" crossorigin="Anonymous" /></div>
+                                <div className="pi-info-cover clickable rel">
+                                    <img src="https://cover-talk.zadn.vn/8/4/5/f/12/0e029b40ab888036e163cd19734fe529.jpg" crossorigin="Anonymous" />
+                                </div>
                                 <div className="pi-info-layout__primary-info-container pi-info-layout__primary-info-container_has-cover">
                                     <div className="pi-info-layout__mini-info-container">
                                         <div className="pi-mini-info-section">
                                             <div className="rel zavatar-container pi-mini-info-section__avatar">
-                                                <div className="zavatar zavatar-xxll zavatar-single flx flx-al-c flx-center rel disableDrag clickable"><img draggable="false" src="https://s120-ava-talk.zadn.vn/2/2/d/9/20/120/0e029b40ab888036e163cd19734fe529.jpg" className="a-child" /></div>
-                                                <div icon="Camera_24_Line" className="z--btn--v2 btn-neutral medium pi-mini-info-section__ava-icon --full-rounded icon-only pi-mini-info-section__ava-icon" data-disabled="" data-translate-title="Cập nhật ảnh đại diện" title="Cập nhật ảnh đại diện"><i className="fa fa-camera pre"></i></div>
+                                                <div className="zavatar zavatar-xxll zavatar-single flx flx-al-c flx-center rel disableDrag clickable"><img draggable="false" src={userInfo?.avatar || "https://i.imgur.com/cIRFqAL.png"} className="a-child" /></div>
+                                                <div icon="Camera_24_Line" className="z--btn--v2 btn-neutral medium pi-mini-info-section__ava-icon --full-rounded icon-only pi-mini-info-section__ava-icon" data-disabled="" data-translate-title="Cập nhật ảnh đại diện" title="Cập nhật ảnh đại diện">
+                                                    <input
+                                                        type="file"
+                                                        accept="image/*"
+                                                        style={{ display: "none" }}
+                                                        id="upload-avatar"
+                                                        onChange={handleUploadAvatar}
+                                                    />
+                                                    <label htmlFor="upload-avatar" style={{ cursor: "pointer" }}>
+                                                        <i className="fa fa-camera pre"></i>
+                                                    </label>
+                                                </div>
                                             </div>
                                             <div className="pi-mini-info-section__info">
                                                 <div className="pi-mini-info-section__name" >
                                                     <div className="k-flx rel k-flx-row">
-                                                        <div className="truncate" title="Võ Trường Khang">Võ&nbsp;Trường&nbsp;Khang</div>
+                                                        <div className="truncate" title={userInfo?.username}>{userInfo?.username}</div>
                                                         <div icon="Edit_1_24_Line" className="z--btn--v2 btn-tertiary-neutral small ml-8 f16 --full-rounded icon-only ml-8 f16" data-disabled="" data-translate-title="Chỉnh sửa" title="Chỉnh sửa"><i className="fa fa-edit pre"></i></div>
                                                     </div>
                                                 </div>
@@ -76,7 +136,7 @@ const infomationAccount = ({toggleModalInfomation}) => {
                                                     <div className="pi-info-item__content">
                                                         <span className="pi-info-item__title" data-translate-inner="STR_PROFILE_PHONENUMBER">Điện thoại</span>
                                                         <span className="content-copiable">
-                                                            <p className="pi-info-item__desc ">+84 974 867 266</p>
+                                                            <p className="pi-info-item__desc ">+84 {userInfo?.phone}</p>
                                                         </span>
                                                     </div>
                                                     <p className="pi-info-item__subtitle ">Chỉ bạn bè có lưu số của bạn trong danh bạ máy xem được số này</p>

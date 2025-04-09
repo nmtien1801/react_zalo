@@ -1,11 +1,37 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { RiGroupLine, RiDeleteBin7Line } from "react-icons/ri";
 import { TiBusinessCard } from "react-icons/ti";
 import { MdBlock } from "react-icons/md";
 import { IoWarningOutline } from "react-icons/io5";
 import './AccountInfo.scss';
+import { getRoomChatByPhoneService } from '../../service/roomChatService';
 
-const AccountInfo = ({ isOpen, closeModal }) => {
+const AccountInfo = ({ isOpen, closeModal, receiver }) => {
+
+    const [userInfo, setUserInfo] = useState(null);
+
+    useEffect(() => {
+        const fetchUserInfo = async () => {
+            try {
+                // Simulate an API call to fetch user info
+                const response = await getRoomChatByPhoneService(receiver.phone);
+                console.log(response.DT);
+
+                setUserInfo(response.DT);
+            } catch (error) {
+                console.error('Error fetching user info:', error);
+            }
+        };
+
+        if (isOpen) {
+            fetchUserInfo();
+        }
+
+    }, [isOpen]);
+
+
+
+
     return (
         <div className="profile-modal-container">
             {/* Modal */}
@@ -30,7 +56,7 @@ const AccountInfo = ({ isOpen, closeModal }) => {
                                         className="profile-image"
                                     />
                                     <div className="profile-name">
-                                        Nhi Nhi <span className="verified-icon">✔</span>
+                                        {receiver.username} <span className="verified-icon">✔</span>
                                     </div>
                                 </div>
                             </div>
@@ -57,7 +83,7 @@ const AccountInfo = ({ isOpen, closeModal }) => {
                             </div>
                             <div className="info-item">
                                 <span className="info-label">Điện thoại</span>
-                                <span className="info-value">********</span>
+                                <span className="info-value"> {userInfo.phone} </span>
                             </div>
                         </div>
 

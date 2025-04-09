@@ -7,7 +7,6 @@ import ChatCloud from "./ChatCloud";
 import AddFriendModal from "../info/AddFriendModal";
 
 import { loadMessages, getConversations } from "../../redux/chatSlice";
-import { getRoomChatByPhone } from "../../redux/roomChatSlice";
 import { useSelector, useDispatch } from "react-redux";
 import io from "socket.io-client";
 
@@ -38,16 +37,7 @@ export default function ChatInterface() {
   const [typeChatRoom, setTypeChatRoom] = useState("cloud");
   const [onlineUsers, setOnlineUsers] = useState([]);
 
-
-  // Search
-
-  const roomChatRedux = useSelector((state) => state.roomChat.roomChat);
-
   const [isSearchFocused, setIsSearchFocused] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState([]);
-  const [allItems, setAllItems] = useState([]); // Danh sách tất cả items cần tìm kiếm
-
 
   const handleSearchFocus = () => {
     setIsSearchFocused(true);
@@ -55,36 +45,8 @@ export default function ChatInterface() {
 
   const handleCloseSearch = () => {
     setIsSearchFocused(false);
-    setSearchQuery('');
-    setSearchResults([]); // Xóa kết quả tìm kiếm khi đóng
   };
-
-  const handleSearchChange = async (e) => {
-    const query = e.target.value;
-
-    const res = await dispatch(
-      getRoomChatByPhone({ phone: query })
-    );
-
-    if (res.payload.EC === 0) {
-      setSearchResults(res.payload.DT);
-    }
-
-    console.log("searchResults: ", searchResults);
-
-
-    setSearchQuery(query);
-  };
-
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
-    // Xử lý khi submit form search nếu cần
-  };
-
-  const [isOpen, setIsOpen] = useState(false);
-
-  const openModal = () => setIsOpen(true);
-  const closeModal = () => setIsOpen(false);
+  const [showModalAddFriend, setShowModalAddFriend] = useState(false);
 
   // connect docket
   useEffect(() => {
@@ -246,21 +208,17 @@ export default function ChatInterface() {
           {/*  Search */}
           <div className="p-2 border-bottom">
             <div className="d-flex align-items-center pb-3">
-              <form onSubmit={handleSearchSubmit}>
-                <div className="input-group me-3">
-                  <input
-                    type="text"
-                    className="form-control form-control-sm bg-light"
-                    placeholder="Tìm kiếm"
-                    onFocus={handleSearchFocus}
-                    value={searchQuery}
-                    onChange={handleSearchChange}
-                  />
-                  <button className="btn btn-light  cursor-pointer border">
-                    <Search size={16} />
-                  </button>
-                </div>
-              </form>
+              <div className="input-group me-3">
+                <input
+                  type="text"
+                  className="form-control form-control-sm bg-light"
+                  placeholder="Tìm kiếm"
+                  onFocus={handleSearchFocus}
+                />
+                <button className="btn btn-light  cursor-pointer border">
+                  <Search size={16} />
+                </button>
+              </div>
 
               {isSearchFocused ? (
                 <button
@@ -276,12 +234,10 @@ export default function ChatInterface() {
                     <UserPlus size={20} />
                   </button>
 
-                  {/* <AddFriendModal
+                  <AddFriendModal
                     show={showModalAddFriend}
                     onHide={() => setShowModalAddFriend(false)}
-                  /> */}
-
-
+                  />
                   <button className="btn btn-light rounded-circle mb-1">
                     <Users size={20} />
                   </button>

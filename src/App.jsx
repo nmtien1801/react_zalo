@@ -17,6 +17,7 @@ import DanhBa from "./page/danhBa/DanhBa";
 import Register from "./page/auth/Register";
 import { useSelector, useDispatch } from "react-redux";
 import { doGetAccount } from "./redux/authSlice";
+import ChatInfoPanel from "./page/danhBa/DanhBa";
 // import CallControls from "./component/CallControls";
 
 
@@ -49,7 +50,7 @@ function App() {
             <Route path="/register" element={<Register />} />
 
             <Route path="/chat" element={isLoggedIn && <Chat />} />
-            {/* <Route path="/danh-ba" element={isLoggedIn && <CallControls />} /> */}
+            <Route path="/danh-ba" element={isLoggedIn && <DanhBa />} />
           </Routes>
         </div>
       </div>

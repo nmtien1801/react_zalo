@@ -3,7 +3,7 @@ import { getRoomChatByPhoneService } from "../service/roomChatService";
 import axios from "axios";
 
 const initialState = {
-    roomChat: {},
+    roomChat: [],
 };
 
 
@@ -26,7 +26,7 @@ const roomChatSlice = createSlice({
             .addCase(getRoomChatByPhone.pending, (state) => { })
             .addCase(getRoomChatByPhone.fulfilled, (state, action) => {
                 if (action.payload.EC === 0) {
-                    state.roomChat = action.payload.DT || {};
+                    state.roomChat.push(action.payload.DT) || [];
                 }
             })
             .addCase(getRoomChatByPhone.rejected, (state, action) => { });

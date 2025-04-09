@@ -93,7 +93,7 @@ export default function ChatPerson(props) {
               style={{ width: "40px", height: "40px" }}
               onClick={openModal}
             />
-            <AccountInfo isOpen={isOpen} closeModal={closeModal} />
+            <AccountInfo isOpen={isOpen} closeModal={closeModal} receiver={receiver} />
             <div className="ms-2">
               <div className="fw-medium">Võ Trường Khang</div>
               <small className="text-muted">Hoạt động 2 giờ trước</small>
@@ -133,8 +133,8 @@ export default function ChatPerson(props) {
                 >
                   <span
                     className={`p-3 ${msg.sender._id === user._id
-                        ? "bg-primary border rounded-pill"
-                        : "bg-white border rounded-pill"
+                      ? "bg-primary border rounded-pill"
+                      : "bg-white border rounded-pill"
                       }`}
                   >
                     {msg.msg}

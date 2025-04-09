@@ -1,21 +1,64 @@
 import React, { useState } from 'react';
 import { Modal, Form, Button, ListGroup, InputGroup } from 'react-bootstrap';
+import { getRoomChatByPhoneService } from "../../service/roomChatService"; // Import hàm gọi API
+import { sendRequestFriendService } from '../../service/friendRequestService';
 
-const AddFriendModal = ({ isOpen, closeModal }) => {
-    const [searchTerm, setSearchTerm] = useState('');
 
-    // Dữ liệu mẫu
-    const recentResults = [
-        { id: 1, name: "Vũ Thị Kiều", phone: "(+84) 0942 158 473" },
-        { id: 2, name: "Nguyễn Hương", phone: "(+84) 0943 386 287" },
-        { id: 3, name: "Nam", phone: "(+84) 0352 714 275" }
-    ];
+const AddFriendModal = ({ show, onHide }) => {
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState({}); // Lưu kết quả tìm kiếm
+    const [loading, setLoading] = useState(false); // Trạng thái loading
 
-    const suggestedFriends = [
-        { id: 4, name: "Lê Phúc Lữ", source: "Từ gói ý kết bạn" },
-        { id: 5, name: "Minh Anh", source: "Từ gói ý kết bạn" },
-        { id: 6, name: "Minh Nhựt", source: "Từ gói ý kết bạn" }
-    ];
+    const handleSearch = async (e) => {
+        const query = e.target.value;
+        setSearchQuery(query);
+
+        if (query.trim() === '') {
+            setSearchResults([]); // Xóa kết quả nếu input rỗng
+            return;
+        }
+
+        setLoading(true); // Bắt đầu loading
+        try {
+            const response = await getRoomChatByPhoneService(query); // Gọi API
+
+            if (response.EC === 0) {
+                setSearchResults(response.DT || []); // Cập nhật kết quả tìm kiếm
+            } else {
+                setSearchResults([]); // Không có kết quả
+            }
+        } catch (error) {
+            console.error("Error fetching search results:", error);
+            setSearchResults([]); // Xử lý lỗi
+        } finally {
+            setLoading(false); // Kết thúc loading
+        }
+    };
+
+    const handleAddFriend = async (phone) => {
+        // Gọi API để thêm bạn bè ở đây
+
+        const data = {
+            toUser: phone,
+            content: 'Xin chào! Tôi muốn kết bạn với bạn.',
+        }
+
+        const response = await sendRequestFriendService(data);
+
+        console.log(response);
+
+
+        if (response.EC === 0) {
+            alert("Đã gửi lời mời kết bạn thành công!");
+            setSearchQuery(''); // Xóa input sau khi gửi lời mời
+            setSearchResults({}); // Xóa kết quả tìm kiếm
+        }
+        else {
+            alert(response.EM); // Hiển thị thông báo lỗi nếu có
+        }
+
+        onHide(); // Đóng modal sau khi gửi lời mời
+    }
 
     return (
         <Modal show={show} onHide={onHide} centered>
@@ -27,54 +70,43 @@ const AddFriendModal = ({ isOpen, closeModal }) => {
                 {/* Search Input */}
                 <InputGroup className="mb-3">
                     <InputGroup.Text>
-                        <Search />
+                        search
                     </InputGroup.Text>
                     <Form.Control
                         placeholder="(+84) Số điện thoại"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
+                        value={searchQuery}
+                        onChange={handleSearch}
                     />
-                    {searchTerm && (
-                        <Button variant="outline-secondary" onClick={() => setSearchTerm('')}>
-                            <X />
+                    {searchQuery && (
+                        <Button variant="outline-secondary" onClick={() => setSearchQuery('')}>
+                            x
                         </Button>
                     )}
                 </InputGroup>
 
-                {/* Kết quả gần nhất */}
-                <h6 className="mt-4 mb-2 text-muted">Kết quả gần nhất</h6>
-                <ListGroup variant="flush">
-                    {recentResults.map(user => (
-                        <ListGroup.Item key={user.id} className="d-flex justify-content-between align-items-center">
-                            <div>
-                                <div className="fw-bold">{user.name}</div>
-                                <small className="text-muted">{user.phone}</small>
-                            </div>
-                            <Button variant="primary" size="sm">Kết bạn</Button>
-                        </ListGroup.Item>
-                    ))}
-                </ListGroup>
-
-                {/* Có thể bạn quen */}
-                <h6 className="mt-4 mb-2 text-muted">Có thể bạn quen</h6>
-                <ListGroup variant="flush">
-                    {suggestedFriends.map(user => (
-                        <ListGroup.Item key={user.id}>
-                            <div className="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <div className="fw-bold">{user.name}</div>
-                                    <small className="text-muted">{user.source}</small>
-                                </div>
-                                <Button variant="primary" size="sm">Kết bạn</Button>
-                            </div>
-                        </ListGroup.Item>
-                    ))}
-                </ListGroup>
-
-                {/* Xem thêm */}
-                <div className="text-center mt-3">
-                    <Button variant="link">Xem thêm</Button>
-                </div>
+                {/* Kết quả tìm kiếm */}
+                {loading ? (
+                    <div className="text-muted">Đang tìm kiếm...</div>
+                ) : searchQuery && (
+                    <>
+                        <h6 className="mt-4 mb-2 text-muted">Kết quả tìm kiếm</h6>
+                        <ListGroup variant="flush">
+                            {Object.keys(searchResults).length > 0 ? ( // Kiểm tra nếu đối tượng không rỗng
+                                <ListGroup.Item className="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div className="fw-bold">{searchResults.username}</div>
+                                        <small className="text-muted">{searchResults.phone}</small>
+                                    </div>
+                                    <Button variant="primary" size="sm"
+                                        onClick={() => handleAddFriend(searchResults.phone)} // Gọi hàm thêm bạn bè
+                                    >Kết bạn</Button>
+                                </ListGroup.Item>
+                            ) : (
+                                <div className="text-muted">Không tìm thấy kết quả</div>
+                            )}
+                        </ListGroup>
+                    </>
+                )}
             </Modal.Body>
 
             <Modal.Footer>

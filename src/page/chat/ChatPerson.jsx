@@ -25,11 +25,14 @@ import "./Chat.scss";
 import AccountInfo from "../info/accountInfo";
 import { useSelector, useDispatch } from "react-redux";
 import CallScreen from "../../component/CallScreen.jsx";
+import { uploadAvatar } from '../../redux/profileSlice.js'
 
 export default function ChatPerson(props) {
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.userInfo);
   const receiver = props.roomData.receiver;
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const fileInputRef = useRef(null); // Ref để truy cập input file ẩn
 
   const [showSidebar, setShowSidebar] = useState(true);
   const [message, setMessage] = useState("");
@@ -79,6 +82,41 @@ export default function ChatPerson(props) {
     setIsInitiator(true); // Đặt người dùng hiện tại là người khởi tạo
   };
 
+  // console.log("props: ", props);
+
+  // Xử lý upload file
+  const handleFileChange = async (e) => {
+    const selectedFile = e.target.files[0];
+    if (!selectedFile) {
+      alert('k co file')
+      return;
+    }
+
+
+    const formData = new FormData();
+    formData.append("avatar", selectedFile);
+
+    try {
+      const response = await dispatch(uploadAvatar({ formData }));
+
+      const { EM, EC, DT } = response.payload;
+      if (EC === 0) {
+        setAvatarUrl(DT);
+      } else {
+        alert('err')
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
+      alert('err')
+    }
+  };
+
+
+  // Kích hoạt input file khi nhấn nút
+  const handleButtonClick = () => {
+    fileInputRef.current.click(); // Mở dialog chọn file
+  };
+
   return (
     <div className="row g-0 h-100">
       {/* Main Chat Area */}
@@ -95,7 +133,7 @@ export default function ChatPerson(props) {
             />
             <AccountInfo isOpen={isOpen} closeModal={closeModal} />
             <div className="ms-2">
-              <div className="fw-medium">Võ Trường Khang</div>
+              <div className="fw-medium">{props.roomData.receiver.username}</div>
               <small className="text-muted">Hoạt động 2 giờ trước</small>
             </div>
           </div>
@@ -128,16 +166,14 @@ export default function ChatPerson(props) {
               messages.map((msg, index) => (
                 <div
                   key={index}
-                  className={`p-2 my-1 d-flex ${
-                    msg.sender._id === user._id && "justify-content-end"
-                  }`}
+                  className={`p-2 my-1 d-flex ${msg.sender._id === user._id && "justify-content-end"
+                    }`}
                 >
                   <span
-                    className={`p-3 ${
-                      msg.sender._id === user._id
-                        ? "bg-primary border rounded-pill"
-                        : "bg-white border rounded-pill"
-                    }`}
+                    className={`p-3 ${msg.sender._id === user._id
+                      ? "bg-primary border rounded-pill"
+                      : "bg-white border rounded-pill"
+                      }`}
                   >
                     {msg.msg}
                   </span>
@@ -193,18 +229,30 @@ export default function ChatPerson(props) {
           </div>
           <div className="text-center p-3 border-bottom">
             <div className="position-relative d-inline-block mb-2">
+
               <img
-                src="/placeholder.svg"
+                src={avatarUrl ? avatarUrl : "/placeholder.svg"}
                 alt="Profile"
                 className="rounded-circle"
                 style={{ width: "80px", height: "80px" }}
                 onClick={openModal}
               />
+
+              {/* Input file ẩn */}
+              <input
+                type="file"
+                accept="image/jpeg,image/png"
+                onChange={handleFileChange}
+                ref={fileInputRef}
+                style={{ display: "none" }} // Ẩn input
+              />
+
+              {/* Nút tùy chỉnh */}
               <button className="btn btn-light btn-sm rounded-circle position-absolute bottom-0 end-0 p-1">
-                <Edit2 size={14} />
+                <Edit2 size={14} onClick={handleButtonClick} />
               </button>
             </div>
-            <h6 className="mb-3">Võ Trường Khang</h6>
+            <h6 className="mb-3">{props.roomData.receiver.username}</h6>
             <div className="d-flex justify-content-center gap-4">
               <div className="text-center">
                 <button className="btn btn-light rounded-circle mb-1">

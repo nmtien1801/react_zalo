@@ -46,7 +46,7 @@ function App() {
             <Route path="/" element={<Login />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
-            <Route path="/forgot-password" element={ <ResetPassword />} />
+            <Route path="/forgot-password" element={<ResetPassword />} />
 
             <Route path="/chat" element={isLoggedIn && <Chat />} />
             {/* <Route path="/danh-ba" element={isLoggedIn && <CallControls />} /> */}

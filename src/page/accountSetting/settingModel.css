@@ -646,3 +646,7 @@
 .k-flx-row {
     flex-flow: row nowrap;
 }
+
+.black{
+    color:#1c1c1c;
+}

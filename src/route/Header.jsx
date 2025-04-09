@@ -13,10 +13,12 @@ import {
   Settings,
 } from "lucide-react";
 import AccountSetting from "../page/accountSetting/accountSetting";
+import { useSelector, useDispatch } from "react-redux";
 
 const Header = () => {
   const [showModal, setShowModal] = useState(false);
   const [modalContent, setModalContent] = useState("");
+  const user = useSelector((state) => state.auth.userInfo);
 
   return (
     <Navbar
@@ -26,9 +28,9 @@ const Header = () => {
     >
       <Container fluid className="d-flex flex-column align-items-center">
         {/* Logo or app name */}
-        <Navbar.Brand as={NavLink} to="/login" className="mb-4 mt-2 m-3">
+        <Navbar.Brand as={NavLink} className="mb-4 mt-2 m-3">
           <img
-            src="/placeholder.svg"
+            src={user.avatar ? user.avatar : "/placeholder.svg"}
             alt="Profile"
             className="rounded-circle border border-2 border-white"
             style={{ width: "40px", height: "40px", objectFit: "cover" }}

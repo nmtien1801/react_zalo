@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   LogOut,
   UserPlus,
@@ -23,12 +23,15 @@ import {
   Search,
 } from "lucide-react";
 import "./Chat.scss";
-import GroupInfo from "../info/GroupInfo";
+import GroupInfo from "../info/GroupInfo.jsx";
 import { useSelector, useDispatch } from "react-redux";
+import { uploadAvatar } from '../../redux/profileSlice.js'
 
 export default function ChatGroup(props) {
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.userInfo);
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const fileInputRef = useRef(null); // Ref để truy cập input file ẩn
   const [showSidebar, setShowSidebar] = useState(true);
   const [message, setMessage] = useState(""); // input
   const [messages, setMessages] = useState([]); // all hội thoại
@@ -53,6 +56,39 @@ export default function ChatGroup(props) {
     setMessage("");
   };
 
+  // Xử lý upload file
+  const handleFileChange = async (e) => {
+    const selectedFile = e.target.files[0];
+    if (!selectedFile) {
+      alert('k co file')
+      return;
+    }
+
+
+    const formData = new FormData();
+    formData.append("avatar", selectedFile);
+
+    try {
+      const response = await dispatch(uploadAvatar({ formData }));
+
+      const { EM, EC, DT } = response.payload;
+      if (EC === 0) {
+        setAvatarUrl(DT);
+      } else {
+        alert('err')
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
+      alert('err')
+    }
+  };
+
+
+  // Kích hoạt input file khi nhấn nút
+  const handleButtonClick = () => {
+    fileInputRef.current.click(); // Mở dialog chọn file
+  };
+
   return (
     <div className="row g-0 h-100">
       {/* Main Chat Area */}
@@ -71,7 +107,7 @@ export default function ChatGroup(props) {
             <GroupInfo isOpen={isOpen} closeModal={closeModal} />
 
             <div className="ms-2">
-              <div className="fw-medium">Võ Trường Khang</div>
+              <div className="fw-medium">{props.roomData.receiver.username}</div>
               <small className="text-muted">Hoạt động 2 giờ trước</small>
             </div>
           </div>
@@ -160,19 +196,29 @@ export default function ChatGroup(props) {
           <div className="text-center p-3 border-bottom">
             <div className="position-relative d-inline-block mb-2">
               <img
-                src="/placeholder.svg"
+                src={avatarUrl ? avatarUrl : "/placeholder.svg"}
                 alt="Group"
                 className="rounded-circle"
                 style={{ width: "80px", height: "80px" }}
                 onClick={openModal}
               />
+
+              {/* Input file ẩn */}
+              <input
+                type="file"
+                accept="image/jpeg,image/png"
+                onChange={handleFileChange}
+                ref={fileInputRef}
+                style={{ display: "none" }} // Ẩn input
+              />
+
+              {/* Nút tùy chỉnh */}
               <button className="btn btn-light btn-sm rounded-circle position-absolute bottom-0 end-0 p-1">
-                <Edit2 size={14} />
+                <Edit2 size={14} onClick={handleButtonClick} />
               </button>
             </div>
             <h6 className="mb-3 d-flex align-items-center justify-content-center">
-              Công Nghệ Mới
-              <Edit2 size={16} className="ms-2 text-muted" />
+              {props.roomData.receiver.username}
             </h6>
 
             {/* Action Buttons */}

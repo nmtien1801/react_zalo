@@ -14,9 +14,10 @@ const AccountInfo = ({ isOpen, closeModal, receiver }) => {
         const fetchUserInfo = async () => {
             try {
                 // Simulate an API call to fetch user info
-                const response = await getRoomChatByPhoneService(receiver.phone);
-                console.log(response.DT);
 
+                console.log("receiver", receiver);
+
+                const response = await getRoomChatByPhoneService(receiver.phone);
                 setUserInfo(response.DT);
             } catch (error) {
                 console.error('Error fetching user info:', error);
@@ -26,7 +27,6 @@ const AccountInfo = ({ isOpen, closeModal, receiver }) => {
         if (isOpen) {
             fetchUserInfo();
         }
-
     }, [isOpen]);
 
 
@@ -83,7 +83,7 @@ const AccountInfo = ({ isOpen, closeModal, receiver }) => {
                             </div>
                             <div className="info-item">
                                 <span className="info-label">Điện thoại</span>
-                                <span className="info-value"> {userInfo.phone} </span>
+                                <span className="info-value"> {receiver.phone} </span>
                             </div>
                         </div>
 

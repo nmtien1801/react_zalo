@@ -21,9 +21,34 @@ const doGetAccountService = () => {
   return customizeAxios.get("/api/account");
 };
 
+const sendCodeService = (email) => {
+  return customizeAxios.post("/api/send-code", {
+    email,
+  });
+};
+
+const resetPasswordService = (email, code, password) => {
+  return customizeAxios.post("/api/reset-password", {
+    email,
+    code,
+    password,
+  });
+};
+
+const changePasswordService = (phone, currentPassword, newPassword) => {
+  return customizeAxios.post("/api/changePassword", {
+    phone,
+    currentPassword,
+    newPassword,
+  });
+};
+
 export {
   loginService,
   registerService,
   logoutUserService,
-  doGetAccountService
+  doGetAccountService,
+  sendCodeService,
+  resetPasswordService,
+  changePasswordService,
 };

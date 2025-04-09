@@ -1,7 +1,5 @@
 import axios from "axios";
 import { toast } from "react-toastify";
-import axiosRetry from "axios-retry";
-import { doGetAccount } from "../redux/authSlice";
 
 const instance = axios.create({
   baseURL: import.meta.env.VITE_BACKEND_URL,
@@ -36,7 +34,7 @@ const refreshAccessToken = async () => {
     const { newAccessToken, newRefreshToken } = response.data.DT;
     localStorage.setItem("access_Token", newAccessToken);
     localStorage.setItem("refresh_Token", newRefreshToken);
-    // instance.defaults.headers.common["Authorization"] = `Bearer ${newAccessToken}`;
+
     return newAccessToken;
   } catch (error) {
     console.error("Refresh token failed:", error.response?.data || error.message);
@@ -72,7 +70,7 @@ instance.interceptors.response.use(
       case 401: {
         const path = window.location.pathname;
 
-        if (path === "/" || path === "/login" || path === "/register") {
+        if (path === "/" || path === "/login" || path === "/register" || path === "/forgot-password") {
           console.warn("401 on auth page, skip refresh");
           return Promise.reject(error); 
         }
@@ -101,7 +99,6 @@ instance.interceptors.response.use(
             return Promise.reject(error);
           }
 
-          // localStorage.setItem('access_Token', newAccessToken);
           instance.defaults.headers['Authorization'] = 'Bearer ' + newAccessToken;
           processQueue(null, newAccessToken);
 
@@ -119,9 +116,8 @@ instance.interceptors.response.use(
 
       }
 
-      // Xử lý lỗi 400 (có thể cần retry với token mới)
       case 400: {
-        return Promise.reject(error);
+        return error.response.data; // Bad request
       }
 
       // Xử lý lỗi 403 (không có quyền)

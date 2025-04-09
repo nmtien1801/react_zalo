@@ -19,6 +19,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { doGetAccount } from "./redux/authSlice";
 import ChatInfoPanel from "./page/danhBa/DanhBa";
 // import CallControls from "./component/CallControls";
+import ResetPassword from "./page/auth/ResetPassword";
 
 
 function App() {
@@ -48,6 +49,7 @@ function App() {
             <Route path="/" element={<Login />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/forgot-password" element={<ResetPassword />} />
 
             <Route path="/chat" element={isLoggedIn && <Chat />} />
             <Route path="/danh-ba" element={isLoggedIn && <DanhBa />} />

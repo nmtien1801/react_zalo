@@ -3,7 +3,11 @@ import {
   loginService,
   doGetAccountService,
   registerService,
+  sendCodeService,
+  resetPasswordService,
+  changePasswordService,
 } from "../service/authService";
+import { uploadAvatarProfileService } from "../service/profileService";
 
 const initialState = {
   userInfo: {},
@@ -31,6 +35,43 @@ export const register = createAsyncThunk(
   "auth/register",
   async (formData, thunkAPI) => {
     const response = await registerService(formData);
+    return response;
+  }
+);
+
+export const sendCode = createAsyncThunk(
+  "auth/sendCode",
+  async (email, thunkAPI) => {
+    const response = await sendCodeService(email);
+    return response;
+  }
+);
+
+export const resetPassword = createAsyncThunk(
+  "auth/resetPassword",
+  async ({ email, code, password }, thunkAPI) => {
+    const response = await resetPasswordService(email, code, password);
+    return response;
+  }
+);
+
+export const changePassword = createAsyncThunk(
+  "auth/changePassword",
+  async ({ phone, currentPassword, newPassword }, thunkAPI) => {
+    const response = await changePasswordService(
+      phone,
+      currentPassword,
+      newPassword
+    );
+    return response;
+  }
+);
+
+export const uploadAvatarProfile = createAsyncThunk(
+  "profile/uploadAvatarProfile",
+  async ({ phone, avatar }, thunkAPI) => {
+    let response = await uploadAvatarProfileService(phone, avatar);
+
     return response;
   }
 );
@@ -84,6 +125,34 @@ const authSlice = createSlice({
       .addCase(register.pending, (state) => {})
       .addCase(register.fulfilled, (state, action) => {})
       .addCase(register.rejected, (state, action) => {});
+
+    // sendCode
+    builder
+      .addCase(sendCode.pending, (state) => {})
+      .addCase(sendCode.fulfilled, (state, action) => {})
+      .addCase(sendCode.rejected, (state, action) => {});
+
+    // resetPassword
+    builder
+      .addCase(resetPassword.pending, (state) => {})
+      .addCase(resetPassword.fulfilled, (state, action) => {})
+      .addCase(resetPassword.rejected, (state, action) => {});
+
+    // changePassword
+    builder
+      .addCase(changePassword.pending, (state) => {})
+      .addCase(changePassword.fulfilled, (state, action) => {})
+      .addCase(changePassword.rejected, (state, action) => {});
+
+    //uploadAvatarProfile
+    builder
+      .addCase(uploadAvatarProfile.pending, (state) => {})
+      .addCase(uploadAvatarProfile.fulfilled, (state, action) => {
+        if (action.payload.EC === 0) {
+          state.userInfo.avatar = action.payload.DT || {};
+        }
+      })
+      .addCase(uploadAvatarProfile.rejected, (state, action) => {});
   },
 });
 

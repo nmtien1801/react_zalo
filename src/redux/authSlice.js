@@ -5,6 +5,7 @@ import {
   registerService,
   sendCodeService,
   resetPasswordService,
+  changePasswordService,
 } from "../service/authService";
 
 const initialState = {
@@ -49,6 +50,18 @@ export const resetPassword = createAsyncThunk(
   "auth/resetPassword",
   async ({ email, code, password }, thunkAPI) => {
     const response = await resetPasswordService(email, code, password);
+    return response;
+  }
+);
+
+export const changePassword = createAsyncThunk(
+  "auth/changePassword",
+  async ({ phone, currentPassword, newPassword }, thunkAPI) => {
+    const response = await changePasswordService(
+      phone,
+      currentPassword,
+      newPassword
+    );
     return response;
   }
 );
@@ -114,6 +127,12 @@ const authSlice = createSlice({
       .addCase(resetPassword.pending, (state) => {})
       .addCase(resetPassword.fulfilled, (state, action) => {})
       .addCase(resetPassword.rejected, (state, action) => {});
+
+    // changePassword
+    builder
+        .addCase(changePassword.pending, (state) => {})
+        .addCase(changePassword.fulfilled, (state, action) => {})
+        .addCase(changePassword.rejected, (state, action) => {});
   },
 });
 

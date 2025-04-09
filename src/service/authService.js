@@ -35,6 +35,14 @@ const resetPasswordService = (email, code, password) => {
   });
 };
 
+const changePasswordService = (phone, currentPassword, newPassword) => {
+  return customizeAxios.post("/api/changePassword", {
+    phone,
+    currentPassword,
+    newPassword,
+  });
+};
+
 export {
   loginService,
   registerService,
@@ -42,4 +50,5 @@ export {
   doGetAccountService,
   sendCodeService,
   resetPasswordService,
+  changePasswordService,
 };

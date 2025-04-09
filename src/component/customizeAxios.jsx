@@ -1,7 +1,5 @@
 import axios from "axios";
 import { toast } from "react-toastify";
-import axiosRetry from "axios-retry";
-import { doGetAccount } from "../redux/authSlice";
 
 const instance = axios.create({
   baseURL: import.meta.env.VITE_BACKEND_URL,
@@ -36,7 +34,7 @@ const refreshAccessToken = async () => {
     const { newAccessToken, newRefreshToken } = response.data.DT;
     localStorage.setItem("access_Token", newAccessToken);
     localStorage.setItem("refresh_Token", newRefreshToken);
-    // instance.defaults.headers.common["Authorization"] = `Bearer ${newAccessToken}`;
+
     return newAccessToken;
   } catch (error) {
     console.error("Refresh token failed:", error.response?.data || error.message);
@@ -101,7 +99,6 @@ instance.interceptors.response.use(
             return Promise.reject(error);
           }
 
-          // localStorage.setItem('access_Token', newAccessToken);
           instance.defaults.headers['Authorization'] = 'Bearer ' + newAccessToken;
           processQueue(null, newAccessToken);
 

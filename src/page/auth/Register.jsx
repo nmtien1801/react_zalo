@@ -20,6 +20,10 @@ export default function LoginForm() {
     password: "",
     confirmPassword: "",
     captcha: "",
+    gender: "",
+    dob: '',
+    avatar: '',
+    code: ''
   });
 
   const handleChange = (e) => {
@@ -38,7 +42,7 @@ export default function LoginForm() {
       alert("Mật khẩu và mật khẩu nhập lại không khớp!");
       return;
     }
-console.log("formData", formData);
+    console.log("formData", formData);
 
     // Gửi thông tin đăng ký đi
     let res = await dispatch(register(formData));
@@ -163,6 +167,36 @@ console.log("formData", formData);
                 >
                   <RefreshCw size={20} />
                 </button>
+              </div>
+            </div>
+
+            {/* gender Input */}
+            <div className="mb-3">
+              <div className="input-group">
+
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="gender"
+                  name="gender"
+                  value={formData.gender}
+                  onChange={handleChange}
+                />
+              </div>
+            </div>
+
+            {/* dob Input */}
+            <div className="mb-3">
+              <div className="input-group">
+
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="dob"
+                  name="dob"
+                  value={formData.dob}
+                  onChange={handleChange}
+                />
               </div>
             </div>
 

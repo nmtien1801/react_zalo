@@ -1,7 +1,4 @@
 import React, { useEffect, useState } from "react";
-
-import { useSelector } from "react-redux";
-
 import { NavLink } from "react-router-dom";
 import Container from "react-bootstrap/Container";
 import Nav from "react-bootstrap/Nav";
@@ -21,7 +18,6 @@ import { useSelector, useDispatch } from "react-redux";
 import SettingModel from "../page/accountSetting/settingModel";
 import InfomationAccount from "../page/accountSetting/infomationAccount";
 import "./Header.css"; 
-import { useDispatch } from "react-redux";
 import { logout } from "../redux/authSlice";
 import { logoutUserService } from "../service/authService";
 

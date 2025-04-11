@@ -45,6 +45,10 @@ const verifyEmailService = (email) => {
   return customizeAxios.post("/api/verifyEmail", { email });
 };
 
+const logoutUserService = () => {
+  return customizeAxios.post("/api/logout");
+};
+
 export {
   loginService,
   registerService,

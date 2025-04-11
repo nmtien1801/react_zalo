@@ -43,6 +43,10 @@ const changePasswordService = (phone, currentPassword, newPassword) => {
   });
 };
 
+const verifyEmailService = (email) => {
+  return customizeAxios.post("/api/verifyEmail", { email });
+};
+
 export {
   loginService,
   registerService,
@@ -51,4 +55,5 @@ export {
   sendCodeService,
   resetPasswordService,
   changePasswordService,
+  verifyEmailService,
 };

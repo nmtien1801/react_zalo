@@ -33,6 +33,9 @@ const infomationAccount = ({ toggleModalInfomation }) => {
             const response = await dispatch(uploadAvatar({ formData }));
 
             const { EM, EC, DT } = response.payload;
+
+            console.log(DT);
+            
             if (EC === 0) {
                 let res = await dispatch(uploadAvatarProfile({ phone: user.phone, avatar: DT }))
                 console.log('res: ', res);

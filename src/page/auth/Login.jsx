@@ -59,13 +59,12 @@ export default function LoginForm() {
                   <option value="+84">+84</option>
                 </select>
                 <input
-                  type="tel"
+                  type="text"
                   className="form-control"
-                  placeholder="Số điện thoại"
+                  placeholder="Số tài khoản"
                   name="phoneNumber"
                   value={formData.phoneNumber}
                   onChange={handleChange}
-                  autoComplete="tel"
                 />
               </div>
             </div>

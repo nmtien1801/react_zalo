@@ -23,7 +23,7 @@ import {
   Search,
 } from "lucide-react";
 import "./Chat.scss";
-import GroupInfo from "../info/groupInfo";
+import GroupInfo from "../info/GroupInfo";
 import { useSelector, useDispatch } from "react-redux";
 import { uploadAvatar } from '../../redux/profileSlice.js'
 
@@ -35,6 +35,7 @@ export default function ChatGroup(props) {
   const [showSidebar, setShowSidebar] = useState(true);
   const [message, setMessage] = useState(""); // input
   const [messages, setMessages] = useState([]); // all hội thoại
+  
   const openModal = () => setIsOpen(true);
   const closeModal = () => setIsOpen(false);
 
@@ -145,8 +146,8 @@ export default function ChatGroup(props) {
                 >
                   <span
                     className={`p-3 ${msg.sender._id === user._id
-                      ? "bg-primary border rounded-pill" // Tin nhắn của user căn phải
-                      : "bg-white border rounded-pill" // Tin nhắn của người khác căn trái
+                      ? "card-message-me message-wrapper border" // Tin nhắn của user căn phải
+                      : "bg-white message-wrapper border" // Tin nhắn của người khác căn trái
                       }`}
                   >
                     {msg.msg}

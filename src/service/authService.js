@@ -1,3 +1,5 @@
+import axios from "axios";
+
 import customizeAxios from "../component/customizeAxios";
 
 const loginService = (phoneNumber, password) => {
@@ -11,10 +13,6 @@ const registerService = (formData) => {
   return customizeAxios.post("/api/register", {
     formData,
   });
-};
-
-const logoutUserService = () => {
-  return customizeAxios.post("/api/logout");
 };
 
 const doGetAccountService = () => {

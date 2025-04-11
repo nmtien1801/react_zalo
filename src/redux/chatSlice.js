@@ -33,32 +33,32 @@ const chatSlice = createSlice({
   initialState,
 
   extraReducers: (builder) => {
-   
+
 
     //  loadMessages
     builder
-      .addCase(loadMessages.pending, (state) => {})
+      .addCase(loadMessages.pending, (state) => { })
       .addCase(loadMessages.fulfilled, (state, action) => {
         if (action.payload.EC === 0) {
           state.messages = action.payload.DT || [];
         }
       })
-      .addCase(loadMessages.rejected, (state, action) => {});
+      .addCase(loadMessages.rejected, (state, action) => { });
 
     //  getConversations
-    builder.addCase(getConversations.pending, (state) => {});
+    builder.addCase(getConversations.pending, (state) => { });
     builder
       .addCase(getConversations.fulfilled, (state, action) => {
         if (action.payload.EC === 0) {
           state.conversations = action.payload.DT || [];
         }
       })
-      .addCase(getConversations.rejected, (state, action) => {});
+      .addCase(getConversations.rejected, (state, action) => { });
   },
 });
 
 // Export actions
-export const {} = chatSlice.actions;
+export const { } = chatSlice.actions;
 
 // Export reducer
 export default chatSlice.reducer;

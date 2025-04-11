@@ -36,7 +36,7 @@ function App() {
 
   return (
     <Router>
-      <div className="container-fluid vh-100 d-flex">
+      <div className="vh-100 d-flex">
         {/* Header bên trái */}
         {isLoggedIn && <Header />}
 
@@ -54,7 +54,7 @@ function App() {
         </div>
       </div>
 
-      {/* <ToastContainer
+      <ToastContainer
         position="top-right"
         autoClose={3000}
         hideProgressBar={false}
@@ -65,7 +65,7 @@ function App() {
         draggable
         pauseOnHover
         theme="light"
-      /> */}
+      />
     </Router>
   );
 }

@@ -14,7 +14,7 @@ import {
   Layout,
 } from "lucide-react";
 import "./Chat.scss";
-import AccountInfo from "../info/accountInfo";
+import AccountInfo from "../info/AccountInfo";
 import { useSelector, useDispatch } from "react-redux";
 
 export default function ChatCloud(props) {
@@ -107,16 +107,14 @@ export default function ChatCloud(props) {
               messages.map((msg, index) => (
                 <div
                   key={index}
-                  className={`p-2 my-1 d-flex ${
-                    msg.sender._id === user._id && "justify-content-end"
-                  }`}
+                  className={`p-2 my-1 d-flex ${msg.sender._id === user._id && "justify-content-end"
+                    }`}
                 >
                   <span
-                    className={`p-3 ${
-                      msg.sender._id === user._id
+                    className={`p-3 ${msg.sender._id === user._id
                         ? "bg-primary border rounded-pill" // Tin nhắn của user căn phải
                         : "bg-white border rounded-pill" // Tin nhắn của người khác căn trái
-                    }`}
+                      }`}
                   >
                     {msg.msg}
                   </span>

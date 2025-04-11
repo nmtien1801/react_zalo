@@ -89,6 +89,18 @@ const authSlice = createSlice({
   name: "auth",
   initialState,
 
+  reducers: {
+    updateAvatar: (state, action) => {
+      if (state.userInfo) {
+        state.userInfo.avatar = action.payload; // Cập nhật avatar trong Redux store
+      }
+    },
+    logout: (state) => {
+      state.userInfo = {}; // Xóa thông tin người dùng
+      state.isLoggedIn = false; // Đặt trạng thái đăng xuất
+    },
+  },
+
   extraReducers: (builder) => {
     //  Login
     builder
@@ -170,6 +182,8 @@ const authSlice = createSlice({
       .addCase(verifyEmail.rejected, (state, action) => {});
   },
 });
+
+export const { updateAvatar, logout } = authSlice.actions;
 
 // Export actions
 export const {} = authSlice.actions;

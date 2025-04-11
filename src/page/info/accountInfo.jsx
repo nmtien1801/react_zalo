@@ -3,7 +3,7 @@ import { RiGroupLine, RiDeleteBin7Line } from "react-icons/ri";
 import { TiBusinessCard } from "react-icons/ti";
 import { MdBlock } from "react-icons/md";
 import { IoWarningOutline } from "react-icons/io5";
-import './accountInfo.scss';
+import './AccountInfo.scss';
 
 const AccountInfo = ({ isOpen, closeModal }) => {
     return (

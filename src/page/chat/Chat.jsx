@@ -145,7 +145,11 @@ export default function ChatInterface() {
     } else {
       setTypeChatRoom("cloud");
       handleLoadMessages(receiver._id, receiver.type);
-      setRoomData({ ...roomData, room: "cloud", receiver: user });
+      receiverOnline = onlineUsers.find((u) => u.userId === receiver._id);
+      setRoomData({ ...roomData, room: "cloud", receiver: {
+        ...receiver,
+        socketId: receiverOnline ? receiverOnline.socketId : null,
+      }, });
     }
   };
 

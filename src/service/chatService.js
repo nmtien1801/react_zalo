@@ -2,7 +2,7 @@ import customizeAxios from "../component/customizeAxios";
 
 const loadMessagesService = (sender, receiver, type) => {
   return customizeAxios.get(
-    `/messages/${sender}/${receiver}/${type}`
+    `/api/messages/${sender}/${receiver}/${type}`
   );
 };
 

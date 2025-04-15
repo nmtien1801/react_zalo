@@ -592,6 +592,7 @@
     flex-direction: row !important;
     align-items: flex-start;
     justify-content: flex-start;
+    gap: 20px
 }
 
 .pi-info-section .pi-info-item__content :not(.pi-group-description) {
@@ -601,6 +602,7 @@
 .pi-info-section .pi-info-item_horizontal .pi-info-item__title {
     width: 100px;
     flex: 0 0 100px;
+    gap: 18px
 }
 
 .pi-info-section .pi-info-item__title {

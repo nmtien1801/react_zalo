@@ -9,6 +9,7 @@ import {
   verifyEmailService,
 } from "../service/authService";
 import { uploadAvatarProfileService } from "../service/profileService";
+import { uploadProfile } from "./profileSlice"; // update state từ 1 slice khác
 
 const initialState = {
   userInfo: {},
@@ -180,6 +181,16 @@ const authSlice = createSlice({
       .addCase(verifyEmail.pending, (state) => {})
       .addCase(verifyEmail.fulfilled, (state, action) => {})
       .addCase(verifyEmail.rejected, (state, action) => {});
+
+    // uploadProfile
+    builder
+      .addCase(uploadProfile.pending, (state) => {})
+      .addCase(uploadProfile.fulfilled, (state, action) => {
+        if (action.payload.EC === 0) {
+          state.userInfo = action.payload.DT;
+        }
+      })
+      .addCase(uploadProfile.rejected, (state, action) => {});
   },
 });
 

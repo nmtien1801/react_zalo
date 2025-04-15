@@ -55,6 +55,7 @@ const infomationAccount = ({ toggleModalInfomation }) => {
         fileInputRef.current.click(); // Mở dialog chọn file
     };
 
+    // sửa profile
     const handleChange = (field) => (e) => {
         setUserUpdate((prev) => ({ ...prev, [field]: e.target.value }));
     };
@@ -69,6 +70,16 @@ const infomationAccount = ({ toggleModalInfomation }) => {
         if (res.payload.EC === 0) {
             toggleModalInfomation()
         }
+    };
+
+    const convertTime = (time) => {
+        const date = new Date(time);
+        return date.toLocaleTimeString("vi-VN", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+            timeZone: "Asia/Ho_Chi_Minh",
+        });
     };
 
     return (

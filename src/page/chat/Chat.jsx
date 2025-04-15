@@ -81,7 +81,7 @@ export default function ChatInterface() {
     }
   }, [isConnect]);
 
-  const handleSendMsg = (msg) => {
+  const handleSendMsg = (msg, typeUpload) => {
     if (socketRef.current.connected) {
       let sender = { ...user };
       sender.socketId = socketRef.current.id;
@@ -98,6 +98,7 @@ export default function ChatInterface() {
           socketId: receiverOnline ? receiverOnline.socketId : null,
         },
         sender,
+        type: typeUpload,  // 1 - text , 2 - image, 3 - video, 4 - file, 5 - icon
       };
       console.log("data: ", data);
 
@@ -146,10 +147,12 @@ export default function ChatInterface() {
       setTypeChatRoom("cloud");
       handleLoadMessages(receiver._id, receiver.type);
       receiverOnline = onlineUsers.find((u) => u.userId === receiver._id);
-      setRoomData({ ...roomData, room: "cloud", receiver: {
-        ...receiver,
-        socketId: receiverOnline ? receiverOnline.socketId : null,
-      }, });
+      setRoomData({
+        ...roomData, room: "cloud", receiver: {
+          ...receiver,
+          socketId: receiverOnline ? receiverOnline.socketId : null,
+        },
+      });
     }
   };
 
@@ -199,20 +202,20 @@ export default function ChatInterface() {
       const nameGroup = document.querySelector("#group-name").value;
       const avatarGroup = document.querySelector("#group-avatar").files[0];
       const selectedMembers = members.map((member) => member._id);
-  
+
       // Kiểm tra dữ liệu đầu vào
       if (!nameGroup || selectedMembers.length < 2) {
         alert("Vui lòng nhập tên nhóm và chọn ít nhất hai thành viên.");
         return;
       }
-  
+
       // Xử lý upload avatar nếu có
       let avatarUrl = "";
       if (avatarGroup) {
         const formData = new FormData();
         formData.append("file", avatarGroup);
         formData.append("upload_preset", "your_upload_preset"); // Thay bằng upload preset của bạn nếu dùng Cloudinary
-  
+
         const uploadRes = await axios.post(
           "https://api.cloudinary.com/v1_1/your_cloud_name/image/upload",
           formData
@@ -221,14 +224,14 @@ export default function ChatInterface() {
       }
 
       console.log(selectedMembers);
-  
+
       // Gửi yêu cầu đến API tạo nhóm
       const response = await createConversationGroupService({
         nameGroup,
         avatarGroup: avatarUrl,
         members: selectedMembers,
       });
-  
+
       if (response.data.EC === 0) {
         alert("Tạo nhóm thành công!");
         setShowPopupCreateGroup(false); // Đóng popup
@@ -320,7 +323,7 @@ export default function ChatInterface() {
                 <UserPlus size={18} />
               </button>
 
-              <button 
+              <button
                 className="btn btn-light rounded-circle mb-1"
                 onClick={handleOpenPopupCreateGroup}
               >
@@ -432,87 +435,87 @@ export default function ChatInterface() {
               </button>
             </div>
             <div className="custom-modal-body">
-            <div className="group-form">
-              <div className="group-input d-flex align-items-center mb-3">
-                <div className="avatar-upload position-relative">
-                  <label htmlFor="group-avatar" className="avatar-label">
-                    <img
-                      src="https://i.imgur.com/cIRFqAL.png"
-                      alt="Avatar"
-                      className="rounded-circle"
-                      style={{ width: "50px", height: "50px", cursor: "pointer" }}
+              <div className="group-form">
+                <div className="group-input d-flex align-items-center mb-3">
+                  <div className="avatar-upload position-relative">
+                    <label htmlFor="group-avatar" className="avatar-label">
+                      <img
+                        src="https://i.imgur.com/cIRFqAL.png"
+                        alt="Avatar"
+                        className="rounded-circle"
+                        style={{ width: "50px", height: "50px", cursor: "pointer" }}
+                      />
+                      <div className="camera-icon position-absolute">
+                        <i className="bi bi-camera-fill"></i>
+                      </div>
+                    </label>
+                    <input
+                      type="file"
+                      id="group-avatar"
+                      className="d-none"
+                      accept="image/*"
+                      onChange={(e) => handleAvatarUpload(e)}
                     />
-                    <div className="camera-icon position-absolute">
-                      <i className="bi bi-camera-fill"></i>
-                    </div>
-                  </label>
-                  <input
-                    type="file"
-                    id="group-avatar"
-                    className="d-none"
-                    accept="image/*"
-                    onChange={(e) => handleAvatarUpload(e)}
-                  />
-                </div>
-                <input
-                  type="text"
-                  className="form-control border-0 border-bottom ms-3"
-                  id="group-name"
-                  placeholder="Nhập tên nhóm..."
-                />
-              </div>
-              <div className="group-search mb-3">
-                <div className="input-group rounded-pill bg-light">
-                  <span className="input-group-text bg-transparent border-0">
-                    <Search size={16} className="text-muted" />
-                  </span>
+                  </div>
                   <input
                     type="text"
-                    className="form-control bg-transparent border-0"
-                    placeholder="Nhập tên, số điện thoại, hoặc danh sách số điện thoại"
-                    onChange={handleSearchPhone}
+                    className="form-control border-0 border-bottom ms-3"
+                    id="group-name"
+                    placeholder="Nhập tên nhóm..."
                   />
                 </div>
-              </div>
-              <div className="group-tabs-wrapper">
-                <div className="group-tabs">
-                  {["Tất cả", "Khách hàng", "Gia đình", "Công việc", "Bạn bè", "Trả lời sau", "Học tập", "Thể thao"].map(
-                    (tab, index) => (
-                      <button key={index} className="btn btn-light group-tab">
-                        {tab}
-                      </button>
-                    )
-                  )}
+                <div className="group-search mb-3">
+                  <div className="input-group rounded-pill bg-light">
+                    <span className="input-group-text bg-transparent border-0">
+                      <Search size={16} className="text-muted" />
+                    </span>
+                    <input
+                      type="text"
+                      className="form-control bg-transparent border-0"
+                      placeholder="Nhập tên, số điện thoại, hoặc danh sách số điện thoại"
+                      onChange={handleSearchPhone}
+                    />
+                  </div>
                 </div>
-              </div>
-              <div className="group-list">
-                <h6>Trò chuyện gần đây</h6>
-                <div className="group-list-container">
-                  {searchResults.map((user) => (
-                    <div key={user._id} className="group-item">
-                      <input
-                        type="checkbox"
-                        id={`user-${user._id}`}
-                        name="group-user"
-                        value={user._id}
-                        checked={members.some((member) => member._id === user._id)} // Kiểm tra nếu user đã được chọn
-                        onChange={() => handleSelectUser(user)} // Gọi hàm xử lý khi chọn/bỏ chọn
-                      />
-                      <label htmlFor={`user-${user._id}`} className="d-flex align-items-center">
-                        <img
-                          src={user.avatar || "/placeholder.svg"}
-                          alt={user.name}
-                          className="rounded-circle"
-                          style={{ width: "40px", height: "40px" }}
+                <div className="group-tabs-wrapper">
+                  <div className="group-tabs">
+                    {["Tất cả", "Khách hàng", "Gia đình", "Công việc", "Bạn bè", "Trả lời sau", "Học tập", "Thể thao"].map(
+                      (tab, index) => (
+                        <button key={index} className="btn btn-light group-tab">
+                          {tab}
+                        </button>
+                      )
+                    )}
+                  </div>
+                </div>
+                <div className="group-list">
+                  <h6>Trò chuyện gần đây</h6>
+                  <div className="group-list-container">
+                    {searchResults.map((user) => (
+                      <div key={user._id} className="group-item">
+                        <input
+                          type="checkbox"
+                          id={`user-${user._id}`}
+                          name="group-user"
+                          value={user._id}
+                          checked={members.some((member) => member._id === user._id)} // Kiểm tra nếu user đã được chọn
+                          onChange={() => handleSelectUser(user)} // Gọi hàm xử lý khi chọn/bỏ chọn
                         />
-                        <span className="ms-2">{user.name || user.phone}</span>
-                      </label>
-                    </div>
-                  ))}
+                        <label htmlFor={`user-${user._id}`} className="d-flex align-items-center">
+                          <img
+                            src={user.avatar || "/placeholder.svg"}
+                            alt={user.name}
+                            className="rounded-circle"
+                            style={{ width: "40px", height: "40px" }}
+                          />
+                          <span className="ms-2">{user.name || user.phone}</span>
+                        </label>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
             <div className="custom-modal-footer">
               <button
                 className="btn btn-secondary"
@@ -525,7 +528,7 @@ export default function ChatInterface() {
           </div>
         </div>
       )}
-      
+
     </div>
   );
 }

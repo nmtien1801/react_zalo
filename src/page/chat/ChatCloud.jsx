@@ -16,8 +16,8 @@ import {
 import "./Chat.scss";
 import AccountInfo from "../info/accountInfo";
 import { useSelector, useDispatch } from "react-redux";
-import { uploadAvatar} from '../../redux/profileSlice.js'
-
+import { uploadAvatar } from '../../redux/profileSlice.js'
+import IconModal from '../../component/IconModal.jsx'
 
 export default function ChatCloud(props) {
   const dispatch = useDispatch();
@@ -101,6 +101,10 @@ export default function ChatCloud(props) {
     });
   };
 
+  const handleEmojiSelect = (emoji) => {
+    setMessage((prev) => prev + emoji);
+  };
+
   return (
     <div className="row g-0 h-100">
       {/* Main Chat Area */}
@@ -155,10 +159,10 @@ export default function ChatCloud(props) {
                 >
                   <div
                     className={`p-3 max-w-[70%] break-words rounded-3 ${msg.type === "text" || msg.type === "file"
-                        ? msg.sender._id === user._id
-                          ? "bg-primary text-white"
-                          : "bg-light text-dark"
-                        : "bg-transparent"
+                      ? msg.sender._id === user._id
+                        ? "bg-primary text-white"
+                        : "bg-light text-dark"
+                      : "bg-transparent"
                       }`}
                   >
                     {/* Hiển thị nội dung tin nhắn */}
@@ -206,9 +210,17 @@ export default function ChatCloud(props) {
         {/* Message Input */}
         <div className="bg-white p-2 border-top">
           <div className="d-flex align-items-center">
-            <button className="btn btn-light me-2">
+            <button
+              className="btn btn-light me-2"
+              data-bs-toggle="modal"
+              data-bs-target="#iconModal"
+            >
               <Smile size={20} />
             </button>
+
+            {/* Modal riêng */}
+            <IconModal onSelect={handleEmojiSelect} />
+
             {/* Input file ẩn */}
             <input
               type="file"

@@ -26,6 +26,7 @@ import AccountInfo from "../info/accountInfo";
 import { useSelector, useDispatch } from "react-redux";
 import CallScreen from "../../component/CallScreen.jsx";
 import { uploadAvatar } from '../../redux/profileSlice.js'
+import IconModal from '../../component/IconModal.jsx'
 
 export default function ChatPerson(props) {
   const dispatch = useDispatch();
@@ -129,6 +130,10 @@ export default function ChatPerson(props) {
       hour12: false,
       timeZone: "Asia/Ho_Chi_Minh",
     });
+  };
+
+  const handleEmojiSelect = (emoji) => {
+    setMessage((prev) => prev + emoji);
   };
 
   return (
@@ -236,9 +241,17 @@ export default function ChatPerson(props) {
         {/* Message Input */}
         <div className="bg-white p-2 border-top">
           <div className="d-flex align-items-center">
-            <button className="btn btn-light me-2">
+            <button
+              className="btn btn-light me-2"
+              data-bs-toggle="modal"
+              data-bs-target="#iconModal"
+            >
               <Smile size={20} />
             </button>
+
+            {/* Modal riêng */}
+            <IconModal onSelect={handleEmojiSelect} />
+
             {/* Input file ẩn */}
             <input
               type="file"

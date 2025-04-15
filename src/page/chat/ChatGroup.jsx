@@ -26,6 +26,7 @@ import "./Chat.scss";
 import GroupInfo from "../info/GroupInfo";
 import { useSelector, useDispatch } from "react-redux";
 import { uploadAvatar } from '../../redux/profileSlice.js'
+import IconModal from '../../component/IconModal.jsx'
 
 export default function ChatGroup(props) {
   const dispatch = useDispatch();
@@ -141,6 +142,10 @@ export default function ChatGroup(props) {
     });
   };
 
+  const handleEmojiSelect = (emoji) => {
+    setMessage((prev) => prev + emoji);
+  };
+
   return (
     <div className="row g-0 h-100">
       {/* Main Chat Area */}
@@ -248,9 +253,17 @@ export default function ChatGroup(props) {
         {/* Message Input */}
         <div className="bg-white p-2 border-top">
           <div className="d-flex align-items-center">
-            <button className="btn btn-light me-2">
+            <button
+              className="btn btn-light me-2"
+              data-bs-toggle="modal"
+              data-bs-target="#iconModal"
+            >
               <Smile size={20} />
             </button>
+
+            {/* Modal riêng */}
+            <IconModal onSelect={handleEmojiSelect} />
+
             {/* Input file ẩn */}
             <input
               type="file"

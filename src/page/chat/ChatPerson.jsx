@@ -224,21 +224,6 @@ export default function ChatPerson(props) {
       if (files.length > 0) {
         setSelectedFiles((prev) => [...prev, ...files]);
       }
-
-      // try {
-      //   // Gửi tất cả ảnh lên server
-      //   const response = await dispatch(uploadAvatar({ formData }));
-      //   if (response.payload.EC === 0) {
-      //     const uploadedUrls = response.payload.DT; // Danh sách URL ảnh từ server
-      //     uploadedUrls.forEach((url) => sendMessage(url, "image")); // Gửi từng URL qua socket
-      //   } else {
-      //     alert(response.payload.EM || "Lỗi khi tải lên ảnh!");
-      //   }
-      // } catch (error) {
-      //   console.error("Lỗi khi tải lên ảnh:", error);
-      //   alert("Đã xảy ra lỗi khi tải lên ảnh.");
-      // }
-
     } else {
       setHasSelectedImages(false);
     }
@@ -323,7 +308,6 @@ export default function ChatPerson(props) {
       console.error("Lỗi khi xóa tin nhắn:", error);
     }
   };
-  console.log('selectedMessage ', selectedMessage);
 
   const handleRemovePreview = (index) => {
     const updatedPreviews = [...previewImages];
@@ -382,6 +366,11 @@ export default function ChatPerson(props) {
     setHasSelectedImages(false);
   };
 
+  const handleShare = (selectedMessage) => {
+    console.log('selectedMessage ', selectedMessage);
+
+  }
+  
   return (
     <div className="row g-0 h-100">
       {/* Main Chat Area */}
@@ -508,10 +497,10 @@ export default function ChatPerson(props) {
                     {/* Thời gian gửi */}
                     <div
                       className={`text-end text-xs mt-1 ${msg.sender._id === user._id
-                          ? msg.type === "image"
-                            ? "text-secondary" // Nếu là ảnh, đổi thành text-secondary
-                            : "text-white" // Nếu không, giữ text-white
-                          : "text-secondary"
+                        ? msg.type === "image"
+                          ? "text-secondary" // Nếu là ảnh, đổi thành text-secondary
+                          : "text-white" // Nếu không, giữ text-white
+                        : "text-secondary"
                         }`}
                     >
                       {convertTime(msg.createdAt)}
@@ -762,7 +751,7 @@ export default function ChatPerson(props) {
             <Reply size={16} className="me-2" />
             <span>Trả lời</span>
           </div>
-          <div className="popup-item d-flex align-items-center" onClick={() => console.log("Chia sẻ")}>
+          <div className="popup-item d-flex align-items-center" onClick={() => handleShare(selectedMessage)}>
             <Share size={16} className="me-2" />
             <span>Chia sẻ</span>
           </div>

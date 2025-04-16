@@ -25,6 +25,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { uploadAvatar } from '../../redux/profileSlice.js'
 import IconModal from '../../component/IconModal.jsx'
 import { deleteMessageForMeService } from "../../service/chatService.js";
+import ImageViewer from "./ImageViewer.jsx";
 
 export default function ChatCloud(props) {
   const dispatch = useDispatch();
@@ -51,6 +52,13 @@ export default function ChatCloud(props) {
   const [popupVisible, setPopupVisible] = useState(false);
   const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
   const [selectedMessage, setSelectedMessage] = useState(null);
+
+  const imageInputRef = useRef(null);
+  const [hasSelectedImages, setHasSelectedImages] = useState(false);
+  const [previewImages, setPreviewImages] = useState([]);
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  // ImageViewer
+  const [selectedImage, setSelectedImage] = useState(null);
 
   useEffect(() => {
     if (props.allMsg) {
@@ -99,6 +107,21 @@ export default function ChatCloud(props) {
   };
 
   const sendMessage = async (msg, type) => {
+    // Nếu là chuỗi
+    if (typeof msg === "string") {
+      if (!msg.trim()) {
+        alert("Tin nhắn không được để trống!");
+        return;
+      }
+    }
+
+    // Kiểm tra nếu msg là mảng
+    if (Array.isArray(msg)) {
+      if (msg.length === 0) {
+        msg = JSON.stringify(msg);
+      }
+    }
+
     props.handleSendMsg(msg, type);
     setMessage("");
   };
@@ -131,7 +154,7 @@ export default function ChatCloud(props) {
         }
 
         sendMessage(response.payload.DT, type);
-      }else{
+      } else {
         console.log(response.payload.EM);
         alert(response.payload.EM)
       }
@@ -192,6 +215,110 @@ export default function ChatCloud(props) {
     }
   };
 
+  const handleImageChange = async (e) => {
+    const selectedImages = e.target.files;
+
+    if (selectedImages && selectedImages.length > 0) {
+
+      if (selectedImages.length > 10) {
+        setHasSelectedImages(false);
+        alert("Số lượng ảnh không được quá 10!");
+        return;
+      }
+
+      const previews = [];
+      const files = Array.from(e.target.files);
+
+      for (let image of selectedImages) {
+        // Tạo URL xem trước
+        const reader = new FileReader();
+        reader.onload = () => {
+          previews.push(reader.result); // Lưu URL xem trước vào mảng
+          setPreviewImages([...previews]); // Cập nhật state xem trước
+          setHasSelectedImages(true);
+        };
+        reader.readAsDataURL(image);
+      }
+
+      if (files.length > 0) {
+        setSelectedFiles((prev) => [...prev, ...files]);
+      }
+    } else {
+      setHasSelectedImages(false);
+    }
+  };
+
+  const handleButtonClickImage = () => {
+    imageInputRef.current.click(); // Mở dialog chọn file
+  };
+
+  // Hàm nhấp vào image xem
+  const handleImageClick = (imageUrl) => {
+    setSelectedImage(imageUrl);
+  };
+
+  const handleCloseImageViewer = () => {
+    setSelectedImage(null);
+  };
+
+  // xóa ảnh xem trước
+  const handleRemovePreview = (index) => {
+    const updatedPreviews = [...previewImages];
+    updatedPreviews.splice(index, 1);
+    setPreviewImages(updatedPreviews);
+
+    if (updatedPreviews.length === 0) {
+      setHasSelectedImages(false);
+    }
+  };
+
+  const handleMessage = async (message) => {
+    if (previewImages.length === 0) {
+      sendMessage(message, "text");
+    } else if (previewImages.length > 0) {
+
+      const listUrlImage = [];
+
+      for (const image of selectedFiles) {
+        const formData = new FormData();
+        console.log("Ảnh:" + image);
+        formData.append("avatar", image);
+
+        try {
+          const response = await dispatch(uploadAvatar({ formData }));
+          if (response.payload.EC === 0) {
+            listUrlImage.push(response.payload.DT);
+          } else {
+            alert(response.payload.EM || "Lỗi khi tải lên ảnh!");
+          }
+        } catch (error) {
+          console.error("Lỗi khi tải lên ảnh:", error);
+          alert("Đã xảy ra lỗi khi tải lên ảnh.");
+        }
+      }
+
+      if (listUrlImage.length > 0) {
+        const listUrlImageString = listUrlImage.join(", ");
+        sendMessage(listUrlImageString, "image");
+      }
+
+      if (message.trim()) {
+        sendMessage(message, "text");
+      }
+
+      setPreviewImages([]);
+      setHasSelectedImages(false);
+    }
+
+    setMessage("");
+  }
+
+
+  const handleClearAllPreviews = () => {
+    setPreviewImages([]); // Xóa toàn bộ ảnh xem trước
+    setHasSelectedImages(false);
+  };
+
   return (
     <div className="row g-0 h-100">
       {/* Main Chat Area */}
@@ -233,8 +360,13 @@ export default function ChatCloud(props) {
 
         {/* Chat Content */}
         <div
-          className="p-3"
-          style={{ height: "calc(100vh - 128px)", overflowY: "auto" }}
+          className="chat-container p-3"
+          style={{
+            height: hasSelectedImages
+              ? "calc(100vh - 278px)" // Khi có ảnh được chọn
+              : "calc(100vh - 120px)", // Khi không có ảnh nào được chọn
+            overflowY: "auto",
+          }}
         >
           <div className="flex flex-col justify-end">
             {messages &&
@@ -255,12 +387,36 @@ export default function ChatCloud(props) {
                   >
                     {/* Hiển thị nội dung tin nhắn */}
                     {msg.type === "image" ? (
-                      <img
-                        src={msg.msg}
-                        alt="image"
-                        className="rounded-lg"
-                        style={{ width: 200, height: 200, objectFit: "cover" }}
-                      />
+                      msg.msg.includes(",") ? (
+                        <div
+                          className={`grid-container multiple-images`}
+                        >
+                          {msg.msg.split(",").map((url, index) => (
+                            <div key={index} className="grid-item">
+                              <img
+                                src={url.trim()}
+                                alt={`image-${index}`}
+                                className="image-square"
+                                onClick={() => handleImageClick(url.trim())}
+                                style={{ cursor: "pointer" }}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        // Nếu chỉ có một URL ảnh, hiển thị ảnh đó
+                        <div className={`grid-container multiple-images`}>
+                          <div className="grid-item">
+                            <img
+                              src={msg.msg}
+                              alt="image"
+                              className="image-square"
+                              onClick={() => handleImageClick(msg.msg)}
+                              style={{ cursor: "pointer" }}
+                            />
+                          </div>
+                        </div>
+                      )
                     ) : msg.type === "video" ? (
                       <video
                         src={msg.msg}
@@ -283,7 +439,11 @@ export default function ChatCloud(props) {
 
                     {/* Thời gian gửi */}
                     <div
-                      className={`text-end text-xs mt-1 ${msg.sender._id === user._id ? "text-white" : "text-secondary"
+                      className={`text-end text-xs mt-1 ${msg.sender._id === user._id
+                        ? msg.type === "image"
+                          ? "text-secondary" // Nếu là ảnh, đổi thành text-secondary
+                          : "text-white" // Nếu không, giữ text-white
+                        : "text-secondary"
                         }`}
                     >
                       {convertTime(msg.createdAt)}
@@ -299,22 +459,13 @@ export default function ChatCloud(props) {
         {/* Message Input */}
         <div className="bg-white p-2 border-top">
           <div className="d-flex align-items-center">
-            <button
-              className="btn btn-light me-2"
-              data-bs-toggle="modal"
-              data-bs-target="#iconModal"
-            >
-              <Smile size={20} />
-            </button>
-
             {/* Modal riêng */}
             <IconModal onSelect={handleEmojiSelect} />
-
             {/* Input file ẩn */}
             <input
               type="file"
               multiple
-              accept="image/jpeg,image/png,video/mp4,.doc,.docx,.xls,.xlsx,.pdf"
+              accept=".doc,.docx,.xls,.xlsx,.pdf,.mp4"
               onChange={handleFileChange}
               ref={fileInputRef}
               style={{ display: "none" }} // Ẩn input
@@ -323,6 +474,19 @@ export default function ChatCloud(props) {
               <Paperclip size={20} />
             </button>
             <input
+              type="file"
+              multiple
+              accept="image/jpeg,image/png"
+              onChange={handleImageChange}
+              ref={imageInputRef}
+              style={{ display: "none" }} // Ẩn input
+            />
+            <button className="btn btn-light me-2" onClick={handleButtonClickImage}>
+              <Image size={20} />
+            </button>
+
+            {/* Input tin nhắn */}
+            <input
               className="form-control flex-1 p-2 border rounded-lg outline-none"
               type="text"
               value={message}
@@ -330,9 +494,50 @@ export default function ChatCloud(props) {
               onKeyDown={(e) => e.key === "Enter" && sendMessage(message, "text")}
               placeholder="Nhập tin nhắn..."
             />
-            <button className="btn btn-primary ms-2" onClick={() => sendMessage(message, "text")}>
+            {/* Nút smile */}
+            <button
+              className="btn btn-light ms-2"
+              data-bs-toggle="modal"
+              data-bs-target="#iconModal"
+            >
+              <Smile size={20} />
+            </button>
+            <IconModal onSelect={handleEmojiSelect} />
+
+            {/* Nút gửi */}
+            <button
+              className="btn btn-primary ms-2"
+              onClick={() => handleMessage(message)}
+            >
               <Send size={20} />
             </button>
+          </div>
+          <div className="preview-container d-flex flex-wrap gap-2 mt-2" >
+            {previewImages.map((image, index) => (
+              <div key={index} className="preview-item position-relative">
+                <img
+                  src={image}
+                  alt={`Xem trước ${index + 1}`}
+                  className="rounded"
+                  style={{ width: "100px", height: "100px", objectFit: "cover" }}
+                />
+                <button
+                  className="btn btn-danger btn-sm position-absolute top-0 end-0 d-flex justify-content-center align-items-center"
+                  onClick={() => handleRemovePreview(index)}
+                  style={{ borderRadius: "50%" }}
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            ))}
+            {previewImages.length > 0 && (
+              <button
+                className="btn btn-link text-danger mt-2"
+                onClick={handleClearAllPreviews}
+              >
+                Xóa tất cả
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -493,6 +698,9 @@ export default function ChatCloud(props) {
             <span>Xóa chỉ ở phía tôi</span>
           </div>
         </div>
+      )}
+      {selectedImage && (
+        <ImageViewer imageUrl={selectedImage} onClose={handleCloseImageViewer} />
       )}
     </div>
   );

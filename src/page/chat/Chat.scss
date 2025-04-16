@@ -10,12 +10,12 @@
   padding-top: 36px;
 }
 
-.search-border{
+.search-border {
   border-bottom: 1px solid #e9ecef;
-  padding: 11px;
+  padding      : 11px;
 }
 
-.red{
+.red {
   background-color: red;
 }
 
@@ -24,55 +24,55 @@
 }
 
 .message-wrapper {
-  display: flex;
-  max-width: calc(100% - 88px);
+  display      : flex;
+  max-width    : calc(100% - 88px);
   border-radius: 16px;
-  padding: 12px;
+  padding      : 12px;
 }
 
 /* Modal Overlay */
 .custom-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  position        : fixed;
+  top             : 0;
+  left            : 0;
+  width           : 100%;
+  height          : 100%;
   background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
+  display         : flex;
+  justify-content : center;
+  align-items     : center;
+  z-index         : 1000;
 }
 
 /* Modal Content */
 .custom-modal-content {
-  background: white;
-  width: 500px;
+  background   : white;
+  width        : 500px;
   border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  animation: fadeIn 0.3s ease-in-out;
+  overflow     : hidden;
+  box-shadow   : 0 4px 8px rgba(0, 0, 0, 0.2);
+  animation    : fadeIn 0.3s ease-in-out;
 }
 
 /* Modal Header */
 .custom-modal-header {
-  display: flex;
+  display        : flex;
   justify-content: space-between;
-  align-items: center;
-  padding: 16px;
-  border-bottom: 1px solid #ddd;
+  align-items    : center;
+  padding        : 16px;
+  border-bottom  : 1px solid #ddd;
 }
 
 .custom-modal-title {
-  margin: 0;
+  margin   : 0;
   font-size: 18px;
 }
 
 .custom-modal-close {
   background: none;
-  border: none;
-  font-size: 24px;
-  cursor: pointer;
+  border    : none;
+  font-size : 24px;
+  cursor    : pointer;
 }
 
 /* Modal Body */
@@ -82,137 +82,168 @@
 
 /* Modal Footer */
 .custom-modal-footer {
-  display: flex;
+  display        : flex;
   justify-content: flex-end;
-  padding: 16px;
-  border-top: 1px solid #ddd;
+  padding        : 16px;
+  border-top     : 1px solid #ddd;
 }
 
 /* Animation */
 @keyframes fadeIn {
   from {
-    opacity: 0;
+    opacity  : 0;
     transform: scale(0.9);
   }
+
   to {
-    opacity: 1;
+    opacity  : 1;
     transform: scale(1);
   }
 }
 
 /* Wrapper for horizontal scrolling */
 .group-tabs-wrapper {
-  overflow-x: auto; /* Cho phép cuộn ngang */
-  white-space: nowrap; /* Không xuống dòng */
-  padding-bottom: 8px; /* Khoảng cách dưới để dễ nhìn */
-  margin-bottom: 16px; /* Khoảng cách giữa tabs và nội dung bên dưới */
-  scrollbar-width: thin; /* Thu nhỏ thanh cuộn (Firefox) */
+  overflow-x     : auto;
+  /* Cho phép cuộn ngang */
+  white-space    : nowrap;
+  /* Không xuống dòng */
+  padding-bottom : 8px;
+  /* Khoảng cách dưới để dễ nhìn */
+  margin-bottom  : 16px;
+  /* Khoảng cách giữa tabs và nội dung bên dưới */
+  scrollbar-width: thin;
+  /* Thu nhỏ thanh cuộn (Firefox) */
 }
 
 .group-tabs-wrapper::-webkit-scrollbar {
-  height: 6px; /* Chiều cao thanh cuộn (Chrome, Safari) */
+  height: 6px;
+  /* Chiều cao thanh cuộn (Chrome, Safari) */
 }
 
 .group-tabs-wrapper::-webkit-scrollbar-thumb {
-  background-color: #ccc; /* Màu thanh cuộn */
-  border-radius: 10px; /* Bo tròn thanh cuộn */
+  background-color: #ccc;
+  /* Màu thanh cuộn */
+  border-radius   : 10px;
+  /* Bo tròn thanh cuộn */
 }
 
 .group-tabs-wrapper::-webkit-scrollbar-track {
-  background-color: #f8f9fa; /* Màu nền thanh cuộn */
+  background-color: #f8f9fa;
+  /* Màu nền thanh cuộn */
 }
 
 /* Tabs container */
 .group-tabs {
-  display: inline-flex; /* Hiển thị các tab theo hàng ngang */
-  gap: 8px; /* Khoảng cách giữa các tab */
+  display: inline-flex;
+  /* Hiển thị các tab theo hàng ngang */
+  gap    : 8px;
+  /* Khoảng cách giữa các tab */
 }
 
 /* Individual tab button */
 .group-tab {
-  padding: 5px 10px; /* Khoảng cách bên trong tab */
-  border: 1px solid #ddd; /* Viền tab */
-  border-radius: 20px; /* Bo tròn tab */
-  background-color: #f8f9fa; /* Màu nền tab */
-  white-space: nowrap; /* Không xuống dòng chữ trong tab */
-  cursor: pointer; /* Con trỏ chuột */
-  font: 0.8em sans-serif;
-  transition: background-color 0.2s ease; /* Hiệu ứng hover */
+  padding         : 5px 10px;
+  /* Khoảng cách bên trong tab */
+  border          : 1px solid #ddd;
+  /* Viền tab */
+  border-radius   : 20px;
+  /* Bo tròn tab */
+  background-color: #f8f9fa;
+  /* Màu nền tab */
+  white-space     : nowrap;
+  /* Không xuống dòng chữ trong tab */
+  cursor          : pointer;
+  /* Con trỏ chuột */
+  font            : 0.8em sans-serif;
+  transition      : background-color 0.2s ease;
+  /* Hiệu ứng hover */
 }
 
 .group-tab:hover {
-  background-color: #e9ecef; /* Màu nền khi hover */
+  background-color: #e9ecef;
+  /* Màu nền khi hover */
 }
 
 .group-tab:focus {
-  outline: none; /* Xóa viền mặc định khi focus */
-  background-color: #0d6efd; /* Màu nền khi focus */
-  color: white; /* Màu chữ khi focus */
+  outline         : none;
+  /* Xóa viền mặc định khi focus */
+  background-color: #0d6efd;
+  /* Màu nền khi focus */
+  color           : white;
+  /* Màu chữ khi focus */
 }
 
 /* Group List Container */
 .group-list-container {
-  max-height: 200px; /* Giới hạn chiều cao */
-  overflow-y: auto; /* Cho phép cuộn dọc */
-  padding-right: 8px; /* Khoảng cách bên phải để tránh che thanh cuộn */
+  max-height   : 200px;
+  /* Giới hạn chiều cao */
+  overflow-y   : auto;
+  /* Cho phép cuộn dọc */
+  padding-right: 8px;
+  /* Khoảng cách bên phải để tránh che thanh cuộn */
 }
 
 .group-list-container::-webkit-scrollbar {
-  width: 6px; /* Chiều rộng thanh cuộn */
+  width: 6px;
+  /* Chiều rộng thanh cuộn */
 }
 
 .group-list-container::-webkit-scrollbar-thumb {
-  background-color: #ccc; /* Màu thanh cuộn */
-  border-radius: 10px; /* Bo tròn thanh cuộn */
+  background-color: #ccc;
+  /* Màu thanh cuộn */
+  border-radius   : 10px;
+  /* Bo tròn thanh cuộn */
 }
 
 .group-list-container::-webkit-scrollbar-track {
-  background-color: #f8f9fa; /* Màu nền thanh cuộn */
+  background-color: #f8f9fa;
+  /* Màu nền thanh cuộn */
 }
 
 /* Group Item */
 .group-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 0;
+  display      : flex;
+  align-items  : center;
+  gap          : 12px;
+  padding      : 8px 0;
   border-bottom: 1px solid #ddd;
 }
 
 .group-item:last-child {
-  border-bottom: none; /* Xóa viền dưới của item cuối */
+  border-bottom: none;
+  /* Xóa viền dưới của item cuối */
 }
 
 .group-item input[type="checkbox"] {
   margin-right: 8px;
-  cursor: pointer;
+  cursor      : pointer;
 }
 
 .group-item label {
-  display: flex;
+  display    : flex;
   align-items: center;
-  cursor: pointer;
+  cursor     : pointer;
 }
 
 .group-item img {
-  width: 40px;
-  height: 40px;
+  width        : 40px;
+  height       : 40px;
   border-radius: 50%;
 }
 
 .group-item span {
   font-size: 14px;
-  color: #333;
+  color    : #333;
 }
 
 .popup-menu {
-  width: 200px;
+  width    : 200px;
   font-size: 14px;
 }
 
 .popup-item {
-  padding: 8px 12px;
-  cursor: pointer;
+  padding   : 8px 12px;
+  cursor    : pointer;
   transition: background-color 0.2s;
 }
 
@@ -312,4 +343,43 @@
   width: 100%;
   height: 100%;
   object-fit: cover; /* Đảm bảo hình ảnh không bị méo */
+}
+
+.message-container {
+  position: relative;
+}
+
+.share-button {
+  position        : absolute;
+  top             : 50%;
+  right           : -30px;
+  transform       : translateY(-50%);
+  display         : none;
+  background-color: #dae2ed;
+  color           : rgb(158, 158, 158);
+  border          : none;
+  border-radius   : 50%;
+  width           : 30px;
+  height          : 30px;
+  cursor          : pointer;
+  justify-content : center;
+  align-items     : center;
+}
+
+.share-button.left {
+  left: -30px;
+  /* Nút ở bên trái */
+}
+
+.share-button.right {
+  right: -30px;
+  /* Nút ở bên phải */
+}
+
+.share-button:hover .text-muted {
+  color: #0056b3;
+}
+
+.message-container:hover .share-button {
+  display: flex;
 }

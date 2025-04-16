@@ -25,7 +25,8 @@ import {
   Copy,
   Download,
   RotateCw,
-  Image
+  Image,
+  Share2
 } from "lucide-react";
 import "./Chat.scss";
 import AccountInfo from "../info/AccountInfo.jsx";
@@ -35,6 +36,7 @@ import { uploadAvatar } from '../../redux/profileSlice.js'
 import IconModal from '../../component/IconModal.jsx'
 import { deleteMessageForMeService, recallMessageService } from "../../service/chatService.js";
 import ImageViewer from "./ImageViewer.jsx";
+import ShareMsgModal from "../../component/ShareMsgModal.jsx";
 
 export default function ChatPerson(props) {
   const dispatch = useDispatch();
@@ -55,6 +57,8 @@ export default function ChatPerson(props) {
   const [popupVisible, setPopupVisible] = useState(false);
   const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
   const [selectedMessage, setSelectedMessage] = useState(null);
+
+  const conversations = props.conversations || [];
 
   const [previewImages, setPreviewImages] = useState([]);
   const [selectedFiles, setSelectedFiles] = useState([]);
@@ -309,6 +313,16 @@ export default function ChatPerson(props) {
     }
   };
 
+  console.log('selectedMessage ', selectedMessage);
+
+  const [showShareModal, setShowShareModal] = useState(false);
+  // const [selectedMessage, setSelectedMessage] = useState("");
+
+  const handleOpenShareModal = (message) => {
+    setSelectedMessage(message);
+    setShowShareModal(true);
+  };
+
   const handleRemovePreview = (index) => {
     const updatedPreviews = [...previewImages];
     updatedPreviews.splice(index, 1);
@@ -501,17 +515,70 @@ export default function ChatPerson(props) {
                           ? "text-secondary" // Nếu là ảnh, đổi thành text-secondary
                           : "text-white" // Nếu không, giữ text-white
                         : "text-secondary"
-                        }`}
-                    >
-                      {convertTime(msg.createdAt)}
-                    </div>
-                  </div>
 
+                        }`}
+                      onContextMenu={(e) => handleShowPopup(e, msg)}
+                    >
+                      {/* Hiển thị nội dung tin nhắn */}
+                      {msg.type === "image" ? (
+                        <img
+                          src={msg.msg}
+                          alt="image"
+                          className="rounded-lg"
+                          style={{ width: 200, height: 200, objectFit: "cover" }}
+                        />
+                      ) : msg.type === "video" ? (
+                        <video
+                          src={msg.msg}
+                          controls
+                          className="rounded-lg"
+                          style={{ width: 250, height: 200, backgroundColor: "black" }}
+                        />
+                      ) : msg.type === "file" ? (
+                        <a
+                          href={msg.msg}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`fw-semibold ${msg.sender._id === user._id ? "text-white" : "text-dark"}`}
+                        >
+                          🡇 {msg.msg.split("_").pop() || "Tệp đính kèm"}
+                        </a>
+                      ) : msg.type === "system" ? (
+                        <span><i>{msg.msg || ""}</i></span>
+                      ) : (
+                        <span>{msg.msg || ""}</span>
+                      )}
+
+                      {/* Thời gian gửi */}
+                      <div
+                        className={`text-end text-xs mt-1 ${msg.sender._id === user._id ? "text-white" : "text-secondary"
+                          }`}
+                      >
+                        {convertTime(msg.createdAt)}
+                      </div>
+                    </div>
+                    {/* Nút chia sẻ */}
+                    <button
+                      className={`share-button ${msg.sender._id === user._id ? "left" : "right"}`}
+                      onClick={() => handleOpenShareModal(msg)
+                      }
+                    >
+                      <Share2 size={16} className="text-muted" />
+                    </button>
+                  </div>
                 </div>
               ))}
             <div ref={messagesEndRef} />
           </div>
         </div>
+        {/* Modal */}
+        <ShareMsgModal
+          show={showShareModal}
+          onHide={() => setShowShareModal(false)}
+          message={selectedMessage}
+          conversations={conversations}
+          onlineUsers={props.onlineUsers}
+        />
 
         {/* Message Input */}
         <div className="bg-white p-2 border-top" >

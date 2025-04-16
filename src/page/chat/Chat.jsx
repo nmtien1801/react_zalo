@@ -129,6 +129,9 @@ export default function ChatInterface() {
     }
   };
 
+  console.log(onlineUsers, "onlineUsers");
+
+
   // Hàm mở popup
   const handleOpenPopupCreateGroup = () => {
     setShowPopupCreateGroup(true);
@@ -451,6 +454,8 @@ export default function ChatInterface() {
                   user={user}
                   // handleDelete={handleDelete}
                   socketRef={socketRef}
+                  conversations={conversations}
+                  onlineUsers={onlineUsers}
                 />
               ) : (
                 <ChatCloud

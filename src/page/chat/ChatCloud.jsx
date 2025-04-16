@@ -20,7 +20,7 @@ import {
   Trash2
 } from "lucide-react";
 import "./Chat.scss";
-// import AccountInfo from "../info/accountInfo";
+import AccountInfo from "../info/AccountInfo";
 import { useSelector, useDispatch } from "react-redux";
 import { uploadAvatar } from '../../redux/profileSlice.js'
 import IconModal from '../../component/IconModal.jsx'
@@ -131,6 +131,9 @@ export default function ChatCloud(props) {
         }
 
         sendMessage(response.payload.DT, type);
+      }else{
+        console.log(response.payload.EM);
+        alert(response.payload.EM)
       }
     } catch (error) {
       console.error("Upload error:", error);

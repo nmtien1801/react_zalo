@@ -29,7 +29,6 @@ import {
 } from "lucide-react";
 import "./Chat.scss";
 import AccountInfo from "../info/AccountInfo.jsx";
-// import AccountInfo from "../info/accountInfo";
 import { useSelector, useDispatch } from "react-redux";
 import CallScreen from "../../component/CallScreen.jsx";
 import { uploadAvatar } from '../../redux/profileSlice.js'

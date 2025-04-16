@@ -34,24 +34,33 @@ import CallScreen from "../../component/CallScreen.jsx";
 import { uploadAvatar } from '../../redux/profileSlice.js'
 import IconModal from '../../component/IconModal.jsx'
 import { deleteMessageForMeService, recallMessageService } from "../../service/chatService.js";
+import ImageViewer from "./ImageViewer.jsx";
 
 export default function ChatPerson(props) {
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.userInfo);
   const receiver = props.roomData.receiver;
   const fileInputRef = useRef(null); // Ref để truy cập input file ẩn
+  const imageInputRef = useRef(null);
   const messagesEndRef = useRef(null);
 
   const [showSidebar, setShowSidebar] = useState(true);
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
   const [showCallScreen, setShowCallScreen] = useState(false);
+  const [hasSelectedImages, setHasSelectedImages] = useState(false);
   const [isInitiator, setIsInitiator] = useState(false); // Thêm state để theo dõi người khởi tạo
 
-  //Popup Chuột phải
+  // Popup Chuột phải
   const [popupVisible, setPopupVisible] = useState(false);
   const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
   const [selectedMessage, setSelectedMessage] = useState(null); 
+
+  const [previewImages, setPreviewImages] = useState([]);
+  const [selectedFiles, setSelectedFiles] = useState([]);
+
+  // ImageViewer
+  const [selectedImage, setSelectedImage] = useState(null);
 
   useEffect(() => {
     if (props.allMsg) {
@@ -70,6 +79,22 @@ export default function ChatPerson(props) {
   }, [messages]);
 
   const sendMessage = async (msg, type) => {
+
+    // Nếu là chuỗi
+    if (typeof msg === "string") {
+      if (!msg.trim()) {
+        alert("Tin nhắn không được để trống!");
+        return;
+      }
+    }
+  
+    // Kiểm tra nếu msg là mảng
+    if (Array.isArray(msg)) {
+      if (msg.length === 0) {
+        msg = JSON.stringify(msg);
+      }
+    }
+
     props.handleSendMsg(msg, type);
     setMessage("");
   };
@@ -145,6 +170,7 @@ export default function ChatPerson(props) {
 
 
     const formData = new FormData();
+    console.log(selectedFile);
     formData.append("avatar", selectedFile);
 
     try {
@@ -170,9 +196,70 @@ export default function ChatPerson(props) {
     }
   };
 
+  const handleImageChange = async (e) => {
+    const selectedImages = e.target.files;
+
+    if (selectedImages && selectedImages.length > 0) {
+
+      if(selectedImages.length > 10) {
+        setHasSelectedImages(false);
+        alert("Số lượng ảnh không được quá 10!");
+        return;
+      }
+
+      const previews = [];
+      const files = Array.from(e.target.files);
+
+      for (let image of selectedImages) {
+        // Tạo URL xem trước
+        const reader = new FileReader();
+        reader.onload = () => {
+          previews.push(reader.result); // Lưu URL xem trước vào mảng
+          setPreviewImages([...previews]); // Cập nhật state xem trước
+          setHasSelectedImages(true);
+        };
+        reader.readAsDataURL(image);
+      }
+
+      if (files.length > 0) {
+        setSelectedFiles((prev) => [...prev, ...files]);
+      }
+    
+      // try {
+      //   // Gửi tất cả ảnh lên server
+      //   const response = await dispatch(uploadAvatar({ formData }));
+      //   if (response.payload.EC === 0) {
+      //     const uploadedUrls = response.payload.DT; // Danh sách URL ảnh từ server
+      //     uploadedUrls.forEach((url) => sendMessage(url, "image")); // Gửi từng URL qua socket
+      //   } else {
+      //     alert(response.payload.EM || "Lỗi khi tải lên ảnh!");
+      //   }
+      // } catch (error) {
+      //   console.error("Lỗi khi tải lên ảnh:", error);
+      //   alert("Đã xảy ra lỗi khi tải lên ảnh.");
+      // }
+
+    }else {
+      setHasSelectedImages(false);
+    }
+  };
+
   // Kích hoạt input file khi nhấn nút
   const handleButtonClick = () => {
     fileInputRef.current.click(); // Mở dialog chọn file
+  };
+
+  const handleButtonClickImage = () => {
+    imageInputRef.current.click(); // Mở dialog chọn file
+  };
+
+  // Hàm nhấp vào image xem
+  const handleImageClick = (imageUrl) => {
+    setSelectedImage(imageUrl); 
+  };
+
+  const handleCloseImageViewer = () => {
+    setSelectedImage(null); 
   };
 
   const convertTime = (time) => {
@@ -236,7 +323,64 @@ export default function ChatPerson(props) {
       console.error("Lỗi khi xóa tin nhắn:", error);
     }
   };
-console.log('selectedMessage ',selectedMessage);
+  console.log('selectedMessage ',selectedMessage);
+
+  const handleRemovePreview = (index) => {
+    const updatedPreviews = [...previewImages];
+    updatedPreviews.splice(index, 1);
+    setPreviewImages(updatedPreviews);
+
+    if (updatedPreviews.length === 0) {
+      setHasSelectedImages(false);
+    }
+  };
+
+  const handleMessage = async (message) => {
+    if(previewImages.length === 0) {
+      sendMessage(message, "text");
+    }else if(previewImages.length > 0) {
+
+      const listUrlImage = [];
+
+      for (const image of selectedFiles) {
+        const formData = new FormData();
+        console.log("Ảnh:" + image);
+        formData.append("avatar", image);
+  
+        try {
+          const response = await dispatch(uploadAvatar({ formData }));
+          if (response.payload.EC === 0) {
+            listUrlImage.push(response.payload.DT);
+          } else {
+            alert(response.payload.EM || "Lỗi khi tải lên ảnh!");
+          }
+        } catch (error) {
+          console.error("Lỗi khi tải lên ảnh:", error);
+          alert("Đã xảy ra lỗi khi tải lên ảnh.");
+        }
+      }
+
+      if (listUrlImage.length > 0) {
+        const listUrlImageString = listUrlImage.join(", ");
+        sendMessage(listUrlImageString, "image");
+      }
+
+      if (message.trim()) {
+        sendMessage(message, "text");
+      }
+
+      setPreviewImages([]);
+      setHasSelectedImages(false);
+    }
+
+    setMessage("");
+  }
+
+
+  const handleClearAllPreviews = () => {
+    setPreviewImages([]); // Xóa toàn bộ ảnh xem trước
+    setHasSelectedImages(false);
+  };
 
   return (
     <div className="row g-0 h-100">
@@ -283,7 +427,12 @@ console.log('selectedMessage ',selectedMessage);
         {/* Chat Content */}
         <div 
           className="chat-container p-3"
-          style={{ height: "calc(100vh - 128px)", overflowY: "auto" }}
+          style={{
+            height: hasSelectedImages
+              ? "calc(100vh - 278px)" // Khi có ảnh được chọn
+              : "calc(100vh - 178px)", // Khi không có ảnh nào được chọn
+            overflowY: "auto",
+          }}
         >
           <div className="flex flex-col justify-end">
             {messages &&
@@ -304,12 +453,36 @@ console.log('selectedMessage ',selectedMessage);
                   >
                     {/* Hiển thị nội dung tin nhắn */}
                     {msg.type === "image" ? (
-                      <img
-                        src={msg.msg}
-                        alt="image"
-                        className="rounded-lg"
-                        style={{ width: 200, height: 200, objectFit: "cover" }}
-                      />
+                      msg.msg.includes(",") ? (
+                        <div
+                          className={`grid-container multiple-images`}
+                        >
+                          {msg.msg.split(",").map((url, index) => (
+                          <div key={index} className="grid-item">
+                            <img
+                              src={url.trim()}
+                              alt={`image-${index}`}
+                              className="image-square"
+                              onClick={() => handleImageClick(url.trim())}
+                              style={{ cursor: "pointer" }}
+                            />
+                          </div>
+                          ))}
+                        </div>
+                      ) : (
+                        // Nếu chỉ có một URL ảnh, hiển thị ảnh đó
+                        <div className={`grid-container multiple-images`}>
+                          <div className="grid-item">
+                            <img
+                              src={msg.msg}
+                              alt="image"
+                              className="image-square"
+                              onClick={() => handleImageClick(msg.msg)}
+                              style={{ cursor: "pointer" }}
+                            />
+                          </div>
+                        </div>
+                      )
                     ) : msg.type === "video" ? (
                       <video
                         src={msg.msg}
@@ -334,8 +507,13 @@ console.log('selectedMessage ',selectedMessage);
 
                     {/* Thời gian gửi */}
                     <div
-                      className={`text-end text-xs mt-1 ${msg.sender._id === user._id ? "text-white" : "text-secondary"
-                        }`}
+                      className={`text-end text-xs mt-1 ${
+                        msg.sender._id === user._id
+                          ? msg.type === "image"
+                            ? "text-secondary" // Nếu là ảnh, đổi thành text-secondary
+                            : "text-white" // Nếu không, giữ text-white
+                          : "text-secondary"
+                      }`}
                     >
                       {convertTime(msg.createdAt)}
                     </div>
@@ -349,30 +527,35 @@ console.log('selectedMessage ',selectedMessage);
 
         {/* Message Input */}
         <div className="bg-white p-2 border-top">
-          <div className="d-flex align-items-center">
-            <button
-              className="btn btn-light me-2"
-              data-bs-toggle="modal"
-              data-bs-target="#iconModal"
-            >
-              <Smile size={20} />
-            </button>
-
-            {/* Modal riêng */}
-            <IconModal onSelect={handleEmojiSelect} />
-
-            {/* Input file ẩn */}
+          <div className="d-flex align-items-center mb-2">
             <input
               type="file"
               multiple
-              accept="image/jpeg,image/png,video/mp4,.doc,.docx,.xls,.xlsx,.pdf"
+              accept=".doc,.docx,.xls,.xlsx,.pdf"
               onChange={handleFileChange}
               ref={fileInputRef}
               style={{ display: "none" }} // Ẩn input
             />
-            <button className="btn btn-light me-2" onClick={handleButtonClick} >
+            <button className="btn btn-light me-2" onClick={handleButtonClick}>
               <Paperclip size={20} />
             </button>
+
+            <input
+              type="file"
+              multiple
+              accept="image/jpeg,image/png"
+              onChange={handleImageChange}
+              ref={imageInputRef}
+              style={{ display: "none" }} // Ẩn input
+            />
+            <button className="btn btn-light me-2" onClick={handleButtonClickImage}>
+              <Image size={20} />
+            </button>
+          </div>
+
+          {/* Vùng nhập tin nhắn */}
+          <div className="d-flex align-items-center">
+            {/* Input tin nhắn */}
             <input
               className="form-control flex-1 p-2 border rounded-lg outline-none"
               type="text"
@@ -381,9 +564,51 @@ console.log('selectedMessage ',selectedMessage);
               onKeyDown={(e) => e.key === "Enter" && sendMessage(message, "text")}
               placeholder="Nhập tin nhắn..."
             />
-            <button className="btn btn-primary ms-2" onClick={() => sendMessage(message, "text")}>
+
+            {/* Nút smile */}
+            <button
+              className="btn btn-light ms-2"
+              data-bs-toggle="modal"
+              data-bs-target="#iconModal"
+            >
+              <Smile size={20} />
+            </button>
+            <IconModal onSelect={handleEmojiSelect} />
+
+            {/* Nút gửi */}
+            <button
+              className="btn btn-primary ms-2"
+              onClick={() => handleMessage(message)}
+            >
               <Send size={20} />
             </button>
+          </div>
+          <div className="preview-container d-flex flex-wrap gap-2 mt-2" style={{overflowY: "auto", height: 100}}>
+            {previewImages.map((image, index) => (
+              <div key={index} className="preview-item position-relative">
+                <img
+                  src={image}
+                  alt={`Xem trước ${index + 1}`}
+                  className="rounded"
+                  style={{ width: "100px", height: "100px", objectFit: "cover" }}
+                />
+                <button
+                  className="btn btn-danger btn-sm position-absolute top-0 end-0 d-flex justify-content-center align-items-center"
+                  onClick={() => handleRemovePreview(index)}
+                  style={{ borderRadius: "50%" }}
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            ))}
+            {previewImages.length > 0 && (
+              <button
+                className="btn btn-link text-danger mt-2"
+                onClick={handleClearAllPreviews}
+              >
+                Xóa tất cả
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -589,6 +814,10 @@ console.log('selectedMessage ',selectedMessage);
             <span>Xóa chỉ ở phía tôi</span>
           </div>
         </div>
+      )}
+
+      {selectedImage && (
+        <ImageViewer imageUrl={selectedImage} onClose={handleCloseImageViewer} />
       )}
     </div>
   );

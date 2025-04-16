@@ -4,6 +4,8 @@ import "./Chat.scss";
 import ChatPerson from "./ChatPerson";
 import ChatGroup from "./ChatGroup";
 import ChatCloud from "./ChatCloud";
+import AddFriendModal from "../../component/AddFriendModal";
+
 import { Modal } from "react-bootstrap";
 import { loadMessages, getConversations } from "../../redux/chatSlice";
 import { useSelector, useDispatch } from "react-redux";
@@ -45,6 +47,17 @@ export default function ChatInterface() {
 
   const [typeChatRoom, setTypeChatRoom] = useState("cloud");
   const [onlineUsers, setOnlineUsers] = useState([]);
+
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+
+  const handleSearchFocus = () => {
+    setIsSearchFocused(true);
+  };
+
+  const handleCloseSearch = () => {
+    setIsSearchFocused(false);
+  };
+  const [showModalAddFriend, setShowModalAddFriend] = useState(false);
 
   // connect docket
   useEffect(() => {
@@ -299,9 +312,12 @@ export default function ChatInterface() {
           avatar: item.avatar,
           type: item.type,
           phone: item.receiver.phone,
-          members: item.receiver.members,
+          members: item.members,
         };
       });
+
+      console.log("_conversations: ", _conversations);
+
 
       setConversations(_conversations);
     }
@@ -323,43 +339,35 @@ export default function ChatInterface() {
                   type="text"
                   className="form-control form-control-sm bg-light"
                   placeholder="Tìm kiếm"
+                  onFocus={handleSearchFocus}
                 />
                 <button className="btn btn-light  cursor-pointer border">
                   <Search size={16} />
                 </button>
               </div>
-
-              <button className="btn btn-light rounded-circle mb-1">
-                <UserPlus size={18} />
-              </button>
-
-              <button
-                className="btn btn-light rounded-circle mb-1"
-                onClick={handleOpenPopupCreateGroup}
-              >
-                <Users size={18} />
-              </button>
-            </div>
-
-            <div className="d-flex align-items-center justify-content-between">
-              <div className="d-flex align-items-center gap-4">
-                {["Tất cả", "Chưa đọc"].map((item, index) => (
-                  <span
-                    key={index}
-                    onClick={() => setSelected(index)}
-                    style={{
-                      textDecoration: selected === index ? "underline" : "none",
-                      color: selected === index ? "#0d6efd" : "black", // Đổi màu xanh khi chọn
-                      cursor: "pointer",
-                      textDecorationThickness: "4px", // Độ dày gạch chân
-                      textUnderlineOffset: "5px", // Khoảng cách gạch chân so với chữ
-                    }}
+              {isSearchFocused ? (
+                <button
+                  className="btn btn-light rounded-circle mb-1"
+                  onClick={handleCloseSearch}
+                >
+                  Đóng
+                </button>) : (
+                <>
+                  <button className="btn btn-light rounded-circle mb-1"
+                    onClick={() => setShowModalAddFriend(true)}
                   >
-                    {item}
-                  </span>
-                ))}
-              </div>
-              <div className="cursor-pointer hover-bg-light p-1">Phân loại</div>
+                    <UserPlus size={20} />
+                  </button>
+
+                  <AddFriendModal
+                    show={showModalAddFriend}
+                    onHide={() => setShowModalAddFriend(false)}
+                  />
+                  <button className="btn btn-light rounded-circle mb-1">
+                    <Users size={20} />
+                  </button>
+                </>
+              )}
             </div>
           </div>
 
@@ -368,30 +376,58 @@ export default function ChatInterface() {
             className="overflow-auto"
             style={{ height: "calc(100vh - 60px)" }}
           >
-            {conversations &&
-              conversations.map((chat) => (
-                <div
-                  key={chat._id}
-                  className="d-flex align-items-center p-2 border-bottom hover-bg-light cursor-pointer"
-                  onClick={() => handleTypeChat(chat.type, chat)}
-                >
-                  <img
-                    src={chat.avatar || "/placeholder.svg"}
-                    className="rounded-circle"
-                    alt=""
-                    style={{ width: "48px", height: "48px" }}
-                  />
-                  <div className="ms-2 overflow-hidden ">
-                    <div className="text-truncate fw-medium ">
-                      {chat.username}
-                    </div>
-                    <div className="text-truncate small text-muted ">
-                      {chat.message}
-                    </div>
-                  </div>
-                  <small className="text-muted ms-auto">{chat.time}</small>
+            {isSearchFocused ?
+              (<>
+                <div className="d-flex align-items-center justify-content-between">
+                  abc
                 </div>
-              ))}
+              </>) :
+              (<>
+                <div className="d-flex align-items-center justify-content-between">
+                  <div className="d-flex align-items-center gap-4">
+                    {["Tất cả", "Chưa đọc"].map((item, index) => (
+                      <span
+                        key={index}
+                        onClick={() => setSelected(index)}
+                        style={{
+                          textDecoration: selected === index ? "underline" : "none",
+                          color: selected === index ? "#0d6efd" : "black", // Đổi màu xanh khi chọn
+                          cursor: "pointer",
+                          textDecorationThickness: "4px", // Độ dày gạch chân
+                          textUnderlineOffset: "5px", // Khoảng cách gạch chân so với chữ
+                        }}
+                      >
+                        {item}
+                      </span>
+                    ))}
+                  </div>
+                  <div className="cursor-pointer hover-bg-light p-1">Phân loại</div>
+                </div>
+                {conversations &&
+                  conversations.map((chat) => (
+                    <div
+                      key={chat._id}
+                      className="d-flex align-items-center p-2 border-bottom hover-bg-light cursor-pointer"
+                      onClick={() => handleTypeChat(chat.type, chat)}
+                    >
+                      <img
+                        src={chat.avatar || "/placeholder.svg"}
+                        className="rounded-circle"
+                        alt=""
+                        style={{ width: "48px", height: "48px" }}
+                      />
+                      <div className="ms-2 overflow-hidden ">
+                        <div className="text-truncate fw-medium ">
+                          {chat.username}
+                        </div>
+                        <div className="text-truncate small text-muted ">
+                          {chat.message}
+                        </div>
+                      </div>
+                      <small className="text-muted ms-auto">{chat.time}</small>
+                    </div>
+                  ))}
+              </>)}
           </div>
         </div>
 

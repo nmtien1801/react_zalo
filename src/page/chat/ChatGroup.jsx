@@ -29,7 +29,7 @@ import {
   Image,
 } from "lucide-react";
 import "./Chat.scss";
-import GroupInfo from "../info/GroupInfo";
+import GroupInfo from "../info/GroupInfo.jsx";
 import { useSelector, useDispatch } from "react-redux";
 import { uploadAvatar } from '../../redux/profileSlice.js'
 import IconModal from '../../component/IconModal.jsx'

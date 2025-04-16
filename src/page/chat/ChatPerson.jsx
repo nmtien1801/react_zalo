@@ -28,7 +28,8 @@ import {
   Image
 } from "lucide-react";
 import "./Chat.scss";
-import AccountInfo from "../info/accountInfo";
+import AccountInfo from "../info/AccountInfo.jsx";
+// import AccountInfo from "../info/accountInfo";
 import { useSelector, useDispatch } from "react-redux";
 import CallScreen from "../../component/CallScreen.jsx";
 import { uploadAvatar } from '../../redux/profileSlice.js'
@@ -52,6 +53,9 @@ export default function ChatPerson(props) {
   const [popupVisible, setPopupVisible] = useState(false);
   const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
   const [selectedMessage, setSelectedMessage] = useState(null); 
+
+  console.log("receiver", receiver);
+  console.log("user", user);
 
   useEffect(() => {
     if (props.allMsg) {
@@ -252,7 +256,7 @@ console.log('selectedMessage ',selectedMessage);
               style={{ width: "40px", height: "40px" }}
               onClick={openModal}
             />
-            <AccountInfo isOpen={isOpen} closeModal={closeModal} />
+            <AccountInfo isOpen={isOpen} closeModal={closeModal} user={receiver} />
             <div className="ms-2">
               <div className="fw-medium">{props.roomData.receiver.username}</div>
               <small className="text-muted">Hoạt động 2 giờ trước</small>

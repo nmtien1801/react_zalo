@@ -20,7 +20,7 @@ import {
   Trash2
 } from "lucide-react";
 import "./Chat.scss";
-import AccountInfo from "../info/accountInfo";
+// import AccountInfo from "../info/accountInfo";
 import { useSelector, useDispatch } from "react-redux";
 import { uploadAvatar } from '../../redux/profileSlice.js'
 import IconModal from '../../component/IconModal.jsx'

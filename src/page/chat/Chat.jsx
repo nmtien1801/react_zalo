@@ -71,6 +71,16 @@ export default function ChatInterface() {
         setAllMsg((prevState) => [...prevState, data]);
       });
 
+      socketRef.current.on("RECALL_MSG", (data) => {
+        setAllMsg((prevMsgs) =>
+          prevMsgs.map((msg) =>
+            msg._id === data._id
+              ? { ...msg, msg: "Tin nhắn đã được thu hồi", type: "system" }
+              : msg
+          )
+        );
+      });
+
       socketRef.current.on("DELETED_MSG", (data) => {
         setAllMsg((prevState) =>
           prevState.filter((item) => item._id != data.msg._id)

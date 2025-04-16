@@ -12,12 +12,19 @@ import {
   Edit2,
   Search,
   Layout,
+  Reply,
+  Share,
+  Copy,
+  Download,
+  Image,
+  Trash2
 } from "lucide-react";
 import "./Chat.scss";
 import AccountInfo from "../info/accountInfo";
 import { useSelector, useDispatch } from "react-redux";
 import { uploadAvatar } from '../../redux/profileSlice.js'
 import IconModal from '../../component/IconModal.jsx'
+import { deleteMessageForMeService } from "../../service/chatService.js";
 
 export default function ChatCloud(props) {
   const dispatch = useDispatch();
@@ -39,12 +46,57 @@ export default function ChatCloud(props) {
   const [message, setMessage] = useState(""); // input
   const [messages, setMessages] = useState([]); // all hội thoại
 
-  // console.log("props: ", props);
+  //Popup Chuột phải
+  const messagesEndRef = useRef(null);
+  const [popupVisible, setPopupVisible] = useState(false);
+  const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
+  const [selectedMessage, setSelectedMessage] = useState(null);
+
   useEffect(() => {
     if (props.allMsg) {
       setMessages(props.allMsg);
     }
   }, [props.allMsg]);
+
+  const scrollToBottom = () => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  // Sự kiện nhấn chuột phải
+  const handleShowPopup = (e, msg) => {
+    e.preventDefault();
+
+    const popupWidth = 200;
+    const popupHeight = 350;
+    const screenWidth = window.innerWidth;
+    const screenHeight = window.innerHeight;
+
+    let x = e.clientX;
+    let y = e.clientY;
+
+    if (x + popupWidth > screenWidth) {
+      x = screenWidth - popupWidth - 10;
+    }
+
+    if (y + popupHeight > screenHeight) {
+      y = screenHeight - popupHeight - 10;
+    }
+
+    setSelectedMessage(msg);
+    setPopupPosition({ x, y });
+    setPopupVisible(true);
+  };
+
+  const handleClosePopup = () => {
+    setPopupVisible(false);
+    setSelectedMessage(null);
+  };
 
   const sendMessage = async (msg, type) => {
     props.handleSendMsg(msg, type);
@@ -103,6 +155,38 @@ export default function ChatCloud(props) {
 
   const handleEmojiSelect = (emoji) => {
     setMessage((prev) => prev + emoji);
+  };
+
+  //Xử lý khi người dùng nhấp ngoài popup chuột phải
+  useEffect(() => {
+    const handleClickOutside = () => {
+      if (popupVisible) {
+        handleClosePopup();
+      }
+    };
+
+    document.addEventListener("click", handleClickOutside);
+    return () => {
+      document.removeEventListener("click", handleClickOutside);
+    };
+  }, [popupVisible]);
+
+  // Xử lý recall for me
+  const handleDeleteMessageForMe = async (id) => {
+    try {
+      const response = await deleteMessageForMeService(id, user._id);
+      if (response.EC === 0) {
+        console.log("Tin nhắn đã được xóa chỉ ở phía tôi:", response.DT);
+
+        setMessages((prevMessages) =>
+          prevMessages.filter((msg) => msg._id !== id)
+        );
+      } else {
+        console.error("Xóa tin nhắn thất bại:", response.EM);
+      }
+    } catch (error) {
+      console.error("Lỗi khi xóa tin nhắn:", error);
+    }
   };
 
   return (
@@ -164,6 +248,7 @@ export default function ChatCloud(props) {
                         : "bg-light text-dark"
                       : "bg-transparent"
                       }`}
+                    onContextMenu={(e) => handleShowPopup(e, msg)}
                   >
                     {/* Hiển thị nội dung tin nhắn */}
                     {msg.type === "image" ? (
@@ -204,6 +289,7 @@ export default function ChatCloud(props) {
 
                 </div>
               ))}
+            <div ref={messagesEndRef} />
           </div>
         </div>
 
@@ -350,6 +436,58 @@ export default function ChatCloud(props) {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {popupVisible && selectedMessage?.type !== "system" && (
+        <div
+          className="popup-menu"
+          style={{
+            position: "absolute",
+            top: popupPosition.y,
+            left: popupPosition.x,
+            backgroundColor: "white",
+            boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)",
+            borderRadius: "8px",
+            zIndex: 1000,
+            padding: "10px",
+          }}
+        >
+          <div className="popup-item d-flex align-items-center" onClick={() => console.log("Trả lời")}>
+            <Reply size={16} className="me-2" />
+            <span>Trả lời</span>
+          </div>
+          <div className="popup-item d-flex align-items-center" onClick={() => console.log("Chia sẻ")}>
+            <Share size={16} className="me-2" />
+            <span>Chia sẻ</span>
+          </div>
+          <hr />
+          {selectedMessage?.type === "text" && (
+            <div className="popup-item d-flex align-items-center" onClick={() => navigator.clipboard.writeText(selectedMessage.msg)}>
+              <Copy size={16} className="me-2" />
+              <span>Copy tin nhắn</span>
+            </div>
+          )}
+          {selectedMessage?.type === "image" && (
+            <div className="popup-item d-flex align-items-center" onClick={() => window.open(selectedMessage.msg, "_blank")}>
+              <Image size={16} className="me-2" />
+              <span>Lưu ảnh</span>
+            </div>
+          )}
+          {(selectedMessage?.type === "video" || selectedMessage?.type === "file") && (
+            <div className="popup-item d-flex align-items-center" onClick={() => window.open(selectedMessage.msg, "_blank")}>
+              <Download size={16} className="me-2" />
+              <span>Tải về</span>
+            </div>
+          )}
+          <hr />
+
+          <div
+            className="popup-item d-flex align-items-center text-danger"
+            onClick={() => handleDeleteMessageForMe(selectedMessage._id)}>
+            <Trash2 size={16} className="me-2" />
+            <span>Xóa chỉ ở phía tôi</span>
           </div>
         </div>
       )}

@@ -25,7 +25,8 @@ import {
   Copy,
   Download,
   RotateCw,
-  Image
+  Image,
+  Share2
 } from "lucide-react";
 import "./Chat.scss";
 import AccountInfo from "../info/AccountInfo.jsx";
@@ -34,6 +35,7 @@ import CallScreen from "../../component/CallScreen.jsx";
 import { uploadAvatar } from '../../redux/profileSlice.js'
 import IconModal from '../../component/IconModal.jsx'
 import { deleteMessageForMeService, recallMessageService } from "../../service/chatService.js";
+import ShareMsgModal from "../../component/ShareMsgModal.jsx";
 
 export default function ChatPerson(props) {
   const dispatch = useDispatch();
@@ -51,7 +53,12 @@ export default function ChatPerson(props) {
   //Popup Chuột phải
   const [popupVisible, setPopupVisible] = useState(false);
   const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
-  const [selectedMessage, setSelectedMessage] = useState(null); 
+  const [selectedMessage, setSelectedMessage] = useState(null);
+
+  const conversations = props.conversations || [];
+
+  console.log("conversations", conversations);
+
 
   console.log("receiver", receiver);
   console.log("user", user);
@@ -101,7 +108,7 @@ export default function ChatPerson(props) {
     let y = e.clientY;
 
     if (x + popupWidth > screenWidth) {
-      x = screenWidth - popupWidth - 10; 
+      x = screenWidth - popupWidth - 10;
     }
 
     if (y + popupHeight > screenHeight) {
@@ -112,7 +119,7 @@ export default function ChatPerson(props) {
     setPopupPosition({ x, y });
     setPopupVisible(true);
   };
-  
+
   const handleClosePopup = () => {
     setPopupVisible(false);
     setSelectedMessage(null);
@@ -199,7 +206,7 @@ export default function ChatPerson(props) {
         handleClosePopup();
       }
     };
-  
+
     document.addEventListener("click", handleClickOutside);
     return () => {
       document.removeEventListener("click", handleClickOutside);
@@ -239,7 +246,15 @@ export default function ChatPerson(props) {
       console.error("Lỗi khi xóa tin nhắn:", error);
     }
   };
-console.log('selectedMessage ',selectedMessage);
+  console.log('selectedMessage ', selectedMessage);
+
+  const [showShareModal, setShowShareModal] = useState(false);
+  // const [selectedMessage, setSelectedMessage] = useState("");
+
+  const handleOpenShareModal = (message) => {
+    setSelectedMessage(message);
+    setShowShareModal(true);
+  };
 
   return (
     <div className="row g-0 h-100">
@@ -294,58 +309,77 @@ console.log('selectedMessage ',selectedMessage);
                     }`}
                 >
                   <div
-                    className={`p-3 max-w-[70%] break-words rounded-3 ${msg.type === "text" || msg.type === "file" || msg.type === "system"
-                      ? msg.sender._id === user._id
-                        ? "bg-primary text-white"
-                        : "bg-light text-dark"
-                      : "bg-transparent"
-                      }`}
-                      onContextMenu={(e) => handleShowPopup(e, msg)}
+                    className="message-container position-relative"
                   >
-                    {/* Hiển thị nội dung tin nhắn */}
-                    {msg.type === "image" ? (
-                      <img
-                        src={msg.msg}
-                        alt="image"
-                        className="rounded-lg"
-                        style={{ width: 200, height: 200, objectFit: "cover" }}
-                      />
-                    ) : msg.type === "video" ? (
-                      <video
-                        src={msg.msg}
-                        controls
-                        className="rounded-lg"
-                        style={{ width: 250, height: 200, backgroundColor: "black" }}
-                      />
-                    ) : msg.type === "file" ? (
-                      <a
-                        href={msg.msg}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={`fw-semibold ${msg.sender._id === user._id ? "text-white" : "text-dark"}`}
-                      >
-                        🡇 {msg.msg.split("_").pop() || "Tệp đính kèm"}
-                      </a>
-                    ) : msg.type === "system" ? (
-                      <span><i>{msg.msg || ""}</i></span>
-                    ) : (
-                      <span>{msg.msg || ""}</span>
-                    )}
-
-                    {/* Thời gian gửi */}
                     <div
-                      className={`text-end text-xs mt-1 ${msg.sender._id === user._id ? "text-white" : "text-secondary"
+                      className={`p-3 max-w-[70%] break-words rounded-3 ${msg.type === "text" || msg.type === "file" || msg.type === "system"
+                        ? msg.sender._id === user._id
+                          ? "bg-primary text-white"
+                          : "bg-light text-dark"
+                        : "bg-transparent"
                         }`}
+                      onContextMenu={(e) => handleShowPopup(e, msg)}
                     >
-                      {convertTime(msg.createdAt)}
-                    </div>
-                  </div>
+                      {/* Hiển thị nội dung tin nhắn */}
+                      {msg.type === "image" ? (
+                        <img
+                          src={msg.msg}
+                          alt="image"
+                          className="rounded-lg"
+                          style={{ width: 200, height: 200, objectFit: "cover" }}
+                        />
+                      ) : msg.type === "video" ? (
+                        <video
+                          src={msg.msg}
+                          controls
+                          className="rounded-lg"
+                          style={{ width: 250, height: 200, backgroundColor: "black" }}
+                        />
+                      ) : msg.type === "file" ? (
+                        <a
+                          href={msg.msg}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`fw-semibold ${msg.sender._id === user._id ? "text-white" : "text-dark"}`}
+                        >
+                          🡇 {msg.msg.split("_").pop() || "Tệp đính kèm"}
+                        </a>
+                      ) : msg.type === "system" ? (
+                        <span><i>{msg.msg || ""}</i></span>
+                      ) : (
+                        <span>{msg.msg || ""}</span>
+                      )}
 
+                      {/* Thời gian gửi */}
+                      <div
+                        className={`text-end text-xs mt-1 ${msg.sender._id === user._id ? "text-white" : "text-secondary"
+                          }`}
+                      >
+                        {convertTime(msg.createdAt)}
+                      </div>
+                    </div>
+                    {/* Nút chia sẻ */}
+                    <button
+                      className={`share-button ${msg.sender._id === user._id ? "left" : "right"}`}
+                      onClick={() => handleOpenShareModal(msg)
+                      }
+                    >
+                      <Share2 size={16} className="text-muted" />
+                    </button>
+                  </div>
                 </div>
               ))}
-              <div ref={messagesEndRef} />
+            <div ref={messagesEndRef} />
           </div>
         </div>
+        {/* Modal */}
+        <ShareMsgModal
+          show={showShareModal}
+          onHide={() => setShowShareModal(false)}
+          message={selectedMessage}
+          conversations={conversations}
+          onlineUsers={props.onlineUsers}
+        />
 
         {/* Message Input */}
         <div className="bg-white p-2 border-top">
@@ -566,15 +600,15 @@ console.log('selectedMessage ',selectedMessage);
           <hr />
           {selectedMessage?.sender._id === user._id &&
             new Date() - new Date(selectedMessage.createdAt) < 3600000 && (
-              <div 
+              <div
                 className="popup-item d-flex align-items-center text-danger"
                 onClick={() => handleRecallMessage(selectedMessage)}>
                 <RotateCw size={16} className="me-2" />
                 <span>Thu hồi</span>
               </div>
             )}
-          <div 
-            className="popup-item d-flex align-items-center text-danger" 
+          <div
+            className="popup-item d-flex align-items-center text-danger"
             onClick={() => handleDeleteMessageForMe(selectedMessage._id)}>
             <Trash2 size={16} className="me-2" />
             <span>Xóa chỉ ở phía tôi</span>

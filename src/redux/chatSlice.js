@@ -32,6 +32,21 @@ const chatSlice = createSlice({
   name: "chat",
   initialState,
 
+  reducers: {
+    // Cập nhật nội dung tin nhắn
+    updateMessage: (state, action) => {
+      const { id, updatedMessage } = action.payload;
+      state.messages = state.messages.map((msg) =>
+        msg._id === id ? { ...msg, ...updatedMessage } : msg
+      );
+    },
+    // Xóa tin nhắn
+    deleteMessage: (state, action) => {
+      const id = action.payload;
+      state.messages = state.messages.filter((msg) => msg._id !== id);
+    },
+  },
+
   extraReducers: (builder) => {
 
 
@@ -58,7 +73,7 @@ const chatSlice = createSlice({
 });
 
 // Export actions
-export const { } = chatSlice.actions;
+export const { updateMessage, deleteMessage } = chatSlice.actions;
 
 // Export reducer
 export default chatSlice.reducer;

@@ -20,6 +20,12 @@ import {
   Layout,
   Phone,
   Video,
+  Reply,
+  Share,
+  Copy,
+  Download,
+  RotateCw,
+  Image
 } from "lucide-react";
 import "./Chat.scss";
 import AccountInfo from "../info/accountInfo";
@@ -27,12 +33,14 @@ import { useSelector, useDispatch } from "react-redux";
 import CallScreen from "../../component/CallScreen.jsx";
 import { uploadAvatar } from '../../redux/profileSlice.js'
 import IconModal from '../../component/IconModal.jsx'
+import { deleteMessageForMeService, recallMessageService } from "../../service/chatService.js";
 
 export default function ChatPerson(props) {
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.userInfo);
   const receiver = props.roomData.receiver;
   const fileInputRef = useRef(null); // Ref để truy cập input file ẩn
+  const messagesEndRef = useRef(null);
 
   const [showSidebar, setShowSidebar] = useState(true);
   const [message, setMessage] = useState("");
@@ -40,11 +48,26 @@ export default function ChatPerson(props) {
   const [showCallScreen, setShowCallScreen] = useState(false);
   const [isInitiator, setIsInitiator] = useState(false); // Thêm state để theo dõi người khởi tạo
 
+  //Popup Chuột phải
+  const [popupVisible, setPopupVisible] = useState(false);
+  const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
+  const [selectedMessage, setSelectedMessage] = useState(null); 
+
   useEffect(() => {
     if (props.allMsg) {
       setMessages(props.allMsg);
     }
   }, [props.allMsg]);
+
+  const scrollToBottom = () => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   const sendMessage = async (msg, type) => {
     props.handleSendMsg(msg, type);
@@ -61,6 +84,36 @@ export default function ChatPerson(props) {
 
   const openModal = () => setIsOpen(true);
   const closeModal = () => setIsOpen(false);
+
+  // Sự kiện nhấn chuột phải
+  const handleShowPopup = (e, msg) => {
+    e.preventDefault();
+
+    const popupWidth = 200;
+    const popupHeight = 350;
+    const screenWidth = window.innerWidth;
+    const screenHeight = window.innerHeight;
+
+    let x = e.clientX;
+    let y = e.clientY;
+
+    if (x + popupWidth > screenWidth) {
+      x = screenWidth - popupWidth - 10; 
+    }
+
+    if (y + popupHeight > screenHeight) {
+      y = screenHeight - popupHeight - 10;
+    }
+
+    setSelectedMessage(msg);
+    setPopupPosition({ x, y });
+    setPopupVisible(true);
+  };
+  
+  const handleClosePopup = () => {
+    setPopupVisible(false);
+    setSelectedMessage(null);
+  };
 
   // Xử lý sự kiện incoming-call từ socket
   useEffect(() => {
@@ -136,6 +189,58 @@ export default function ChatPerson(props) {
     setMessage((prev) => prev + emoji);
   };
 
+  //Xử lý khi người dùng nhấp ngoài popup chuột phải
+  useEffect(() => {
+    const handleClickOutside = () => {
+      if (popupVisible) {
+        handleClosePopup();
+      }
+    };
+  
+    document.addEventListener("click", handleClickOutside);
+    return () => {
+      document.removeEventListener("click", handleClickOutside);
+    };
+  }, [popupVisible]);
+
+  // Xử lý recall msg
+  const handleRecallMessage = async (id) => {
+    try {
+      const response = await recallMessageService(id);
+      if (response.EC === 0) {
+        console.log("Tin nhắn đã được thu hồi:", response.DT);
+
+        setMessages((prevMessages) =>
+          prevMessages.map((msg) =>
+            msg._id === id ? { ...msg, msg: "Tin nhắn đã được thu hồi", type: "system" } : msg
+          )
+        );
+      } else {
+        console.error("Thu hồi tin nhắn thất bại:", response.EM);
+      }
+    } catch (error) {
+      console.error("Lỗi khi thu hồi tin nhắn:", error);
+    }
+  };
+
+  // Xử lý recall for me
+  const handleDeleteMessageForMe = async (id) => {
+    try {
+      const response = await deleteMessageForMeService(id, user._id);
+      if (response.EC === 0) {
+        console.log("Tin nhắn đã được xóa chỉ ở phía tôi:", response.DT);
+
+        setMessages((prevMessages) =>
+          prevMessages.filter((msg) => msg._id !== id)
+        );
+      } else {
+        console.error("Xóa tin nhắn thất bại:", response.EM);
+      }
+    } catch (error) {
+      console.error("Lỗi khi xóa tin nhắn:", error);
+    }
+  };
+
   return (
     <div className="row g-0 h-100">
       {/* Main Chat Area */}
@@ -189,12 +294,13 @@ export default function ChatPerson(props) {
                     }`}
                 >
                   <div
-                    className={`p-3 max-w-[70%] break-words rounded-3 ${msg.type === "text" || msg.type === "file"
+                    className={`p-3 max-w-[70%] break-words rounded-3 ${msg.type === "text" || msg.type === "file" || msg.type === "system"
                       ? msg.sender._id === user._id
                         ? "bg-primary text-white"
                         : "bg-light text-dark"
                       : "bg-transparent"
                       }`}
+                      onContextMenu={(e) => handleShowPopup(e, msg)}
                   >
                     {/* Hiển thị nội dung tin nhắn */}
                     {msg.type === "image" ? (
@@ -220,6 +326,8 @@ export default function ChatPerson(props) {
                       >
                         🡇 {msg.msg.split("_").pop() || "Tệp đính kèm"}
                       </a>
+                    ) : msg.type === "system" ? (
+                      <span><i>{msg.msg || ""}</i></span>
                     ) : (
                       <span>{msg.msg || ""}</span>
                     )}
@@ -235,6 +343,7 @@ export default function ChatPerson(props) {
 
                 </div>
               ))}
+              <div ref={messagesEndRef} />
           </div>
         </div>
 
@@ -418,6 +527,66 @@ export default function ChatPerson(props) {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {popupVisible && selectedMessage?.type !== "system" && (
+        <div
+          className="popup-menu"
+          style={{
+            position: "absolute",
+            top: popupPosition.y,
+            left: popupPosition.x,
+            backgroundColor: "white",
+            boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)",
+            borderRadius: "8px",
+            zIndex: 1000,
+            padding: "10px",
+          }}
+        >
+          <div className="popup-item d-flex align-items-center" onClick={() => console.log("Trả lời")}>
+            <Reply size={16} className="me-2" />
+            <span>Trả lời</span>
+          </div>
+          <div className="popup-item d-flex align-items-center" onClick={() => console.log("Chia sẻ")}>
+            <Share size={16} className="me-2" />
+            <span>Chia sẻ</span>
+          </div>
+          <hr />
+          {selectedMessage?.type === "text" && (
+            <div className="popup-item d-flex align-items-center" onClick={() => navigator.clipboard.writeText(selectedMessage.msg)}>
+              <Copy size={16} className="me-2" />
+              <span>Copy tin nhắn</span>
+            </div>
+          )}
+          {selectedMessage?.type === "image" && (
+            <div className="popup-item d-flex align-items-center" onClick={() => window.open(selectedMessage.msg, "_blank")}>
+              <Image size={16} className="me-2" />
+              <span>Lưu ảnh</span>
+            </div>
+          )}
+          {(selectedMessage?.type === "video" || selectedMessage?.type === "file") && (
+            <div className="popup-item d-flex align-items-center" onClick={() => window.open(selectedMessage.msg, "_blank")}>
+              <Download size={16} className="me-2" />
+              <span>Tải về</span>
+            </div>
+          )}
+          <hr />
+          {selectedMessage?.sender._id === user._id &&
+            new Date() - new Date(selectedMessage.createdAt) < 3600000 && (
+              <div 
+                className="popup-item d-flex align-items-center text-danger"
+                onClick={() => handleRecallMessage(selectedMessage._id)}>
+                <RotateCw size={16} className="me-2" />
+                <span>Thu hồi</span>
+              </div>
+            )}
+          <div 
+            className="popup-item d-flex align-items-center text-danger" 
+            onClick={() => handleDeleteMessageForMe(selectedMessage._id)}>
+            <Trash2 size={16} className="me-2" />
+            <span>Xóa chỉ ở phía tôi</span>
           </div>
         </div>
       )}

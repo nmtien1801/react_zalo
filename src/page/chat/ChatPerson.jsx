@@ -54,7 +54,7 @@ export default function ChatPerson(props) {
   // Popup Chuột phải
   const [popupVisible, setPopupVisible] = useState(false);
   const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
-  const [selectedMessage, setSelectedMessage] = useState(null); 
+  const [selectedMessage, setSelectedMessage] = useState(null);
 
   const [previewImages, setPreviewImages] = useState([]);
   const [selectedFiles, setSelectedFiles] = useState([]);
@@ -87,7 +87,7 @@ export default function ChatPerson(props) {
         return;
       }
     }
-  
+
     // Kiểm tra nếu msg là mảng
     if (Array.isArray(msg)) {
       if (msg.length === 0) {
@@ -123,7 +123,7 @@ export default function ChatPerson(props) {
     let y = e.clientY;
 
     if (x + popupWidth > screenWidth) {
-      x = screenWidth - popupWidth - 10; 
+      x = screenWidth - popupWidth - 10;
     }
 
     if (y + popupHeight > screenHeight) {
@@ -134,7 +134,7 @@ export default function ChatPerson(props) {
     setPopupPosition({ x, y });
     setPopupVisible(true);
   };
-  
+
   const handleClosePopup = () => {
     setPopupVisible(false);
     setSelectedMessage(null);
@@ -201,7 +201,7 @@ export default function ChatPerson(props) {
 
     if (selectedImages && selectedImages.length > 0) {
 
-      if(selectedImages.length > 10) {
+      if (selectedImages.length > 10) {
         setHasSelectedImages(false);
         alert("Số lượng ảnh không được quá 10!");
         return;
@@ -224,7 +224,7 @@ export default function ChatPerson(props) {
       if (files.length > 0) {
         setSelectedFiles((prev) => [...prev, ...files]);
       }
-    
+
       // try {
       //   // Gửi tất cả ảnh lên server
       //   const response = await dispatch(uploadAvatar({ formData }));
@@ -239,7 +239,7 @@ export default function ChatPerson(props) {
       //   alert("Đã xảy ra lỗi khi tải lên ảnh.");
       // }
 
-    }else {
+    } else {
       setHasSelectedImages(false);
     }
   };
@@ -255,11 +255,11 @@ export default function ChatPerson(props) {
 
   // Hàm nhấp vào image xem
   const handleImageClick = (imageUrl) => {
-    setSelectedImage(imageUrl); 
+    setSelectedImage(imageUrl);
   };
 
   const handleCloseImageViewer = () => {
-    setSelectedImage(null); 
+    setSelectedImage(null);
   };
 
   const convertTime = (time) => {
@@ -283,7 +283,7 @@ export default function ChatPerson(props) {
         handleClosePopup();
       }
     };
-  
+
     document.addEventListener("click", handleClickOutside);
     return () => {
       document.removeEventListener("click", handleClickOutside);
@@ -323,7 +323,7 @@ export default function ChatPerson(props) {
       console.error("Lỗi khi xóa tin nhắn:", error);
     }
   };
-  console.log('selectedMessage ',selectedMessage);
+  console.log('selectedMessage ', selectedMessage);
 
   const handleRemovePreview = (index) => {
     const updatedPreviews = [...previewImages];
@@ -336,9 +336,9 @@ export default function ChatPerson(props) {
   };
 
   const handleMessage = async (message) => {
-    if(previewImages.length === 0) {
+    if (previewImages.length === 0) {
       sendMessage(message, "text");
-    }else if(previewImages.length > 0) {
+    } else if (previewImages.length > 0) {
 
       const listUrlImage = [];
 
@@ -346,7 +346,7 @@ export default function ChatPerson(props) {
         const formData = new FormData();
         console.log("Ảnh:" + image);
         formData.append("avatar", image);
-  
+
         try {
           const response = await dispatch(uploadAvatar({ formData }));
           if (response.payload.EC === 0) {
@@ -425,12 +425,12 @@ export default function ChatPerson(props) {
         </div>
 
         {/* Chat Content */}
-        <div 
+        <div
           className="chat-container p-3"
           style={{
             height: hasSelectedImages
               ? "calc(100vh - 278px)" // Khi có ảnh được chọn
-              : "calc(100vh - 178px)", // Khi không có ảnh nào được chọn
+              : "calc(100vh - 120px)", // Khi không có ảnh nào được chọn
             overflowY: "auto",
           }}
         >
@@ -449,7 +449,7 @@ export default function ChatPerson(props) {
                         : "bg-light text-dark"
                       : "bg-transparent"
                       }`}
-                      onContextMenu={(e) => handleShowPopup(e, msg)}
+                    onContextMenu={(e) => handleShowPopup(e, msg)}
                   >
                     {/* Hiển thị nội dung tin nhắn */}
                     {msg.type === "image" ? (
@@ -458,15 +458,15 @@ export default function ChatPerson(props) {
                           className={`grid-container multiple-images`}
                         >
                           {msg.msg.split(",").map((url, index) => (
-                          <div key={index} className="grid-item">
-                            <img
-                              src={url.trim()}
-                              alt={`image-${index}`}
-                              className="image-square"
-                              onClick={() => handleImageClick(url.trim())}
-                              style={{ cursor: "pointer" }}
-                            />
-                          </div>
+                            <div key={index} className="grid-item">
+                              <img
+                                src={url.trim()}
+                                alt={`image-${index}`}
+                                className="image-square"
+                                onClick={() => handleImageClick(url.trim())}
+                                style={{ cursor: "pointer" }}
+                              />
+                            </div>
                           ))}
                         </div>
                       ) : (
@@ -507,13 +507,12 @@ export default function ChatPerson(props) {
 
                     {/* Thời gian gửi */}
                     <div
-                      className={`text-end text-xs mt-1 ${
-                        msg.sender._id === user._id
+                      className={`text-end text-xs mt-1 ${msg.sender._id === user._id
                           ? msg.type === "image"
                             ? "text-secondary" // Nếu là ảnh, đổi thành text-secondary
                             : "text-white" // Nếu không, giữ text-white
                           : "text-secondary"
-                      }`}
+                        }`}
                     >
                       {convertTime(msg.createdAt)}
                     </div>
@@ -521,17 +520,18 @@ export default function ChatPerson(props) {
 
                 </div>
               ))}
-              <div ref={messagesEndRef} />
+            <div ref={messagesEndRef} />
           </div>
         </div>
 
         {/* Message Input */}
-        <div className="bg-white p-2 border-top">
-          <div className="d-flex align-items-center mb-2">
+        <div className="bg-white p-2 border-top" >
+          {/* Vùng nhập tin nhắn */}
+          <div className="d-flex align-items-center">
             <input
               type="file"
               multiple
-              accept=".doc,.docx,.xls,.xlsx,.pdf"
+              accept=".doc,.docx,.xls,.xlsx,.pdf,.mp4"
               onChange={handleFileChange}
               ref={fileInputRef}
               style={{ display: "none" }} // Ẩn input
@@ -551,10 +551,7 @@ export default function ChatPerson(props) {
             <button className="btn btn-light me-2" onClick={handleButtonClickImage}>
               <Image size={20} />
             </button>
-          </div>
 
-          {/* Vùng nhập tin nhắn */}
-          <div className="d-flex align-items-center">
             {/* Input tin nhắn */}
             <input
               className="form-control flex-1 p-2 border rounded-lg outline-none"
@@ -583,7 +580,7 @@ export default function ChatPerson(props) {
               <Send size={20} />
             </button>
           </div>
-          <div className="preview-container d-flex flex-wrap gap-2 mt-2" style={{overflowY: "auto", height: 100}}>
+          <div className="preview-container d-flex flex-wrap gap-2 mt-2" >
             {previewImages.map((image, index) => (
               <div key={index} className="preview-item position-relative">
                 <img
@@ -791,15 +788,15 @@ export default function ChatPerson(props) {
           <hr />
           {selectedMessage?.sender._id === user._id &&
             new Date() - new Date(selectedMessage.createdAt) < 3600000 && (
-              <div 
+              <div
                 className="popup-item d-flex align-items-center text-danger"
                 onClick={() => handleRecallMessage(selectedMessage)}>
                 <RotateCw size={16} className="me-2" />
                 <span>Thu hồi</span>
               </div>
             )}
-          <div 
-            className="popup-item d-flex align-items-center text-danger" 
+          <div
+            className="popup-item d-flex align-items-center text-danger"
             onClick={() => handleDeleteMessageForMe(selectedMessage._id)}>
             <Trash2 size={16} className="me-2" />
             <span>Xóa chỉ ở phía tôi</span>

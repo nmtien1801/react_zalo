@@ -420,15 +420,6 @@ console.log('selectedMessage ',selectedMessage);
                 onClick={openModal}
               />
 
-              {/* Input file ẩn */}
-              <input
-                type="file"
-                accept="image/jpeg,image/png"
-                onChange={handleFileChange}
-                ref={fileInputRef}
-                style={{ display: "none" }} // Ẩn input
-              />
-
             </div>
             <h6 className="mb-3">{props.roomData.receiver.username}</h6>
             <div className="d-flex justify-content-center gap-4">

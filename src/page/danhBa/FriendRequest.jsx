@@ -34,10 +34,7 @@ const FriendRequest = () => {
     const handleRejectRequest = async (requestId) => {
         try {
             const response = await rejectFriendRequestService(requestId); // Gọi API để từ chối yêu cầu kết bạn
-
             console.log("response", response);
-
-
             fetchFriendRequests(); // Cập nhật lại danh sách yêu cầu kết bạn sau khi từ chối
         } catch (error) {
             console.error('Error rejecting friend request:', error);

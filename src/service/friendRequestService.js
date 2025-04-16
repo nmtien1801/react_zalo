@@ -20,5 +20,22 @@ const rejectFriendRequestService = async (requestId) => {
     return response;
 }
 
+const getFriendRequestByFromUserAndToUserService = async (fromUserId) => {
+    const response = await customizeAxios.get(`/api/getFriendRequestByFromUserAndToUser/${fromUserId}`);
+    return response;
+}
 
-export { getFriendRequestsService, acceptFriendRequestService, sendRequestFriendService, rejectFriendRequestService };
+const cancelFriendRequestService = async (requestId) => {
+    const response = await customizeAxios.post(`/api/cancelFriendRequest/${requestId}`);
+    return response;
+}
+
+
+export {
+    getFriendRequestsService,
+    acceptFriendRequestService,
+    sendRequestFriendService,
+    rejectFriendRequestService,
+    getFriendRequestByFromUserAndToUserService,
+    cancelFriendRequestService
+};

@@ -313,8 +313,6 @@ export default function ChatPerson(props) {
     }
   };
 
-  console.log('selectedMessage ', selectedMessage);
-
   const [showShareModal, setShowShareModal] = useState(false);
   // const [selectedMessage, setSelectedMessage] = useState("");
 
@@ -384,7 +382,7 @@ export default function ChatPerson(props) {
     console.log('selectedMessage ', selectedMessage);
 
   }
-  
+
   return (
     <div className="row g-0 h-100">
       {/* Main Chat Area */}
@@ -510,52 +508,10 @@ export default function ChatPerson(props) {
 
                     {/* Thời gian gửi */}
                     <div
-                      className={`text-end text-xs mt-1 ${msg.sender._id === user._id
-                        ? msg.type === "image"
-                          ? "text-secondary" // Nếu là ảnh, đổi thành text-secondary
-                          : "text-white" // Nếu không, giữ text-white
-                        : "text-secondary"
-
+                      className={`text-end text-xs mt-1 ${msg.sender._id === user._id ? "text-white" : "text-secondary"
                         }`}
-                      onContextMenu={(e) => handleShowPopup(e, msg)}
                     >
-                      {/* Hiển thị nội dung tin nhắn */}
-                      {msg.type === "image" ? (
-                        <img
-                          src={msg.msg}
-                          alt="image"
-                          className="rounded-lg"
-                          style={{ width: 200, height: 200, objectFit: "cover" }}
-                        />
-                      ) : msg.type === "video" ? (
-                        <video
-                          src={msg.msg}
-                          controls
-                          className="rounded-lg"
-                          style={{ width: 250, height: 200, backgroundColor: "black" }}
-                        />
-                      ) : msg.type === "file" ? (
-                        <a
-                          href={msg.msg}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={`fw-semibold ${msg.sender._id === user._id ? "text-white" : "text-dark"}`}
-                        >
-                          🡇 {msg.msg.split("_").pop() || "Tệp đính kèm"}
-                        </a>
-                      ) : msg.type === "system" ? (
-                        <span><i>{msg.msg || ""}</i></span>
-                      ) : (
-                        <span>{msg.msg || ""}</span>
-                      )}
-
-                      {/* Thời gian gửi */}
-                      <div
-                        className={`text-end text-xs mt-1 ${msg.sender._id === user._id ? "text-white" : "text-secondary"
-                          }`}
-                      >
-                        {convertTime(msg.createdAt)}
-                      </div>
+                      {convertTime(msg.createdAt)}
                     </div>
                     {/* Nút chia sẻ */}
                     <button

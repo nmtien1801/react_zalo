@@ -219,3 +219,25 @@
 .popup-item:hover {
   background-color: #f1f1f1;
 }
+
+.chat-container {
+  height: calc(100vh - 128px);
+  overflow-y: auto;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+  position: relative;
+}
+
+.chat-container::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+/* Hiển thị thanh cuộn khi rê chuột vào */
+.chat-container:hover {
+  scrollbar-width: thin; /* Firefox */
+  -ms-overflow-style: auto; /* IE and Edge */
+}
+
+.chat-container:hover::-webkit-scrollbar {
+  display: block; /* Chrome, Safari, Opera */
+}

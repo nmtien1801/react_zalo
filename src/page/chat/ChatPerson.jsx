@@ -284,7 +284,10 @@ export default function ChatPerson(props) {
         </div>
 
         {/* Chat Content */}
-        <div className="p-3" style={{ height: "calc(100vh - 128px)", overflowY: "auto" }}>
+        <div 
+          className="chat-container p-3"
+          style={{ height: "calc(100vh - 128px)", overflowY: "auto" }}
+        >
           <div className="flex flex-col justify-end">
             {messages &&
               messages.map((msg, index) => (

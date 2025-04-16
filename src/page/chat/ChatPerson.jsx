@@ -58,6 +58,7 @@ export default function ChatPerson(props) {
   const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
   const [selectedMessage, setSelectedMessage] = useState(null);
 
+
   const conversations = props.conversations || [];
 
   const [previewImages, setPreviewImages] = useState([]);
@@ -279,6 +280,7 @@ export default function ChatPerson(props) {
     };
   }, [popupVisible]);
 
+
   // Xử lý recall msg
   const handleRecallMessage = async (message) => {
     try {
@@ -314,11 +316,11 @@ export default function ChatPerson(props) {
   };
 
   const [showShareModal, setShowShareModal] = useState(false);
-  // const [selectedMessage, setSelectedMessage] = useState("");
+  const [selectedMessageShareModal, setSelectedMessageShareModal] = useState([]);
 
   const handleOpenShareModal = (message) => {
-    setSelectedMessage(message);
     setShowShareModal(true);
+    setSelectedMessageShareModal(message); // Lưu tin nhắn đã chọn để chia sẻ
   };
 
   const handleRemovePreview = (index) => {
@@ -514,27 +516,19 @@ export default function ChatPerson(props) {
                       {convertTime(msg.createdAt)}
                     </div>
                     {/* Nút chia sẻ */}
-                    <button
-                      className={`share-button ${msg.sender._id === user._id ? "left" : "right"}`}
-                      onClick={() => handleOpenShareModal(msg)
-                      }
+                    {/* <button
+                      className={`share-button-1 `}
+                      onClick={() => handleOpenShareModal(msg)}
                     >
                       <Share2 size={16} className="text-muted" />
-                    </button>
+                    </button> */}
                   </div>
                 </div>
               ))}
+
             <div ref={messagesEndRef} />
           </div>
         </div>
-        {/* Modal */}
-        <ShareMsgModal
-          show={showShareModal}
-          onHide={() => setShowShareModal(false)}
-          message={selectedMessage}
-          conversations={conversations}
-          onlineUsers={props.onlineUsers}
-        />
 
         {/* Message Input */}
         <div className="bg-white p-2 border-top" >
@@ -774,7 +768,7 @@ export default function ChatPerson(props) {
             <Reply size={16} className="me-2" />
             <span>Trả lời</span>
           </div>
-          <div className="popup-item d-flex align-items-center" onClick={() => handleShare(selectedMessage)}>
+          <div className="popup-item d-flex align-items-center" onClick={() => handleOpenShareModal(selectedMessage)}>
             <Share size={16} className="me-2" />
             <span>Chia sẻ</span>
           </div>
@@ -798,7 +792,7 @@ export default function ChatPerson(props) {
             </div>
           )}
           <hr />
-          {selectedMessage?.sender._id === user._id &&
+          {selectedMessage?.sender?._id === user?._id &&
             new Date() - new Date(selectedMessage.createdAt) < 3600000 && (
               <div
                 className="popup-item d-flex align-items-center text-danger"
@@ -813,12 +807,24 @@ export default function ChatPerson(props) {
             <Trash2 size={16} className="me-2" />
             <span>Xóa chỉ ở phía tôi</span>
           </div>
+
         </div>
+
       )}
 
       {selectedImage && (
         <ImageViewer imageUrl={selectedImage} onClose={handleCloseImageViewer} />
       )}
+
+
+      {/* Modal */}
+      <ShareMsgModal
+        show={showShareModal}
+        onHide={() => setShowShareModal(false)}
+        message={selectedMessageShareModal}
+        conversations={conversations}
+        onlineUsers={props.onlineUsers}
+      />
     </div>
   );
 }

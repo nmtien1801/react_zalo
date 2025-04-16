@@ -43,7 +43,6 @@ export default function ShareMsgModal({ show, onHide, message, conversations, on
             // Lặp qua danh sách người nhận
             selectedRecipients.forEach((recipient) => {
                 const receiverOnline = onlineUsers.find((u) => u.userId === recipient._id);
-
                 const data = {
                     msg: message?.msg, // Nội dung tin nhắn
                     receiver: {
@@ -53,8 +52,6 @@ export default function ShareMsgModal({ show, onHide, message, conversations, on
                     sender,
                     type: message?.type, // Kiểu tin nhắn (text, image, video, etc.)
                 };
-
-                console.log("Sending data: ", data);
 
                 // Gửi tin nhắn qua socket
                 socketRef.current.emit("SEND_MSG", data);
@@ -67,8 +64,8 @@ export default function ShareMsgModal({ show, onHide, message, conversations, on
         }
     };
 
-
-
+    console.log("selectedRecipients", selectedRecipients);
+    console.log("onlineUsers", onlineUsers);
 
 
     const handleRecipientToggle = (user) => {
@@ -82,9 +79,6 @@ export default function ShareMsgModal({ show, onHide, message, conversations, on
     const handleShare = () => {
         onHide();
     };
-
-
-
 
     return (
         <Modal show={show} onHide={onHide} centered>
@@ -141,7 +135,10 @@ export default function ShareMsgModal({ show, onHide, message, conversations, on
                 <div className="border p-2 rounded mb-3 mt-5">
                     <strong>Chia sẻ tin nhắn</strong>
                     <div className="text-muted">
-                        {message?.msg}
+                        {message?.type === "text" && message?.msg}
+                        {message?.type === "image" && <img src={message?.msg} alt="img" style={{ width: "100px", height: "100px" }} />}
+                        {message?.type === "video" && <video src={message?.msg} alt="img" style={{ width: "100px", height: "100px" }} />}
+
                     </div>
                 </div>
 

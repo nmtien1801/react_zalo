@@ -15,5 +15,10 @@ const sendRequestFriendService = async (data) => {
     return response;
 }
 
+const rejectFriendRequestService = async (requestId) => {
+    const response = await customizeAxios.post(`/api/rejectFriendRequest/${requestId}`);
+    return response;
+}
 
-export { getFriendRequestsService, acceptFriendRequestService, sendRequestFriendService };
+
+export { getFriendRequestsService, acceptFriendRequestService, sendRequestFriendService, rejectFriendRequestService };

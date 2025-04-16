@@ -26,15 +26,18 @@ import "./Chat.scss";
 import GroupInfo from "../info/GroupInfo.jsx";
 import { useSelector, useDispatch } from "react-redux";
 import { uploadAvatar } from '../../redux/profileSlice.js'
+import IconModal from '../../component/IconModal.jsx'
 
 export default function ChatGroup(props) {
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.userInfo);
   const [avatarUrl, setAvatarUrl] = useState("");
   const fileInputRef = useRef(null); // Ref để truy cập input file ẩn
+  const imageInputRef = useRef(null); // update ảnh nhóm
   const [showSidebar, setShowSidebar] = useState(true);
   const [message, setMessage] = useState(""); // input
   const [messages, setMessages] = useState([]); // all hội thoại
+
   const openModal = () => setIsOpen(true);
   const closeModal = () => setIsOpen(false);
 
@@ -51,8 +54,8 @@ export default function ChatGroup(props) {
     }
   }, [props.allMsg]);
 
-  const sendMessage = async () => {
-    props.handleSendMsg(message);
+  const sendMessage = async (msg, type) => {
+    props.handleSendMsg(msg, type);
     setMessage("");
   };
 
@@ -70,9 +73,55 @@ export default function ChatGroup(props) {
 
     try {
       const response = await dispatch(uploadAvatar({ formData }));
+      if (response.payload.EC === 0) {
+        const mimeType = selectedFile.type
+        let type;
+        if (mimeType.split("/")[0] === "video") {
+          type = "video";
+        } else if (mimeType.split("/")[0] === "image") {
+          type = "image";
+        } else if (mimeType.split("/")[0] === "application") {
+          type = "file";
+        } else {
+          type = "text";
+        }
+
+        sendMessage(response.payload.DT, type);  // setMessage(response.payload.DT);
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
+      alert('err')
+    }
+  };
+
+  // Kích hoạt input file khi nhấn nút
+  const handleButtonClick = () => {
+    fileInputRef.current.click(); // Mở dialog chọn file
+  };
+
+  // Kích hoạt input file khi nhấn nút
+  const handleButtonUpdateClick = () => {
+    imageInputRef.current.click(); // Mở dialog chọn file
+  };
+
+  // Xử lý upload avatar group
+  const handleUpdateAvatarGroup = async (e) => {
+    const selectedFile = e.target.files[0];
+    if (!selectedFile) {
+      alert('k co file')
+      return;
+    }
+
+
+    const formData = new FormData();
+    formData.append("avatar", selectedFile);
+
+    try {
+      const response = await dispatch(uploadAvatar({ formData }));
 
       const { EM, EC, DT } = response.payload;
       if (EC === 0) {
+        console.log('chua update avatar group xuong db');
         setAvatarUrl(DT);
       } else {
         alert('err')
@@ -83,10 +132,18 @@ export default function ChatGroup(props) {
     }
   };
 
+  const convertTime = (time) => {
+    const date = new Date(time);
+    return date.toLocaleTimeString("vi-VN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+      timeZone: "Asia/Ho_Chi_Minh",
+    });
+  };
 
-  // Kích hoạt input file khi nhấn nút
-  const handleButtonClick = () => {
-    fileInputRef.current.click(); // Mở dialog chọn file
+  const handleEmojiSelect = (emoji) => {
+    setMessage((prev) => prev + emoji);
   };
 
   return (
@@ -140,17 +197,54 @@ export default function ChatGroup(props) {
               messages.map((msg, index) => (
                 <div
                   key={index}
-                  className={`p-2 my-1 d-flex ${msg.sender._id === user._id && "justify-content-end"
+                  className={`p-2 my-1 d-flex ${msg.sender._id === user._id ? "justify-content-end" : "justify-content-start"
                     }`}
                 >
-                  <span
-                    className={`p-3 ${msg.sender._id === user._id
-                      ? "bg-primary border rounded-pill" // Tin nhắn của user căn phải
-                      : "bg-white border rounded-pill" // Tin nhắn của người khác căn trái
+                  <div
+                    className={`p-3 max-w-[70%] break-words rounded-3 ${msg.type === "text" || msg.type === "file"
+                      ? msg.sender._id === user._id
+                        ? "bg-primary text-white"
+                        : "bg-light text-dark"
+                      : "bg-transparent"
                       }`}
                   >
-                    {msg.msg}
-                  </span>
+                    {/* Hiển thị nội dung tin nhắn */}
+                    {msg.type === "image" ? (
+                      <img
+                        src={msg.msg}
+                        alt="image"
+                        className="rounded-lg"
+                        style={{ width: 200, height: 200, objectFit: "cover" }}
+                      />
+                    ) : msg.type === "video" ? (
+                      <video
+                        src={msg.msg}
+                        controls
+                        className="rounded-lg"
+                        style={{ width: 250, height: 200, backgroundColor: "black" }}
+                      />
+                    ) : msg.type === "file" ? (
+                      <a
+                        href={msg.msg}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`fw-semibold ${msg.sender._id === user._id ? "text-white" : "text-dark"}`}
+                      >
+                        🡇 {msg.msg.split("_").pop() || "Tệp đính kèm"}
+                      </a>
+                    ) : (
+                      <span>{msg.msg || ""}</span>
+                    )}
+
+                    {/* Thời gian gửi */}
+                    <div
+                      className={`text-end text-xs mt-1 ${msg.sender._id === user._id ? "text-white" : "text-secondary"
+                        }`}
+                    >
+                      {convertTime(msg.createdAt)}
+                    </div>
+                  </div>
+
                 </div>
               ))}
           </div>
@@ -159,22 +253,38 @@ export default function ChatGroup(props) {
         {/* Message Input */}
         <div className="bg-white p-2 border-top">
           <div className="d-flex align-items-center">
-            <button className="btn btn-light me-2">
+            <button
+              className="btn btn-light me-2"
+              data-bs-toggle="modal"
+              data-bs-target="#iconModal"
+            >
               <Smile size={20} />
             </button>
-            <button className="btn btn-light me-2">
+
+            {/* Modal riêng */}
+            <IconModal onSelect={handleEmojiSelect} />
+
+            {/* Input file ẩn */}
+            <input
+              type="file"
+              multiple
+              accept="image/jpeg,image/png,video/mp4,.doc,.docx,.xls,.xlsx,.pdf"
+              onChange={handleFileChange}
+              ref={fileInputRef}
+              style={{ display: "none" }} // Ẩn input
+            />
+            <button className="btn btn-light me-2" onClick={handleButtonClick} >
               <Paperclip size={20} />
             </button>
-
             <input
               className="form-control flex-1 p-2 border rounded-lg outline-none"
               type="text"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+              onKeyDown={(e) => e.key === "Enter" && sendMessage(message, "text")}
               placeholder="Nhập tin nhắn..."
             />
-            <button className="btn btn-primary ms-2" onClick={sendMessage}>
+            <button className="btn btn-primary ms-2" onClick={() => sendMessage(message, "text")}>
               <Send size={20} />
             </button>
           </div>
@@ -207,14 +317,14 @@ export default function ChatGroup(props) {
               <input
                 type="file"
                 accept="image/jpeg,image/png"
-                onChange={handleFileChange}
-                ref={fileInputRef}
+                onChange={handleUpdateAvatarGroup}
+                ref={imageInputRef}
                 style={{ display: "none" }} // Ẩn input
               />
 
               {/* Nút tùy chỉnh */}
               <button className="btn btn-light btn-sm rounded-circle position-absolute bottom-0 end-0 p-1">
-                <Edit2 size={14} onClick={handleButtonClick} />
+                <Edit2 size={14} onClick={handleButtonUpdateClick} />
               </button>
             </div>
             <h6 className="mb-3 d-flex align-items-center justify-content-center">

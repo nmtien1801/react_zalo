@@ -6,7 +6,7 @@ import GroupsList from './GroupsList';
 import FriendRequest from './FriendRequest';
 import GroupRequest from './GroupRequest';
 import { Search, UserPlus, Users } from 'lucide-react';
-import AddFriendModal from '../info/AddFriendModal';
+import AddFriendModal from '../../component/AddFriendModal';
 
 
 const DanhBa = () => {

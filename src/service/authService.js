@@ -1,3 +1,5 @@
+import axios from "axios";
+
 import customizeAxios from "../component/customizeAxios";
 
 const loginService = (phoneNumber, password) => {
@@ -11,10 +13,6 @@ const registerService = (formData) => {
   return customizeAxios.post("/api/register", {
     formData,
   });
-};
-
-const logoutUserService = () => {
-  return customizeAxios.post("/api/logout");
 };
 
 const doGetAccountService = () => {
@@ -43,6 +41,14 @@ const changePasswordService = (phone, currentPassword, newPassword) => {
   });
 };
 
+const verifyEmailService = (email) => {
+  return customizeAxios.post("/api/verifyEmail", { email });
+};
+
+const logoutUserService = () => {
+  return customizeAxios.post("/api/logout");
+};
+
 export {
   loginService,
   registerService,
@@ -51,4 +57,5 @@ export {
   sendCodeService,
   resetPasswordService,
   changePasswordService,
+  verifyEmailService,
 };

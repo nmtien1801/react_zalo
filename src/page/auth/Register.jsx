@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Eye, EyeOff, RefreshCw } from "lucide-react";
 import { Login } from "../../redux/authSlice";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { register } from "../../redux/authSlice";
+import { register, verifyEmail } from "../../redux/authSlice";
 
 export default function LoginForm() {
   const dispatch = useDispatch();
@@ -13,6 +13,9 @@ export default function LoginForm() {
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [countdown, setCountdown] = useState(0); // đếm ngược 60s 
+  const [code, setCode] = useState({}) // mã xác thực trong 60s
   const [formData, setFormData] = useState({
     username: "",
     email: "",
@@ -34,22 +37,62 @@ export default function LoginForm() {
     }));
   };
 
+  useEffect(() => {
+    let timer;
+    if (countdown > 0) {
+      timer = setInterval(() => {
+        setCountdown((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [countdown]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setErrorMessage("");
+
+    // kiểm tra tài khoản 10 ký tự bất kì
+    if (!formData.phoneNumber || formData.phoneNumber.length !== 10) {
+      setErrorMessage("Số tài khoản phải bao gồm đúng 10 ký tự!");
+      return;
+    }
 
     // Kiểm tra mật khẩu và mật khẩu nhập lại có khớp không
     if (formData.password !== formData.confirmPassword) {
-      alert("Mật khẩu và mật khẩu nhập lại không khớp!");
+      setErrorMessage("Mật khẩu và mật khẩu nhập lại không khớp!");
       return;
     }
-    console.log("formData", formData);
 
-    // Gửi thông tin đăng ký đi
-    let res = await dispatch(register(formData));
-    if (res.payload.EC === 0) {
-      navigate("/login");
+    // kiểm tra code verify email
+    let currentTime = Date.now();
+
+    if (currentTime - code.timestamp > 60000) {
+      setErrorMessage("❌ Mã đã hết hạn sau 60s");
+    } else if (+formData.captcha !== +code.code) {
+      setErrorMessage("❌ Mã không đúng");
+    } else {
+      // Gửi thông tin đăng ký đi
+      let res = await dispatch(register(formData));
+      if (res.payload.EC === 0) {
+        navigate("/login");
+      }else{
+      setErrorMessage(res.payload.EM);
+      }
     }
+
+
   };
+
+  const handleVerifyEmail = async () => {
+    // Gửi mã xác minh qua email
+    let res = await dispatch(verifyEmail(formData.email))
+    if (res.payload.EC === 0) {
+      setCode(res.payload.DT)
+    }
+
+    // Bắt đầu đếm ngược
+    setCountdown(60);
+  }
 
   return (
     <div className="container-fluid bg-light min-vh-100 d-flex align-items-center justify-content-center py-4">
@@ -75,6 +118,7 @@ export default function LoginForm() {
                 name="username"
                 value={formData.username}
                 onChange={handleChange}
+                required
               />
             </div>
 
@@ -87,22 +131,21 @@ export default function LoginForm() {
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
+                required
               />
             </div>
 
             {/* Phone Number Input */}
             <div className="mb-3">
               <div className="input-group">
-                <select className="form-select" style={{ maxWidth: "100px" }}>
-                  <option value="+84">+84</option>
-                </select>
                 <input
-                  type="tel"
+                  type="text"
                   className="form-control"
-                  placeholder="Số điện thoại"
+                  placeholder="Số tài khoản"
                   name="phoneNumber"
                   value={formData.phoneNumber}
                   onChange={handleChange}
+                  required
                 />
               </div>
             </div>
@@ -117,6 +160,7 @@ export default function LoginForm() {
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
+                  required
                 />
                 <button
                   type="button"
@@ -138,6 +182,7 @@ export default function LoginForm() {
                   name="confirmPassword"
                   value={formData.confirmPassword}
                   onChange={handleChange}
+                  required
                 />
                 <button
                   type="button"
@@ -155,17 +200,19 @@ export default function LoginForm() {
                 <input
                   type="text"
                   className="form-control"
-                  placeholder="Mã kiểm tra"
+                  placeholder="Mã xác thực email"
                   name="captcha"
                   value={formData.captcha}
                   onChange={handleChange}
+                  required
                 />
                 <button
                   type="button"
                   className="btn btn-outline-secondary"
-                  onClick={() => console.log("Refresh captcha")}
+                  onClick={handleVerifyEmail}
+                  disabled={countdown > 0}
                 >
-                  <RefreshCw size={20} />
+                  {countdown > 0 ? `${countdown}s` : <RefreshCw size={20} />}
                 </button>
               </div>
             </div>
@@ -173,7 +220,6 @@ export default function LoginForm() {
             {/* gender Input */}
             <div className="mb-3">
               <div className="input-group">
-
                 <input
                   type="text"
                   className="form-control"
@@ -181,6 +227,7 @@ export default function LoginForm() {
                   name="gender"
                   value={formData.gender}
                   onChange={handleChange}
+                  required
                 />
               </div>
             </div>
@@ -188,7 +235,6 @@ export default function LoginForm() {
             {/* dob Input */}
             <div className="mb-3">
               <div className="input-group">
-
                 <input
                   type="text"
                   className="form-control"
@@ -196,9 +242,16 @@ export default function LoginForm() {
                   name="dob"
                   value={formData.dob}
                   onChange={handleChange}
+                  required
                 />
               </div>
             </div>
+
+            {errorMessage && (
+              <div className="text-danger text-center mb-3" style={{ fontSize: "14px" }}>
+                {errorMessage}
+              </div>
+            )}
 
             {/* Submit Button */}
             <button

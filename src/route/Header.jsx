@@ -12,13 +12,63 @@ import {
   Briefcase,
   Settings,
 } from "lucide-react";
+
 import AccountSetting from "../page/accountSetting/accountSetting";
 import { useSelector, useDispatch } from "react-redux";
+import SettingModel from "../page/accountSetting/settingModel";
+import InfomationAccount from "../page/accountSetting/infomationAccount";
+import "./Header.css"; 
+import { logout } from "../redux/authSlice";
+import { logoutUserService } from "../service/authService";
 
 const Header = () => {
   const [showModal, setShowModal] = useState(false);
+  const dispatch = useDispatch();
+  const [showDropdown, setShowDropdown] = useState(false);
   const [modalContent, setModalContent] = useState("");
   const user = useSelector((state) => state.auth.userInfo);
+
+  const [isOpenModelSetting, setIsOpenModelSetting] = useState(false);
+  const [isOpenModelInfomationAccount, setIsOpenModelInfomationAccount] = useState(false);
+
+  const toggleModalSetting = () => {
+    if(!isOpenModelSetting) {
+        toggleDropdown();
+    }
+    setIsOpenModelSetting(!isOpenModelSetting);
+  };
+
+  const toggleModalInfomation = () => {
+      if(!isOpenModelInfomationAccount) {
+          toggleDropdown();
+      }
+      setIsOpenModelInfomationAccount(!isOpenModelInfomationAccount);
+  };
+
+  const toggleDropdown = () => {
+    setShowDropdown((prev) => !prev);
+  };
+
+  const handleLogout = async () => {
+    try {
+      const response = await logoutUserService();
+  
+      if (response.EC === 2) {
+        dispatch(logout());
+  
+        localStorage.removeItem("access_Token");
+        localStorage.removeItem("refresh_Token");
+  
+        alert("Đăng xuất thành công!");
+        window.location.href = "/login"; 
+      } else {
+        alert(response.EM || "Đăng xuất thất bại!");
+      }
+    } catch (error) {
+      console.error("Lỗi khi logout:", error);
+      alert("Đã xảy ra lỗi khi đăng xuất.");
+    }
+  }
 
   return (
     <Navbar
@@ -30,11 +80,25 @@ const Header = () => {
         {/* Logo or app name */}
         <Navbar.Brand as={NavLink} className="mb-4 mt-2 m-3">
           <img
-            src={user.avatar ? user.avatar : "/placeholder.svg"}
+            src={user.avatar ? user.avatar : "https://i.imgur.com/cIRFqAL.png"}
             alt="Profile"
             className="rounded-circle border border-2 border-white"
             style={{ width: "40px", height: "40px", objectFit: "cover" }}
+            onClick={toggleDropdown}
           />
+          {showDropdown && (
+            <div className="dropdown-menu-custom">
+              <div className="dropdown-header">{user?.username || "Người dùng"}</div>
+              <div className="dropdown-item">
+                <span>Nâng cấp tài khoản</span>
+                <i className="bi bi-box-arrow-up-right"></i>
+              </div>
+              <div className="dropdown-item" onClick={toggleModalInfomation}>Hồ sơ của bạn</div>
+              <div className="dropdown-item">Cài đặt</div>
+              <hr className="dropdown-divider" />
+              <div className="dropdown-item text-danger" onClick={handleLogout}>Đăng xuất</div>
+            </div>
+          )}
         </Navbar.Brand>
 
         {/* Menu content */}
@@ -71,6 +135,15 @@ const Header = () => {
           />
         </div>
       </div>
+
+      {isOpenModelSetting && (
+          <SettingModel toggleModalSetting={toggleModalSetting} />
+      )}
+
+      {isOpenModelInfomationAccount && (
+          <InfomationAccount toggleModalInfomation={toggleModalInfomation} />
+      )}
+
     </Navbar>
   );
 };

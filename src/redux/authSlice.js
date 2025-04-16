@@ -6,8 +6,10 @@ import {
   sendCodeService,
   resetPasswordService,
   changePasswordService,
+  verifyEmailService,
 } from "../service/authService";
 import { uploadAvatarProfileService } from "../service/profileService";
+import { uploadProfile } from "./profileSlice"; // update state từ 1 slice khác
 
 const initialState = {
   userInfo: {},
@@ -76,9 +78,29 @@ export const uploadAvatarProfile = createAsyncThunk(
   }
 );
 
+export const verifyEmail = createAsyncThunk(
+  "auth/verifyEmail",
+  async (email, thunkAPI) => {
+    const response = await verifyEmailService(email);
+    return response;
+  }
+);
+
 const authSlice = createSlice({
   name: "auth",
   initialState,
+
+  reducers: {
+    updateAvatar: (state, action) => {
+      if (state.userInfo) {
+        state.userInfo.avatar = action.payload; // Cập nhật avatar trong Redux store
+      }
+    },
+    logout: (state) => {
+      state.userInfo = {}; // Xóa thông tin người dùng
+      state.isLoggedIn = false; // Đặt trạng thái đăng xuất
+    },
+  },
 
   extraReducers: (builder) => {
     //  Login
@@ -153,8 +175,26 @@ const authSlice = createSlice({
         }
       })
       .addCase(uploadAvatarProfile.rejected, (state, action) => {});
+
+    //verifyEmail
+    builder
+      .addCase(verifyEmail.pending, (state) => {})
+      .addCase(verifyEmail.fulfilled, (state, action) => {})
+      .addCase(verifyEmail.rejected, (state, action) => {});
+
+    // uploadProfile
+    builder
+      .addCase(uploadProfile.pending, (state) => {})
+      .addCase(uploadProfile.fulfilled, (state, action) => {
+        if (action.payload.EC === 0) {
+          state.userInfo = action.payload.DT;
+        }
+      })
+      .addCase(uploadProfile.rejected, (state, action) => {});
   },
 });
+
+export const { updateAvatar, logout } = authSlice.actions;
 
 // Export actions
 export const {} = authSlice.actions;

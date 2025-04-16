@@ -2,7 +2,7 @@ import customizeAxios from "../component/customizeAxios";
 
 const loadMessagesService = (sender, receiver, type) => {
   return customizeAxios.get(
-    `/messages/${sender}/${receiver}/${type}`
+    `/api/messages/${sender}/${receiver}/${type}`
   );
 };
 
@@ -12,4 +12,10 @@ const getConversationsService = (sender) => {
     `/api/getConversations/${sender}`
   );
 };
-export { loadMessagesService, getConversationsService };
+
+const createConversationGroupService = (data) => {
+  return customizeAxios.post(
+    `/api/createConversationGroup`, data);
+}
+
+export { loadMessagesService, getConversationsService, createConversationGroupService };

@@ -35,6 +35,9 @@ const ChangePassword = ({ toggleModalChangePassword }) => {
         if (formData.newPassword !== formData.confirmPassword) {
             tempErrors.confirmPassword = "Mật khẩu xác nhận không khớp";
         }
+        if (formData.newPassword === formData.currentPassword) {
+            tempErrors.newPassword = "Mật khẩu mới không được trùng với mật khẩu cũ";
+        }
         setErrors(tempErrors);
         return Object.keys(tempErrors).length === 0;
     };

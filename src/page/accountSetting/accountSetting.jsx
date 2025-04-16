@@ -3,10 +3,14 @@ import Modal from 'react-bootstrap/Modal';
 import Button from 'react-bootstrap/Button';
 import { Dropdown } from 'react-bootstrap';
 
+import { useDispatch } from "react-redux";
+import { logout } from "../../redux/authSlice";
+
 import './accountSetting.css';
 
 import SettingModel from "./settingModel";
 import InfomationAccount from "./infomationAccount";
+import { logoutUserService } from "../../service/authService";
 
 const CustomModal = () => {
 
@@ -17,6 +21,8 @@ const CustomModal = () => {
 
     const [isOpenModelSetting, setIsOpenModelSetting] = useState(false);
     const [isOpenModelInfomationAccount, setIsOpenModelInfomationAccount] = useState(false);
+
+    const dispatch = useDispatch();
 
     const toggleDropdown = () => {
         if(!isOpen) {
@@ -62,6 +68,27 @@ const CustomModal = () => {
     const handleItemClick = (content) => {
         setIsOpen(false); 
     };
+
+    const handleLogout = async () => {
+        try {
+          const response = await logoutUserService();
+      
+          if (response.EC === 2) {
+            dispatch(logout());
+      
+            localStorage.removeItem("access_Token");
+            localStorage.removeItem("refresh_Token");
+      
+            alert("Đăng xuất thành công!");
+            window.location.href = "/login"; 
+          } else {
+            alert(response.EM || "Đăng xuất thất bại!");
+          }
+        } catch (error) {
+          console.error("Lỗi khi logout:", error);
+          alert("Đã xảy ra lỗi khi đăng xuất.");
+        }
+      }
 
     return (
         <div className="custom-dropdown">
@@ -140,7 +167,7 @@ const CustomModal = () => {
                     </div>
                 )}
                 <div className="zmenu-separator"></div>
-                <div className="zmenu-item" onClick={() => handleItemClick('Đăng xuất')}>
+                <div className="zmenu-item" onClick={handleLogout}>
                     <i className="menu-icon left"></i>
                     <span className="logout">Đăng xuất</span>
                 </div>

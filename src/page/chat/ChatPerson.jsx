@@ -23,15 +23,16 @@ import {
 } from "lucide-react";
 import "./Chat.scss";
 import AccountInfo from "../info/AccountInfo.jsx";
+// import AccountInfo from "../info/accountInfo";
 import { useSelector, useDispatch } from "react-redux";
 import CallScreen from "../../component/CallScreen.jsx";
 import { uploadAvatar } from '../../redux/profileSlice.js'
+import IconModal from '../../component/IconModal.jsx'
 
 export default function ChatPerson(props) {
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.userInfo);
   const receiver = props.roomData.receiver;
-  const [avatarUrl, setAvatarUrl] = useState("");
   const fileInputRef = useRef(null); // Ref để truy cập input file ẩn
 
   const [showSidebar, setShowSidebar] = useState(true);
@@ -40,14 +41,19 @@ export default function ChatPerson(props) {
   const [showCallScreen, setShowCallScreen] = useState(false);
   const [isInitiator, setIsInitiator] = useState(false); // Thêm state để theo dõi người khởi tạo
 
+
+  console.log("receiver", receiver);
+  console.log("user", user);
+
+
   useEffect(() => {
     if (props.allMsg) {
       setMessages(props.allMsg);
     }
   }, [props.allMsg]);
 
-  const sendMessage = () => {
-    props.handleSendMsg(message);
+  const sendMessage = async (msg, type) => {
+    props.handleSendMsg(msg, type);
     setMessage("");
   };
 
@@ -82,8 +88,6 @@ export default function ChatPerson(props) {
     setIsInitiator(true); // Đặt người dùng hiện tại là người khởi tạo
   };
 
-  // console.log("props: ", props);
-
   // Xử lý upload file
   const handleFileChange = async (e) => {
     const selectedFile = e.target.files[0];
@@ -98,12 +102,20 @@ export default function ChatPerson(props) {
 
     try {
       const response = await dispatch(uploadAvatar({ formData }));
+      if (response.payload.EC === 0) {
+        const mimeType = selectedFile.type
+        let type;
+        if (mimeType.split("/")[0] === "video") {
+          type = "video";
+        } else if (mimeType.split("/")[0] === "image") {
+          type = "image";
+        } else if (mimeType.split("/")[0] === "application") {
+          type = "file";
+        } else {
+          type = "text";
+        }
 
-      const { EM, EC, DT } = response.payload;
-      if (EC === 0) {
-        setAvatarUrl(DT);
-      } else {
-        alert('err')
+        sendMessage(response.payload.DT, type); // link ảnh server trả về
       }
     } catch (error) {
       console.error("Upload error:", error);
@@ -111,10 +123,23 @@ export default function ChatPerson(props) {
     }
   };
 
-
   // Kích hoạt input file khi nhấn nút
   const handleButtonClick = () => {
     fileInputRef.current.click(); // Mở dialog chọn file
+  };
+
+  const convertTime = (time) => {
+    const date = new Date(time);
+    return date.toLocaleTimeString("vi-VN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+      timeZone: "Asia/Ho_Chi_Minh",
+    });
+  };
+
+  const handleEmojiSelect = (emoji) => {
+    setMessage((prev) => prev + emoji);
   };
 
   return (
@@ -131,7 +156,7 @@ export default function ChatPerson(props) {
               style={{ width: "40px", height: "40px" }}
               onClick={openModal}
             />
-            <AccountInfo isOpen={isOpen} closeModal={closeModal} receiver={receiver} />
+            <AccountInfo isOpen={isOpen} closeModal={closeModal} user={receiver} />
             <div className="ms-2">
               <div className="fw-medium">{props.roomData.receiver.username}</div>
               <small className="text-muted">Hoạt động 2 giờ trước</small>
@@ -166,17 +191,54 @@ export default function ChatPerson(props) {
               messages.map((msg, index) => (
                 <div
                   key={index}
-                  className={`p-2 my-1 d-flex ${msg.sender._id === user._id && "justify-content-end"
+                  className={`p-2 my-1 d-flex ${msg.sender._id === user._id ? "justify-content-end" : "justify-content-start"
                     }`}
                 >
-                  <span
-                    className={`p-3 ${msg.sender._id === user._id
-                      ? "bg-primary border rounded-pill"
-                      : "bg-white border rounded-pill"
+                  <div
+                    className={`p-3 max-w-[70%] break-words rounded-3 ${msg.type === "text" || msg.type === "file"
+                      ? msg.sender._id === user._id
+                        ? "bg-primary text-white"
+                        : "bg-light text-dark"
+                      : "bg-transparent"
                       }`}
                   >
-                    {msg.msg}
-                  </span>
+                    {/* Hiển thị nội dung tin nhắn */}
+                    {msg.type === "image" ? (
+                      <img
+                        src={msg.msg}
+                        alt="image"
+                        className="rounded-lg"
+                        style={{ width: 200, height: 200, objectFit: "cover" }}
+                      />
+                    ) : msg.type === "video" ? (
+                      <video
+                        src={msg.msg}
+                        controls
+                        className="rounded-lg"
+                        style={{ width: 250, height: 200, backgroundColor: "black" }}
+                      />
+                    ) : msg.type === "file" ? (
+                      <a
+                        href={msg.msg}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`fw-semibold ${msg.sender._id === user._id ? "text-white" : "text-dark"}`}
+                      >
+                        🡇 {msg.msg.split("_").pop() || "Tệp đính kèm"}
+                      </a>
+                    ) : (
+                      <span>{msg.msg || ""}</span>
+                    )}
+
+                    {/* Thời gian gửi */}
+                    <div
+                      className={`text-end text-xs mt-1 ${msg.sender._id === user._id ? "text-white" : "text-secondary"
+                        }`}
+                    >
+                      {convertTime(msg.createdAt)}
+                    </div>
+                  </div>
+
                 </div>
               ))}
           </div>
@@ -185,10 +247,27 @@ export default function ChatPerson(props) {
         {/* Message Input */}
         <div className="bg-white p-2 border-top">
           <div className="d-flex align-items-center">
-            <button className="btn btn-light me-2">
+            <button
+              className="btn btn-light me-2"
+              data-bs-toggle="modal"
+              data-bs-target="#iconModal"
+            >
               <Smile size={20} />
             </button>
-            <button className="btn btn-light me-2">
+
+            {/* Modal riêng */}
+            <IconModal onSelect={handleEmojiSelect} />
+
+            {/* Input file ẩn */}
+            <input
+              type="file"
+              multiple
+              accept="image/jpeg,image/png,video/mp4,.doc,.docx,.xls,.xlsx,.pdf"
+              onChange={handleFileChange}
+              ref={fileInputRef}
+              style={{ display: "none" }} // Ẩn input
+            />
+            <button className="btn btn-light me-2" onClick={handleButtonClick} >
               <Paperclip size={20} />
             </button>
             <input
@@ -196,10 +275,10 @@ export default function ChatPerson(props) {
               type="text"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+              onKeyDown={(e) => e.key === "Enter" && sendMessage(message, "text")}
               placeholder="Nhập tin nhắn..."
             />
-            <button className="btn btn-primary ms-2" onClick={sendMessage}>
+            <button className="btn btn-primary ms-2" onClick={() => sendMessage(message, "text")}>
               <Send size={20} />
             </button>
           </div>
@@ -231,7 +310,7 @@ export default function ChatPerson(props) {
             <div className="position-relative d-inline-block mb-2">
 
               <img
-                src={avatarUrl ? avatarUrl : "/placeholder.svg"}
+                src={props.roomData.receiver.avatar || "/placeholder.svg"}
                 alt="Profile"
                 className="rounded-circle"
                 style={{ width: "80px", height: "80px" }}
@@ -247,10 +326,6 @@ export default function ChatPerson(props) {
                 style={{ display: "none" }} // Ẩn input
               />
 
-              {/* Nút tùy chỉnh */}
-              <button className="btn btn-light btn-sm rounded-circle position-absolute bottom-0 end-0 p-1">
-                <Edit2 size={14} onClick={handleButtonClick} />
-              </button>
             </div>
             <h6 className="mb-3">{props.roomData.receiver.username}</h6>
             <div className="d-flex justify-content-center gap-4">

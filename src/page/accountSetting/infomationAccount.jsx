@@ -1,15 +1,23 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { uploadAvatar } from '../../redux/profileSlice.js'
+import { uploadAvatar, uploadProfile } from '../../redux/profileSlice.js'
 import { uploadAvatarProfile } from '../../redux/authSlice.js'
-
+import { useNavigate } from "react-router-dom";
 
 const infomationAccount = ({ toggleModalInfomation }) => {
     const user = useSelector((state) => state.auth.userInfo);
     const dispatch = useDispatch();
+    const navigate = useNavigate();
 
     const [avatarUrl, setAvatarUrl] = useState("");
     const fileInputRef = useRef(null); // Ref để truy cập input file ẩn
+    const [userUpdate, setUserUpdate] = useState({
+        phone: user.phone,
+        email: user.email,
+        username: user.username,
+        dob: user.dob,
+        gender: user.gender,
+    });
 
     useEffect(() => {
         if (user.avatar) {
@@ -31,16 +39,10 @@ const infomationAccount = ({ toggleModalInfomation }) => {
 
         try {
             const response = await dispatch(uploadAvatar({ formData }));
-
             const { EM, EC, DT } = response.payload;
+
             if (EC === 0) {
-                let res = await dispatch(uploadAvatarProfile({ phone: user.phone, avatar: DT }))
-                console.log('res: ', res);
-                if (res.payload.EC === 0) {
-                    setAvatarUrl(DT);
-                }
-            } else {
-                alert('err')
+                setAvatarUrl(DT); // link ảnh server trả về
             }
         } catch (error) {
             console.error("Upload error:", error);
@@ -48,10 +50,36 @@ const infomationAccount = ({ toggleModalInfomation }) => {
         }
     };
 
-
     // Kích hoạt input file khi nhấn nút
     const handleButtonClick = () => {
         fileInputRef.current.click(); // Mở dialog chọn file
+    };
+
+    // sửa profile
+    const handleChange = (field) => (e) => {
+        setUserUpdate((prev) => ({ ...prev, [field]: e.target.value }));
+    };
+
+    const handleUpdateInfo = async () => {
+        let data = {
+            ...userUpdate,
+            avatar: avatarUrl,
+        };
+
+        let res = await dispatch(uploadProfile(data));
+        if (res.payload.EC === 0) {
+            toggleModalInfomation()
+        }
+    };
+
+    const convertTime = (time) => {
+        const date = new Date(time);
+        return date.toLocaleTimeString("vi-VN", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+            timeZone: "Asia/Ho_Chi_Minh",
+        });
     };
 
     return (
@@ -118,17 +146,17 @@ const infomationAccount = ({ toggleModalInfomation }) => {
 
                                                                 <div className="pi-info-item pi-info-item_horizontal">
                                                                     <div className="pi-info-item__content">
-                                                                        <span className="pi-info-item__title" data-translate-inner="STR_PROFILE_LABEL_GENDER">Giới tính</span>
+                                                                        <span className="pi-info-item__title" data-translate-inner="STR_PROFILE_LABEL_GENDER">Tên người dùng</span>
                                                                         <span className="content-copiable">
-                                                                            <p className="pi-info-item__desc black">{user.gender}</p>
+                                                                            <input className="pi-info-item__desc black" type="text" value={userUpdate.username} onChange={handleChange("username")} />
                                                                         </span>
                                                                     </div>
                                                                 </div>
                                                                 <div className="pi-info-item pi-info-item_horizontal">
                                                                     <div className="pi-info-item__content">
-                                                                        <span className="pi-info-item__title" data-translate-inner="STR_PROFILE_LABEL_BIRTHDAY">Ngày sinh</span>
+                                                                        <span className="pi-info-item__title" data-translate-inner="STR_PROFILE_LABEL_GENDER">Email</span>
                                                                         <span className="content-copiable">
-                                                                            <p className="pi-info-item__desc black">{user.dob}</p>
+                                                                            <p className="pi-info-item__desc black">{user.email}</p>
                                                                         </span>
                                                                     </div>
                                                                 </div>
@@ -139,12 +167,28 @@ const infomationAccount = ({ toggleModalInfomation }) => {
                                                                             <p className="pi-info-item__desc black">{user.phone}</p>
                                                                         </span>
                                                                     </div>
+                                                                </div>
+                                                                <div className="pi-info-item pi-info-item_horizontal">
+                                                                    <div className="pi-info-item__content">
+                                                                        <span className="pi-info-item__title" data-translate-inner="STR_PROFILE_LABEL_BIRTHDAY">Ngày sinh</span>
+                                                                        <span className="content-copiable">
+                                                                            <input className="pi-info-item__desc black" type="text" value={userUpdate.dob} onChange={handleChange("dob")} />
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="pi-info-item pi-info-item_horizontal">
+                                                                    <div className="pi-info-item__content">
+                                                                        <span className="pi-info-item__title" data-translate-inner="STR_PROFILE_LABEL_GENDER">Giới tính</span>
+                                                                        <span className="content-copiable">
+                                                                            <input className="pi-info-item__desc black" type="text" value={userUpdate.gender} onChange={handleChange("gender")} />
+                                                                        </span>
+                                                                    </div>
                                                                     <p className="pi-info-item__subtitle ">Chỉ bạn bè có lưu số của bạn trong danh bạ máy xem được số này</p>
                                                                 </div>
                                                             </div>
                                                             <div className="pi-info-section__cta">
                                                                 <div className="seperator"></div>
-                                                                <div className="z--btn--v2 btn-tertiary-neutral medium  --full-width" data-disabled="" title=""><i className="fa fa-pencil-alt mr-4"></i><span data-translate-inner="STR_UPDATE">Cập nhật</span></div>
+                                                                <div className="z--btn--v2 btn-tertiary-neutral medium  --full-width" data-disabled="" title="" onClick={() => handleUpdateInfo()}><i className="fa fa-pencil-alt mr-4"></i><span data-translate-inner="STR_UPDATE">Cập nhật</span></div>
                                                             </div>
                                                         </div>
                                                     </div>

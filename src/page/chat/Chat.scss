@@ -313,3 +313,107 @@
   height: 100%;
   object-fit: cover; /* Đảm bảo hình ảnh không bị méo */
 }
+
+.reaction-time-container {
+  display: flex;
+  justify-content: space-between; 
+  align-items: center; 
+  margin-top: 8px; 
+}
+
+.reaction-icon {
+  font-size: 18px;
+  cursor: pointer;
+  margin-right: 8px;
+}
+
+.reaction-container {
+  position: relative;
+  display: inline-block;
+}
+
+.reaction-popup {
+  position: absolute;
+  display: flex;
+  gap: 8px;
+  background-color: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+}
+
+/* Biểu tượng cảm xúc trong popup */
+.reaction-emoji {
+  font-size: 20px;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.reaction-emoji:hover {
+  transform: scale(1.2);
+}
+
+.message-time {
+  font-size: 12px;
+  margin-left: auto; 
+}
+
+.reaction-summary {
+  display: flex;
+  gap: 8px;
+  margin-left: 8px;
+}
+
+.reaction-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+}
+
+.zalo-icon {
+  background-size: 5100%;
+  background-repeat: no-repeat;
+  -webkit-user-drag: none;
+  background-image: url("https://i.imgur.com/uf7UtEK.png");
+  margin: auto;
+  position: relative;
+  top: 0px;
+  display: block;
+  align-items: center;
+  width: 20px;
+  height: 20px;
+  font-size: .875rem;
+}
+
+.zalo-icon-angry {
+  background-position: 84% 5%;
+}
+
+.zalo-icon-crying {
+  background-position: 84% 2.5%;
+}
+
+.zalo-icon-haha {
+  background-position: 82% 7.5%;
+}
+
+.zalo-icon-like {
+  background-position: 84% 82.5%;
+}
+
+.zalo-icon-wow {
+  background-position: 84% 20%;
+}
+
+.zalo-icon-heart {
+  background-position: 84% 72.5%;
+}
+
+.zalo-icon-like-o {
+  background-image: url("https://i.imgur.com/i0xVhqF.png"); 
+  background-size: cover; 
+  background-position: center;
+}

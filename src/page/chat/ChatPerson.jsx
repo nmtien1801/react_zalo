@@ -25,7 +25,12 @@ import {
   Copy,
   Download,
   RotateCw,
-  Image
+  Image,
+  ThumbsUp,
+  Heart,
+  Meh,
+  Frown,
+  Angry
 } from "lucide-react";
 import "./Chat.scss";
 import AccountInfo from "../info/accountInfo";
@@ -33,7 +38,7 @@ import { useSelector, useDispatch } from "react-redux";
 import CallScreen from "../../component/CallScreen.jsx";
 import { uploadAvatar } from '../../redux/profileSlice.js'
 import IconModal from '../../component/IconModal.jsx'
-import { deleteMessageForMeService, recallMessageService } from "../../service/chatService.js";
+import { deleteMessageForMeService, getReactionMessageService, recallMessageService, sendReactionService } from "../../service/chatService.js";
 import ImageViewer from "./ImageViewer.jsx";
 
 export default function ChatPerson(props) {
@@ -61,6 +66,38 @@ export default function ChatPerson(props) {
 
   // ImageViewer
   const [selectedImage, setSelectedImage] = useState(null);
+
+  //Reaction
+  const [reactionPopupVisible, setReactionPopupVisible] = useState(null);
+  const [reactions, setReactions] = useState({});
+
+  //Object Ánh xạ Emoji
+  const emojiToTextMap = {
+    "👍": "Like",
+    "❤️": "Love",
+    "😂": "Haha",
+    "😮": "Wow",
+    "😢": "Sad",
+    "😡": "Angry",
+  };
+
+  const emojiToIconMap = {
+    "👍": <span className="zalo-icon zalo-icon-like"></span>,
+    "❤️": <span className="zalo-icon zalo-icon-heart"></span>,
+    "😂": <span className="zalo-icon zalo-icon-haha"></span>,
+    "😮": <span className="zalo-icon zalo-icon-wow"></span>,
+    "😢": <span className="zalo-icon zalo-icon-crying"></span>,
+    "😡": <span className="zalo-icon zalo-icon-angry"></span>,
+  };
+
+  const textToIconMap = {
+    "Like": <span className="zalo-icon zalo-icon-like"></span>,
+    "Love": <span className="zalo-icon zalo-icon-heart"></span>,
+    "Haha": <span className="zalo-icon zalo-icon-haha"></span>,
+    "Wow": <span className="zalo-icon zalo-icon-wow"></span>,
+    "Sad": <span className="zalo-icon zalo-icon-crying"></span>,
+    "Angry": <span className="zalo-icon zalo-icon-angry"></span>,
+  };
 
   useEffect(() => {
     if (props.allMsg) {
@@ -376,7 +413,119 @@ export default function ChatPerson(props) {
     setMessage("");
   }
 
+  // Nhấp phản ứng
+  const handleShowReactionPopup = async (messageId, event) => {
+    const rect = event.currentTarget.getBoundingClientRect(); // Lấy tọa độ phần tử
+    let x = rect.left;
+    let y = rect.bottom;
 
+    const chatContainer = document.querySelector(".chat-container");
+    const containerRect = chatContainer.getBoundingClientRect();
+
+    // console.log(x);
+    // console.log(containerRect.right);
+
+    if (x > containerRect.right - 200) { 
+      x = rect.left - containerRect.right - 50;
+    }else {
+      x = 0;
+    }
+
+    y = 0;
+
+    // const reactionList = await getReactions(messageId);
+
+    // setReactions((prev) => ({
+    //   ...prev,
+    //   [messageId]: reactionList, 
+    // }));
+  
+    setReactionPopupVisible({
+      messageId,
+      position: { x, y },
+    });
+  };
+  
+  const handleHideReactionPopup = (messageId) => {
+    if (reactionPopupVisible?.messageId === messageId) {
+      setReactionPopupVisible(null);
+    }
+  };
+  
+  //Hàm phản ứng
+  const handleReactToMessage = (messageId, emoji) => {
+    const emojiText = emojiToTextMap[emoji];
+    if (!emojiText) return;
+  
+    sendReactionService(messageId, user._id, emojiText)
+      .then((response) => {
+        if (response.EC === 0) {
+          console.log("Reaction sent successfully:", response.DT);
+
+          setReactions((prevReactions) => {
+            const currentReactions = prevReactions[messageId] || [];
+            const existingReactionIndex = currentReactions.findIndex(
+              (reaction) => reaction.emoji === emojiText && reaction.userId === user._id
+            );
+  
+            if (existingReactionIndex !== -1) {
+              currentReactions.splice(existingReactionIndex, 1);
+            } else {
+              currentReactions.push({
+                emoji: emojiText,
+                userId: user._id,
+                count: 1,
+              });
+            }
+            
+            return {
+              ...prevReactions,
+              [messageId]: [...currentReactions],
+            };
+          });
+        } else {
+          console.error("Failed to send reaction:", response.EM);
+        }
+      })
+      .catch((error) => {
+        console.error("Error sending reaction:", error);
+      });
+  };
+
+  // Lấy phản ứng từng message
+  const getReactions = async (messageId) => {
+    try {
+      const response = await getReactionMessageService(messageId);
+      if (response.EC === 0) {
+        return response.DT; // Trả về danh sách reaction
+      } else {
+        console.error("Failed to fetch reactions:", response.EM);
+        return [];
+      }
+    } catch (error) {
+      console.error("Error fetching reactions:", error);
+      return [];
+    }
+  };
+
+  //Lấy phản ứng của từng message khi thay đổi messages
+  useEffect(() => {
+    const fetchReactions = async () => {
+      const reactionsData = {};
+      for (const msg of messages) {
+        const reactionList = await getReactions(msg._id);
+        reactionsData[msg._id] = reactionList;
+      }
+      setReactions(reactionsData); // Cập nhật state reactions
+      console.log(reactions);
+    };
+  
+    if (messages.length > 0) {
+      fetchReactions();
+    }
+  }, [messages]);
+
+  // Hàm làm sạch ảnh review
   const handleClearAllPreviews = () => {
     setPreviewImages([]); // Xóa toàn bộ ảnh xem trước
     setHasSelectedImages(false);
@@ -505,18 +654,57 @@ export default function ChatPerson(props) {
                       <span>{msg.msg || ""}</span>
                     )}
 
-                    {/* Thời gian gửi */}
-                    <div
-                      className={`text-end text-xs mt-1 ${
-                        msg.sender._id === user._id
-                          ? msg.type === "image"
-                            ? "text-secondary" // Nếu là ảnh, đổi thành text-secondary
-                            : "text-white" // Nếu không, giữ text-white
-                          : "text-secondary"
-                      }`}
-                    >
-                      {convertTime(msg.createdAt)}
+                    {/* Phản ứng và thời gian */}
+                    <div className="reaction-time-container">
+                      <div 
+                        className="reaction-container"
+                        onMouseEnter={(event) => handleShowReactionPopup(msg._id, event)}
+                        onMouseLeave={() => handleHideReactionPopup(msg._id)}
+                      >
+                        <span className="reaction-icon">
+                          <Smile size={20} />
+                        </span>
+                        {reactions[msg._id] && reactions[msg._id].length > 0 && (
+                          <div className="reaction-summary">
+                            {reactions[msg._id].map((reaction, index) => (
+                              <span key={index} className="reaction-item">
+                                {textToIconMap[reaction.emoji]} 
+                                {reaction.count || 1}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        {reactionPopupVisible?.messageId === msg._id && (
+                          <div className="reaction-popup"
+                            style={{
+                              top: reactionPopupVisible.position.y,
+                              left: reactionPopupVisible.position.x,
+                            }}>
+                            {Object.keys(emojiToIconMap).map((emoji, index) => (
+                              <span
+                                key={index}
+                                className="reaction-emoji"
+                                onClick={() => handleReactToMessage(msg._id, emoji)}
+                              >
+                                {emojiToIconMap[emoji]}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <div
+                        className={`message-time ${
+                          msg.type === "video" || msg.type === "image"
+                            ? "text-secondary"
+                            : msg.sender._id === user._id
+                            ? "text-white"
+                            : "text-secondary"
+                        }`}
+                      >
+                        {convertTime(msg.createdAt)}
+                      </div>
                     </div>
+                    
                   </div>
 
                 </div>

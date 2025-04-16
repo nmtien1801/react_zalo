@@ -26,4 +26,12 @@ const deleteMessageForMeService = (id, userId) => {
   return customizeAxios.put(`/api/messages/deleteForMe/${id}`, { userId });
 };
 
-export { loadMessagesService, getConversationsService, createConversationGroupService, recallMessageService, deleteMessageForMeService };
+const sendReactionService = (messageId, userId, emoji) => {
+  return customizeAxios.post(`/api/messages/handleReaction`, {messageId, userId, emoji});
+}
+
+const getReactionMessageService = (messageId) => {
+  return customizeAxios.get(`/api/messages/${messageId}/reactions/`);
+}
+
+export { loadMessagesService, getConversationsService, createConversationGroupService, recallMessageService, deleteMessageForMeService, sendReactionService, getReactionMessageService };

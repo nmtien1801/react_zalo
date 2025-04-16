@@ -204,17 +204,13 @@ export default function ChatPerson(props) {
   }, [popupVisible]);
 
   // Xử lý recall msg
-  const handleRecallMessage = async (id) => {
+  const handleRecallMessage = async (message) => {
     try {
-      const response = await recallMessageService(id);
+      const response = await recallMessageService(message._id);
       if (response.EC === 0) {
         console.log("Tin nhắn đã được thu hồi:", response.DT);
 
-        setMessages((prevMessages) =>
-          prevMessages.map((msg) =>
-            msg._id === id ? { ...msg, msg: "Tin nhắn đã được thu hồi", type: "system" } : msg
-          )
-        );
+        props.socketRef.current.emit("RECALL", message);
       } else {
         console.error("Thu hồi tin nhắn thất bại:", response.EM);
       }
@@ -240,6 +236,7 @@ export default function ChatPerson(props) {
       console.error("Lỗi khi xóa tin nhắn:", error);
     }
   };
+console.log('selectedMessage ',selectedMessage);
 
   return (
     <div className="row g-0 h-100">
@@ -577,7 +574,7 @@ export default function ChatPerson(props) {
             new Date() - new Date(selectedMessage.createdAt) < 3600000 && (
               <div 
                 className="popup-item d-flex align-items-center text-danger"
-                onClick={() => handleRecallMessage(selectedMessage._id)}>
+                onClick={() => handleRecallMessage(selectedMessage)}>
                 <RotateCw size={16} className="me-2" />
                 <span>Thu hồi</span>
               </div>

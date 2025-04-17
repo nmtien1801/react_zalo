@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   LogOut,
   UserPlus,
@@ -19,47 +19,67 @@ import {
   Users,
   AlertTriangle,
   Trash2,
-  Layout,
   Search,
+  Layout,
+  Phone,
+  Video,
   Reply,
   Share,
   Copy,
   Download,
   RotateCw,
   Image,
+  Share2
 } from "lucide-react";
 import "./Chat.scss";
 import GroupInfo from "../info/GroupInfo.jsx";
 import { useSelector, useDispatch } from "react-redux";
+import CallScreen from "../../component/CallScreen.jsx";
 import { uploadAvatar } from '../../redux/profileSlice.js'
 import IconModal from '../../component/IconModal.jsx'
 import { deleteMessageForMeService, recallMessageService } from "../../service/chatService.js";
+import ImageViewer from "./ImageViewer.jsx";
+import ShareMsgModal from "../../component/ShareMsgModal.jsx";
 
 export default function ChatGroup(props) {
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.userInfo);
-  const [avatarUrl, setAvatarUrl] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState(""); // update avatar group
+  const receiver = props.roomData.receiver;
   const fileInputRef = useRef(null); // Ref để truy cập input file ẩn
-  const imageInputRef = useRef(null); // update ảnh nhóm
+  const imageInputRef = useRef(null); // Ref để truy cập input ảnh nhóm
+  const messagesEndRef = useRef(null);
+
   const [showSidebar, setShowSidebar] = useState(true);
-  const [message, setMessage] = useState(""); // input
-  const [messages, setMessages] = useState([]); // all hội thoại
+  const [message, setMessage] = useState("");
+  const [messages, setMessages] = useState([]);
 
   const openModal = () => setIsOpen(true);
   const closeModal = () => setIsOpen(false);
+  const [isOpen, setIsOpen] = useState(false);
+
+  const [showCallScreen, setShowCallScreen] = useState(false);
+  const [hasSelectedImages, setHasSelectedImages] = useState(false);
+  const [isInitiator, setIsInitiator] = useState(false); // Thêm state để theo dõi người khởi tạo
+
+  // Popup Chuột phải
+  const [popupVisible, setPopupVisible] = useState(false);
+  const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
+  const [selectedMessage, setSelectedMessage] = useState(null);
+
+
+  const conversations = props.conversations || [];
+
+  // ImageViewer
+  const [previewImages, setPreviewImages] = useState([]);
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [selectedImage, setSelectedImage] = useState(null);
 
   const [sections] = useState([
     { id: "media", title: "Ảnh/Video", icon: ImageIcon },
     { id: "files", title: "File", icon: File },
     { id: "links", title: "Link", icon: LinkIcon },
   ]);
-  const [isOpen, setIsOpen] = useState(false);
-
-  //Popup Chuột phải
-  const messagesEndRef = useRef(null);
-  const [popupVisible, setPopupVisible] = useState(false);
-  const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
-  const [selectedMessage, setSelectedMessage] = useState(null);
 
   useEffect(() => {
     if (props.allMsg) {
@@ -77,10 +97,35 @@ export default function ChatGroup(props) {
     scrollToBottom();
   }, [messages]);
 
+  const sendMessage = async (msg, type) => {
+
+    // Nếu là chuỗi
+    if (typeof msg === "string") {
+      if (!msg.trim()) {
+        alert("Tin nhắn không được để trống!");
+        return;
+      }
+    }
+
+    // Kiểm tra nếu msg là mảng
+    if (Array.isArray(msg)) {
+      if (msg.length === 0) {
+        msg = JSON.stringify(msg);
+      }
+    }
+
+    props.handleSendMsg(msg, type);
+    setMessage("");
+  };
+
+ 
+
+
+  
+
   // Sự kiện nhấn chuột phải
   const handleShowPopup = (e, msg) => {
     e.preventDefault();
-console.log('selectedMessage ',selectedMessage);
 
     const popupWidth = 200;
     const popupHeight = 350;
@@ -108,9 +153,24 @@ console.log('selectedMessage ',selectedMessage);
     setSelectedMessage(null);
   };
 
-  const sendMessage = async (msg, type) => {
-    props.handleSendMsg(msg, type);
-    setMessage("");
+  // Xử lý sự kiện incoming-call từ socket
+  useEffect(() => {
+    if (!props.socketRef.current) return;
+
+    const socket = props.socketRef.current;
+    socket.on("incoming-call", () => {
+      setShowCallScreen(true); // Hiển thị modal khi có cuộc gọi đến
+      setIsInitiator(false); // Người nhận không phải là người khởi tạo
+    });
+
+    return () => {
+      socket.off("incoming-call");
+    };
+  }, [props.socketRef]);
+
+  const handleStartCall = () => {
+    setShowCallScreen(true); // Mở modal
+    setIsInitiator(true); // Đặt người dùng hiện tại là người khởi tạo
   };
 
   // Xử lý upload file
@@ -140,7 +200,7 @@ console.log('selectedMessage ',selectedMessage);
           type = "text";
         }
 
-        sendMessage(response.payload.DT, type);  // setMessage(response.payload.DT);
+        sendMessage(response.payload.DT, type); // link ảnh server trả về
       }
     } catch (error) {
       console.error("Upload error:", error);
@@ -148,9 +208,55 @@ console.log('selectedMessage ',selectedMessage);
     }
   };
 
+  const handleImageChange = async (e) => {
+    const selectedImages = e.target.files;
+
+    if (selectedImages && selectedImages.length > 0) {
+
+      if (selectedImages.length > 10) {
+        setHasSelectedImages(false);
+        alert("Số lượng ảnh không được quá 10!");
+        return;
+      }
+
+      const previews = [];
+      const files = Array.from(e.target.files);
+
+      for (let image of selectedImages) {
+        // Tạo URL xem trước
+        const reader = new FileReader();
+        reader.onload = () => {
+          previews.push(reader.result); // Lưu URL xem trước vào mảng
+          setPreviewImages([...previews]); // Cập nhật state xem trước
+          setHasSelectedImages(true);
+        };
+        reader.readAsDataURL(image);
+      }
+
+      if (files.length > 0) {
+        setSelectedFiles((prev) => [...prev, ...files]);
+      }
+    } else {
+      setHasSelectedImages(false);
+    }
+  };
+
   // Kích hoạt input file khi nhấn nút
   const handleButtonClick = () => {
     fileInputRef.current.click(); // Mở dialog chọn file
+  };
+
+  const handleButtonClickImage = () => {
+    imageInputRef.current.click(); // Mở dialog chọn file
+  };
+
+  // Hàm nhấp vào image xem
+  const handleImageClick = (imageUrl) => {
+    setSelectedImage(imageUrl);
+  };
+
+  const handleCloseImageViewer = () => {
+    setSelectedImage(null);
   };
 
   // Kích hoạt input file khi nhấn nút
@@ -214,6 +320,7 @@ console.log('selectedMessage ',selectedMessage);
     };
   }, [popupVisible]);
 
+
   // Xử lý recall msg
   const handleRecallMessage = async (message) => {
     try {
@@ -248,13 +355,83 @@ console.log('selectedMessage ',selectedMessage);
     }
   };
 
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [selectedMessageShareModal, setSelectedMessageShareModal] = useState([]);
+
+  const handleOpenShareModal = (message) => {
+    setShowShareModal(true);
+    setSelectedMessageShareModal(message); // Lưu tin nhắn đã chọn để chia sẻ
+  };
+
+  const handleRemovePreview = (index) => {
+    const updatedPreviews = [...previewImages];
+    updatedPreviews.splice(index, 1);
+    setPreviewImages(updatedPreviews);
+
+    if (updatedPreviews.length === 0) {
+      setHasSelectedImages(false);
+    }
+  };
+
+  const handleMessage = async (message) => {
+    if (previewImages.length === 0) {
+      sendMessage(message, "text");
+    } else if (previewImages.length > 0) {
+
+      const listUrlImage = [];
+
+      for (const image of selectedFiles) {
+        const formData = new FormData();
+        console.log("Ảnh:" + image);
+        formData.append("avatar", image);
+
+        try {
+          const response = await dispatch(uploadAvatar({ formData }));
+          if (response.payload.EC === 0) {
+            listUrlImage.push(response.payload.DT);
+          } else {
+            alert(response.payload.EM || "Lỗi khi tải lên ảnh!");
+          }
+        } catch (error) {
+          console.error("Lỗi khi tải lên ảnh:", error);
+          alert("Đã xảy ra lỗi khi tải lên ảnh.");
+        }
+      }
+
+      if (listUrlImage.length > 0) {
+        const listUrlImageString = listUrlImage.join(", ");
+        sendMessage(listUrlImageString, "image");
+      }
+
+      if (message.trim()) {
+        sendMessage(message, "text");
+      }
+
+      setPreviewImages([]);
+      setHasSelectedImages(false);
+    }
+
+    setMessage("");
+  }
+
+
+  const handleClearAllPreviews = () => {
+    setPreviewImages([]); // Xóa toàn bộ ảnh xem trước
+    setHasSelectedImages(false);
+  };
+
+  const handleShare = (selectedMessage) => {
+    console.log('selectedMessage ', selectedMessage);
+
+  }
+
   return (
     <div className="row g-0 h-100">
       {/* Main Chat Area */}
       <div className="col bg-light">
         {/* Chat Header */}
         <div className="bg-white p-2 d-flex align-items-center border-bottom justify-content-between">
-          <div className=" d-flex align-items-center">
+          <div className="d-flex align-items-center">
             <img
               src="/placeholder.svg"
               className="rounded-circle"
@@ -262,24 +439,25 @@ console.log('selectedMessage ',selectedMessage);
               style={{ width: "40px", height: "40px" }}
               onClick={openModal}
             />
-
-            <GroupInfo isOpen={isOpen} closeModal={closeModal} />
-
+            <GroupInfo isOpen={isOpen} closeModal={closeModal} user={receiver} />
             <div className="ms-2">
               <div className="fw-medium">{props.roomData.receiver.username}</div>
               <small className="text-muted">Hoạt động 2 giờ trước</small>
             </div>
           </div>
-
           <div className="d-flex align-items-center gap-2">
-            <button className="btn btn-light rounded-circle mb-1">
-              <Users size={20} />
-            </button>
-
+            <span
+              className="btn btn-light rounded-circle mb-1"
+              onClick={handleStartCall} // Gọi hàm handleStartCall khi bấm
+            >
+              <Phone size={16} />
+            </span>
+            <span className="btn btn-light rounded-circle mb-1">
+              <Video size={16} />
+            </span>
             <span className="btn btn-light rounded-circle mb-1">
               <Search size={16} />
             </span>
-
             <button
               className="btn btn-light rounded-circle mb-1"
               onClick={() => setShowSidebar(!showSidebar)}
@@ -291,8 +469,13 @@ console.log('selectedMessage ',selectedMessage);
 
         {/* Chat Content */}
         <div
-          className="p-3"
-          style={{ height: "calc(100vh - 128px)", overflowY: "auto" }}
+          className="chat-container p-3"
+          style={{
+            height: hasSelectedImages
+              ? "calc(100vh - 278px)" // Khi có ảnh được chọn
+              : "calc(100vh - 120px)", // Khi không có ảnh nào được chọn
+            overflowY: "auto",
+          }}
         >
           <div className="flex flex-col justify-end">
             {messages &&
@@ -303,7 +486,7 @@ console.log('selectedMessage ',selectedMessage);
                     }`}
                 >
                   <div
-                    className={`p-3 max-w-[70%] break-words rounded-3 ${msg.type === "text" || msg.type === "file"
+                    className={`p-3 max-w-[70%] break-words rounded-3 ${msg.type === "text" || msg.type === "file" || msg.type === "system"
                       ? msg.sender._id === user._id
                         ? "bg-primary text-white"
                         : "bg-light text-dark"
@@ -313,12 +496,36 @@ console.log('selectedMessage ',selectedMessage);
                   >
                     {/* Hiển thị nội dung tin nhắn */}
                     {msg.type === "image" ? (
-                      <img
-                        src={msg.msg}
-                        alt="image"
-                        className="rounded-lg"
-                        style={{ width: 200, height: 200, objectFit: "cover" }}
-                      />
+                      msg.msg.includes(",") ? (
+                        <div
+                          className={`grid-container multiple-images`}
+                        >
+                          {msg.msg.split(",").map((url, index) => (
+                            <div key={index} className="grid-item">
+                              <img
+                                src={url.trim()}
+                                alt={`image-${index}`}
+                                className="image-square"
+                                onClick={() => handleImageClick(url.trim())}
+                                style={{ cursor: "pointer" }}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        // Nếu chỉ có một URL ảnh, hiển thị ảnh đó
+                        <div className={`grid-container multiple-images`}>
+                          <div className="grid-item">
+                            <img
+                              src={msg.msg}
+                              alt="image"
+                              className="image-square"
+                              onClick={() => handleImageClick(msg.msg)}
+                              style={{ cursor: "pointer" }}
+                            />
+                          </div>
+                        </div>
+                      )
                     ) : msg.type === "video" ? (
                       <video
                         src={msg.msg}
@@ -335,19 +542,20 @@ console.log('selectedMessage ',selectedMessage);
                       >
                         🡇 {msg.msg.split("_").pop() || "Tệp đính kèm"}
                       </a>
+                    ) : msg.type === "system" ? (
+                      <span><i>{msg.msg || ""}</i></span>
                     ) : (
                       <span>{msg.msg || ""}</span>
                     )}
 
                     {/* Thời gian gửi */}
                     <div
-                      className={`text-end text-xs mt-1 ${msg.sender._id === user._id ? "text-slate-700" : "text-secondary"
+                      className={`text-end text-xs mt-1 ${msg.sender._id === user._id ? "text-white" : "text-secondary"
                         }`}
                     >
                       {convertTime(msg.createdAt)}
                     </div>
                   </div>
-
                 </div>
               ))}
             <div ref={messagesEndRef} />
@@ -355,31 +563,34 @@ console.log('selectedMessage ',selectedMessage);
         </div>
 
         {/* Message Input */}
-        <div className="bg-white p-2 border-top">
+        <div className="bg-white p-2 border-top" >
+          {/* Vùng nhập tin nhắn */}
           <div className="d-flex align-items-center">
-            <button
-              className="btn btn-light me-2"
-              data-bs-toggle="modal"
-              data-bs-target="#iconModal"
-            >
-              <Smile size={20} />
-            </button>
-
-            {/* Modal riêng */}
-            <IconModal onSelect={handleEmojiSelect} />
-
-            {/* Input file ẩn */}
             <input
               type="file"
               multiple
-              accept="image/jpeg,image/png,video/mp4,.doc,.docx,.xls,.xlsx,.pdf"
+              accept=".doc,.docx,.xls,.xlsx,.pdf,.mp4"
               onChange={handleFileChange}
               ref={fileInputRef}
               style={{ display: "none" }} // Ẩn input
             />
-            <button className="btn btn-light me-2" onClick={handleButtonClick} >
+            <button className="btn btn-light me-2" onClick={handleButtonClick}>
               <Paperclip size={20} />
             </button>
+
+            <input
+              type="file"
+              multiple
+              accept="image/jpeg,image/png"
+              onChange={handleImageChange}
+              ref={imageInputRef}
+              style={{ display: "none" }} // Ẩn input
+            />
+            <button className="btn btn-light me-2" onClick={handleButtonClickImage}>
+              <Image size={20} />
+            </button>
+
+            {/* Input tin nhắn */}
             <input
               className="form-control flex-1 p-2 border rounded-lg outline-none"
               type="text"
@@ -388,12 +599,69 @@ console.log('selectedMessage ',selectedMessage);
               onKeyDown={(e) => e.key === "Enter" && sendMessage(message, "text")}
               placeholder="Nhập tin nhắn..."
             />
-            <button className="btn btn-primary ms-2" onClick={() => sendMessage(message, "text")}>
+
+            {/* Nút smile */}
+            <button
+              className="btn btn-light ms-2"
+              data-bs-toggle="modal"
+              data-bs-target="#iconModal"
+            >
+              <Smile size={20} />
+            </button>
+            <IconModal onSelect={handleEmojiSelect} />
+
+            {/* Nút gửi */}
+            <button
+              className="btn btn-primary ms-2"
+              onClick={() => handleMessage(message)}
+            >
               <Send size={20} />
             </button>
           </div>
+          <div className="preview-container d-flex flex-wrap gap-2 mt-2" >
+            {previewImages.map((image, index) => (
+              <div key={index} className="preview-item position-relative">
+                <img
+                  src={image}
+                  alt={`Xem trước ${index + 1}`}
+                  className="rounded"
+                  style={{ width: "100px", height: "100px", objectFit: "cover" }}
+                />
+                <button
+                  className="btn btn-danger btn-sm position-absolute top-0 end-0 d-flex justify-content-center align-items-center"
+                  onClick={() => handleRemovePreview(index)}
+                  style={{ borderRadius: "50%" }}
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            ))}
+            {previewImages.length > 0 && (
+              <button
+                className="btn btn-link text-danger mt-2"
+                onClick={handleClearAllPreviews}
+              >
+                Xóa tất cả
+              </button>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* Call Screen Modal */}
+      <CallScreen
+        show={showCallScreen}
+        onHide={() => {
+          setShowCallScreen(false);
+          setIsInitiator(false); // Reset khi đóng modal
+        }}
+        senderId={user._id}
+        receiverId={receiver._id}
+        callerName={user.username}
+        receiverName={receiver.username}
+        socketRef={props.socketRef}
+        isInitiator={isInitiator} // Truyền state isInitiator
+      />
 
       {/* Right Sidebar */}
       {showSidebar && (
@@ -409,6 +677,7 @@ console.log('selectedMessage ',selectedMessage);
           {/* Group Profile Section */}
           <div className="text-center p-3 border-bottom">
             <div className="position-relative d-inline-block mb-2">
+
               <img
                 src={avatarUrl ? avatarUrl : "/placeholder.svg"}
                 alt="Group"
@@ -629,7 +898,7 @@ console.log('selectedMessage ',selectedMessage);
             <Reply size={16} className="me-2" />
             <span>Trả lời</span>
           </div>
-          <div className="popup-item d-flex align-items-center" onClick={() => console.log("Chia sẻ")}>
+          <div className="popup-item d-flex align-items-center" onClick={() => handleOpenShareModal(selectedMessage)}>
             <Share size={16} className="me-2" />
             <span>Chia sẻ</span>
           </div>
@@ -653,7 +922,7 @@ console.log('selectedMessage ',selectedMessage);
             </div>
           )}
           <hr />
-          {selectedMessage?.sender._id === user._id &&
+          {selectedMessage?.sender?._id === user?._id &&
             new Date() - new Date(selectedMessage.createdAt) < 3600000 && (
               <div
                 className="popup-item d-flex align-items-center text-danger"
@@ -668,8 +937,24 @@ console.log('selectedMessage ',selectedMessage);
             <Trash2 size={16} className="me-2" />
             <span>Xóa chỉ ở phía tôi</span>
           </div>
+
         </div>
+
       )}
+
+      {selectedImage && (
+        <ImageViewer imageUrl={selectedImage} onClose={handleCloseImageViewer} />
+      )}
+
+
+      {/* Modal */}
+      <ShareMsgModal
+        show={showShareModal}
+        onHide={() => setShowShareModal(false)}
+        message={selectedMessageShareModal}
+        conversations={conversations}
+        onlineUsers={props.onlineUsers}
+      />
     </div>
   );
 }

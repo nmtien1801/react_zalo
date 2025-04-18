@@ -83,7 +83,10 @@ export default function ChatGroup(props) {
 
   useEffect(() => {
     if (props.allMsg) {
-      setMessages(props.allMsg);
+      const filteredMessages = props.allMsg.filter(
+        (msg) => !msg.memberDel?.includes(user._id)
+      );
+      setMessages(filteredMessages);
     }
   }, [props.allMsg]);
 
@@ -117,11 +120,6 @@ export default function ChatGroup(props) {
     props.handleSendMsg(msg, type);
     setMessage("");
   };
-
- 
-
-
-  
 
   // Sự kiện nhấn chuột phải
   const handleShowPopup = (e, msg) => {
@@ -340,7 +338,17 @@ export default function ChatGroup(props) {
   // Xử lý recall for me
   const handleDeleteMessageForMe = async (id) => {
     try {
-      const response = await deleteMessageForMeService(id, user._id);
+      let member
+      if(receiver.type === 2){
+        member = {
+          ...receiver,
+          memberDel: user._id
+        };
+      }else{
+        member = user
+      }
+
+      const response = await deleteMessageForMeService(id, member);
       if (response.EC === 0) {
         console.log("Tin nhắn đã được xóa chỉ ở phía tôi:", response.DT);
 

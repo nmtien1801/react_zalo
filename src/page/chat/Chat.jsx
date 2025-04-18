@@ -445,6 +445,8 @@ export default function ChatInterface() {
                   user={user}
                   // handleDelete={handleDelete}
                   socketRef={socketRef}
+                  conversations={conversations}
+                  onlineUsers={onlineUsers}
                 />
               ) : typeChatRoom === "single" ? (
                 <ChatPerson
@@ -463,7 +465,10 @@ export default function ChatInterface() {
                   handleSendMsg={handleSendMsg}
                   allMsg={allMsg}
                   user={user}
-                // handleDelete={handleDelete}
+                  // handleDelete={handleDelete}
+                  socketRef={socketRef}
+                  conversations={conversations}
+                  onlineUsers={onlineUsers}
                 />
               )}
             </>

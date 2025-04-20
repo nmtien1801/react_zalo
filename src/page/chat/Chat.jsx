@@ -280,26 +280,6 @@ export default function ChatInterface() {
     }
   };
 
-  //  const handleDelete = (id) => {
-  //   axios
-  //     .delete(`http://localhost:8080/message/${id}`)
-  //     .then((res) => {
-  //       if (socketRef.current.connected) {
-  //         const data = {
-  //           msg: res.data.data,
-  //           receiver: roomData.receiver,
-  //         };
-  //         socketRef.current.emit("DELETE_MSG", data);
-  //         setAllMsg((prevState) =>
-  //           prevState.filter((data) => data._id != res.data.data._id)
-  //         );
-  //       }
-  //     })
-  //     .catch((err) => {
-  //       console.log(err);
-  //     });
-  // };
-
   useEffect(() => {
     dispatch(getConversations(user._id));
   }, []);
@@ -316,11 +296,10 @@ export default function ChatInterface() {
           type: item.type,
           phone: item.receiver.phone,
           members: item.members,
+          role: item.role,
+          permission: item.receiver.permission
         };
       });
-
-      console.log("_conversations: ", _conversations);
-
 
       setConversations(_conversations);
     }
@@ -443,7 +422,6 @@ export default function ChatInterface() {
                   handleSendMsg={handleSendMsg}
                   allMsg={allMsg}
                   user={user}
-                  // handleDelete={handleDelete}
                   socketRef={socketRef}
                   conversations={conversations}
                   onlineUsers={onlineUsers}
@@ -454,7 +432,6 @@ export default function ChatInterface() {
                   handleSendMsg={handleSendMsg}
                   allMsg={allMsg}
                   user={user}
-                  // handleDelete={handleDelete}
                   socketRef={socketRef}
                   conversations={conversations}
                   onlineUsers={onlineUsers}
@@ -465,7 +442,6 @@ export default function ChatInterface() {
                   handleSendMsg={handleSendMsg}
                   allMsg={allMsg}
                   user={user}
-                  // handleDelete={handleDelete}
                   socketRef={socketRef}
                   conversations={conversations}
                   onlineUsers={onlineUsers}

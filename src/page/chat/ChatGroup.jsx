@@ -40,6 +40,7 @@ import IconModal from '../../component/IconModal.jsx'
 import { deleteMessageForMeService, recallMessageService } from "../../service/chatService.js";
 import ImageViewer from "./ImageViewer.jsx";
 import ShareMsgModal from "../../component/ShareMsgModal.jsx";
+import ManageGroup from "../auth/ManageGroup.jsx"
 
 export default function ChatGroup(props) {
   const dispatch = useDispatch();
@@ -74,6 +75,10 @@ export default function ChatGroup(props) {
   const [previewImages, setPreviewImages] = useState([]);
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [selectedImage, setSelectedImage] = useState(null);
+
+  // ManageGroup
+  const [showManageGroup, setShowManageGroup] = useState(false)
+  const [role, setRole] = useState('member')
 
   const [sections] = useState([
     { id: "media", title: "Ảnh/Video", icon: ImageIcon },
@@ -339,12 +344,12 @@ export default function ChatGroup(props) {
   const handleDeleteMessageForMe = async (id) => {
     try {
       let member
-      if(receiver.type === 2){
+      if (receiver.type === 2) {
         member = {
           ...receiver,
           memberDel: user._id
         };
-      }else{
+      } else {
         member = user
       }
 
@@ -432,6 +437,18 @@ export default function ChatGroup(props) {
     console.log('selectedMessage ', selectedMessage);
 
   }
+
+  // Quản lý nhóm
+  const handleManageGroup = async () => {
+    setShowManageGroup(false)
+  }
+
+  useEffect(() => {
+    const role = conversations.find(item => item._id === receiver._id);
+    if (role) {
+      setRole(role.role)
+    }
+  }, [conversations, receiver]);
 
   return (
     <div className="row g-0 h-100">
@@ -672,221 +689,233 @@ export default function ChatGroup(props) {
       />
 
       {/* Right Sidebar */}
-      {showSidebar && (
+      {showSidebar &&
         <div
           className="col-auto bg-white border-start"
           style={{ width: "300px", height: "100vh", overflowY: "auto" }}
         >
-          {/* Header */}
-          <div className="border-bottom header-right-sidebar">
-            <h6 className="text-center">Thông tin hội thoại</h6>
-          </div>
-
-          {/* Group Profile Section */}
-          <div className="text-center p-3 border-bottom">
-            <div className="position-relative d-inline-block mb-2">
-
-              <img
-                src={avatarUrl ? avatarUrl : "/placeholder.svg"}
-                alt="Group"
-                className="rounded-circle"
-                style={{ width: "80px", height: "80px" }}
-                onClick={openModal}
-              />
-
-              {/* Input file ẩn */}
-              <input
-                type="file"
-                accept="image/jpeg,image/png"
-                onChange={handleUpdateAvatarGroup}
-                ref={imageInputRef}
-                style={{ display: "none" }} // Ẩn input
-              />
-
-              {/* Nút tùy chỉnh */}
-              <button className="btn btn-light btn-sm rounded-circle position-absolute bottom-0 end-0 p-1">
-                <Edit2 size={14} onClick={handleButtonUpdateClick} />
-              </button>
-            </div>
-            <h6 className="mb-3 d-flex align-items-center justify-content-center">
-              {props.roomData.receiver.username}
-            </h6>
-
-            {/* Action Buttons */}
-            <div className="d-flex justify-content-center gap-4">
-              <div className="text-center">
-                <button className="btn btn-light rounded-circle mb-1">
-                  <BellOff size={20} />
-                </button>
-                <div className="small">Tắt thông báo</div>
-              </div>
-              <div className="text-center">
-                <button className="btn btn-light rounded-circle mb-1">
-                  <Pin size={20} />
-                </button>
-                <div className="small">Ghim hội thoại</div>
-              </div>
-              <div className="text-center">
-                <button className="btn btn-light rounded-circle mb-1">
-                  <UserPlus size={20} />
-                </button>
-                <div className="small">Thêm thành viên</div>
-              </div>
-              <div className="text-center">
-                <button className="btn btn-light rounded-circle mb-1">
-                  <Settings size={20} />
-                </button>
-                <div className="small">Quản lý nhóm</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Collapsible Sections */}
-          <div className="accordion accordion-flush" id="chatInfo">
-            {sections.map(({ id, title, icon: Icon, content, empty }) => (
-              <div key={id} className="accordion-item">
-                <h2 className="accordion-header">
-                  <button
-                    className="accordion-button collapsed"
-                    data-bs-toggle="collapse"
-                    data-bs-target={`#${id}Collapse`}
-                  >
-                    <Icon size={20} className="me-2" />
-                    {title}
-                  </button>
-                </h2>
-
-                <div
-                  id={`${id}Collapse`}
-                  className="accordion-collapse collapse"
-                >
-                  <div className="accordion-body">
-                    {content ? (
-                      content
-                    ) : empty ? (
-                      <div className="text-center text-muted">
-                        <small>{empty}</small>
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* View All Button */}
-          <div className="p-3 border-top border-bottom">
-            <button className="btn btn-light w-100">Xem tất cả</button>
-          </div>
-
-          {/* Security Settings */}
-          <div className="accordion accordion-flush" id="securitySettings">
-            <div className="accordion-item">
-              <h2 className="accordion-header">
-                <button
-                  className="accordion-button collapsed"
-                  data-bs-toggle="collapse"
-                  data-bs-target="#securityCollapse"
-                >
-                  <Shield size={20} className="me-2" />
-                  Thiết lập bảo mật
-                </button>
-              </h2>
-
-              <div
-                id="securityCollapse"
-                className="accordion-collapse collapse"
-              >
-                <div className="accordion-body p-0">
-                  {/* Self-destructing Messages */}
-                  <div className="d-flex align-items-center justify-content-between p-3 border-bottom hover-bg-light cursor-pointer">
-                    <div className="d-flex align-items-center">
-                      <div
-                        className="d-flex align-items-center justify-content-center rounded-circle bg-light"
-                        style={{ width: "32px", height: "32px" }}
-                      >
-                        <Clock size={18} className="text-muted" />
-                      </div>
-                      <div className="ms-2">
-                        <div className="d-flex align-items-center">
-                          Tin nhắn tự xóa
-                          <small className="ms-1">
-                            <i
-                              className="text-muted"
-                              style={{ fontSize: "14px" }}
-                            >
-                              (?)
-                            </i>
-                          </small>
-                        </div>
-                        <small className="text-muted">
-                          Chỉ dành cho trưởng hoặc phó nhóm
-                        </small>
-                      </div>
-                    </div>
+          {
+            showManageGroup ?
+              (<ManageGroup handleManageGroup={handleManageGroup} receiver={receiver}/>) :
+              (
+                <>
+                  {/* Header */}
+                  <div className="border-bottom header-right-sidebar">
+                    <h6 className="text-center">Thông tin hội thoại</h6>
                   </div>
 
-                  {/* Hide Conversation */}
-                  <div className="d-flex align-items-center justify-content-between p-3 border-bottom">
-                    <div className="d-flex align-items-center">
-                      <div
-                        className="d-flex align-items-center justify-content-center rounded-circle bg-light"
-                        style={{ width: "32px", height: "32px" }}
-                      >
-                        <EyeOff size={18} className="text-muted" />
-                      </div>
-                      <div className="ms-2">Ẩn trò chuyện</div>
-                    </div>
-                    <div className="form-check form-switch">
-                      <input
-                        className="form-check-input"
-                        type="checkbox"
-                        role="switch"
-                        style={{ width: "40px", height: "20px" }}
+                  {/* Group Profile Section */}
+                  <div className="text-center p-3 border-bottom">
+                    <div className="position-relative d-inline-block mb-2">
+
+                      <img
+                        src={avatarUrl ? avatarUrl : "/placeholder.svg"}
+                        alt="Group"
+                        className="rounded-circle"
+                        style={{ width: "80px", height: "80px" }}
+                        onClick={openModal}
                       />
+
+                      {/* Input file ẩn */}
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png"
+                        onChange={handleUpdateAvatarGroup}
+                        ref={imageInputRef}
+                        style={{ display: "none" }} // Ẩn input
+                      />
+
+                      {/* Nút tùy chỉnh */}
+                      <button className="btn btn-light btn-sm rounded-circle position-absolute bottom-0 end-0 p-1">
+                        <Edit2 size={14} onClick={handleButtonUpdateClick} />
+                      </button>
+                    </div>
+                    <h6 className="mb-3 d-flex align-items-center justify-content-center">
+                      {props.roomData.receiver.username}
+                    </h6>
+
+                    {/* Action Buttons */}
+                    <div className="d-flex justify-content-center gap-4">
+                      <div className="text-center">
+                        <button className="btn btn-light rounded-circle mb-1">
+                          <BellOff size={20} />
+                        </button>
+                        <div className="small">Tắt thông báo</div>
+                      </div>
+                      <div className="text-center">
+                        <button className="btn btn-light rounded-circle mb-1">
+                          <Pin size={20} />
+                        </button>
+                        <div className="small">Ghim hội thoại</div>
+                      </div>
+                      <div className="text-center">
+                        <button className="btn btn-light rounded-circle mb-1">
+                          <UserPlus size={20} />
+                        </button>
+                        <div className="small">Thêm thành viên</div>
+                      </div>
+                      {(role === 'leader' || role === 'deputy') && <div className="text-center">
+                        <button className="btn btn-light rounded-circle mb-1"
+                          onClick={() => setShowManageGroup(true)}>
+                          <Settings size={20} />
+                        </button>
+                        <div className="small">Quản lý nhóm</div>
+                      </div>}
                     </div>
                   </div>
 
-                  {/* Report */}
-                  <div className="d-flex align-items-center p-3 border-bottom hover-bg-light cursor-pointer">
-                    <div
-                      className="d-flex align-items-center justify-content-center rounded-circle bg-light"
-                      style={{ width: "32px", height: "32px" }}
-                    >
-                      <AlertTriangle size={18} className="text-danger" />
-                    </div>
-                    <div className="ms-2 text-danger">Báo xấu</div>
+                  {/* Collapsible Sections */}
+                  <div className="accordion accordion-flush" id="chatInfo">
+                    {sections.map(({ id, title, icon: Icon, content, empty }) => (
+                      <div key={id} className="accordion-item">
+                        <h2 className="accordion-header">
+                          <button
+                            className="accordion-button collapsed"
+                            data-bs-toggle="collapse"
+                            data-bs-target={`#${id}Collapse`}
+                          >
+                            <Icon size={20} className="me-2" />
+                            {title}
+                          </button>
+                        </h2>
+
+                        <div
+                          id={`${id}Collapse`}
+                          className="accordion-collapse collapse"
+                        >
+                          <div className="accordion-body">
+                            {content ? (
+                              content
+                            ) : empty ? (
+                              <div className="text-center text-muted">
+                                <small>{empty}</small>
+                              </div>
+                            ) : null}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
 
-                  {/* Delete Chat History */}
-                  <div className="d-flex align-items-center p-3 border-bottom hover-bg-light cursor-pointer">
-                    <div
-                      className="d-flex align-items-center justify-content-center rounded-circle bg-light"
-                      style={{ width: "32px", height: "32px" }}
-                    >
-                      <Trash2 size={18} className="text-danger" />
-                    </div>
-                    <div className="ms-2 text-danger">
-                      Xóa lịch sử trò chuyện
-                    </div>
+                  {/* View All Button */}
+                  <div className="p-3 border-top border-bottom">
+                    <button className="btn btn-light w-100">Xem tất cả</button>
                   </div>
 
-                  {/* Leave Group */}
-                  <div className="d-flex align-items-center p-3 hover-bg-light cursor-pointer">
-                    <div
-                      className="d-flex align-items-center justify-content-center rounded-circle bg-light"
-                      style={{ width: "32px", height: "32px" }}
-                    >
-                      <LogOut size={18} className="text-danger" />
+                  {/* Security Settings */}
+                  <div className="accordion accordion-flush" id="securitySettings">
+                    <div className="accordion-item">
+                      <h2 className="accordion-header">
+                        <button
+                          className="accordion-button collapsed"
+                          data-bs-toggle="collapse"
+                          data-bs-target="#securityCollapse"
+                        >
+                          <Shield size={20} className="me-2" />
+                          Thiết lập bảo mật
+                        </button>
+                      </h2>
+
+                      <div
+                        id="securityCollapse"
+                        className="accordion-collapse collapse"
+                      >
+                        <div className="accordion-body p-0">
+                          {/* Self-destructing Messages */}
+                          <div className="d-flex align-items-center justify-content-between p-3 border-bottom hover-bg-light cursor-pointer">
+                            <div className="d-flex align-items-center">
+                              <div
+                                className="d-flex align-items-center justify-content-center rounded-circle bg-light"
+                                style={{ width: "32px", height: "32px" }}
+                              >
+                                <Clock size={18} className="text-muted" />
+                              </div>
+                              <div className="ms-2">
+                                <div className="d-flex align-items-center">
+                                  Tin nhắn tự xóa
+                                  <small className="ms-1">
+                                    <i
+                                      className="text-muted"
+                                      style={{ fontSize: "14px" }}
+                                    >
+                                      (?)
+                                    </i>
+                                  </small>
+                                </div>
+                                <small className="text-muted">
+                                  Chỉ dành cho trưởng hoặc phó nhóm
+                                </small>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Hide Conversation */}
+                          <div className="d-flex align-items-center justify-content-between p-3 border-bottom">
+                            <div className="d-flex align-items-center">
+                              <div
+                                className="d-flex align-items-center justify-content-center rounded-circle bg-light"
+                                style={{ width: "32px", height: "32px" }}
+                              >
+                                <EyeOff size={18} className="text-muted" />
+                              </div>
+                              <div className="ms-2">Ẩn trò chuyện</div>
+                            </div>
+                            <div className="form-check form-switch">
+                              <input
+                                className="form-check-input"
+                                type="checkbox"
+                                role="switch"
+                                style={{ width: "40px", height: "20px" }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* Report */}
+                          <div className="d-flex align-items-center p-3 border-bottom hover-bg-light cursor-pointer">
+                            <div
+                              className="d-flex align-items-center justify-content-center rounded-circle bg-light"
+                              style={{ width: "32px", height: "32px" }}
+                            >
+                              <AlertTriangle size={18} className="text-danger" />
+                            </div>
+                            <div className="ms-2 text-danger">Báo xấu</div>
+                          </div>
+
+                          {/* Delete Chat History */}
+                          <div className="d-flex align-items-center p-3 border-bottom hover-bg-light cursor-pointer">
+                            <div
+                              className="d-flex align-items-center justify-content-center rounded-circle bg-light"
+                              style={{ width: "32px", height: "32px" }}
+                            >
+                              <Trash2 size={18} className="text-danger" />
+                            </div>
+                            <div className="ms-2 text-danger">
+                              Xóa lịch sử trò chuyện
+                            </div>
+                          </div>
+
+                          {/* Leave Group */}
+                          <div className="d-flex align-items-center p-3 hover-bg-light cursor-pointer">
+                            <div
+                              className="d-flex align-items-center justify-content-center rounded-circle bg-light"
+                              style={{ width: "32px", height: "32px" }}
+                            >
+                              <LogOut size={18} className="text-danger" />
+                            </div>
+                            <div className="ms-2 text-danger">Rời nhóm</div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <div className="ms-2 text-danger">Rời nhóm</div>
                   </div>
-                </div>
-              </div>
-            </div>
-          </div>
+                </>
+              )
+
+          }
         </div>
-      )}
+
+      }
+
 
       {popupVisible && selectedMessage?.type !== "system" && (
         <div

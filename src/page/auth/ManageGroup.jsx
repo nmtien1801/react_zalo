@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Trash, UserX, Users } from 'lucide-react';
+import { updatePermission } from '../../redux/chatSlice'
+import { getAllPermission } from '../../redux/permissionSlice'
 
 const ManageGroup = (props) => {
     const dispatch = useDispatch();
@@ -9,29 +11,51 @@ const ManageGroup = (props) => {
     const navigate = useNavigate();
     const receiver = props.receiver
 
-    const permissions = [
-        "Thay đổi tên & ảnh đại diện của nhóm",
-        "Ghim tin nhắn, ghi chú, bình chọn lên đầu hội thoại",
-        "Tạo mới ghi chú, nhắc hẹn",
-        "Tạo mới bình chọn",
-        "Gửi tin nhắn",
-    ];
-    const [checkedStates, setCheckedStates] = useState(Array(permissions.length).fill(true));
+    const permissions = useSelector((state) => state.permission.permission);
+
+    const [checkedStates, setCheckedStates] = useState([]);
+
+    // getAllPermission
+    useEffect(() => {
+        dispatch(getAllPermission())
+    }, [])
 
     const handleCheckboxChange = (index) => {
         const updated = [...checkedStates];
         updated[index] = !updated[index];
         setCheckedStates(updated);
+
+        // Tạo danh sách permission dựa trên checkedStates
+        const newPermissions = updated
+            .map((isChecked, idx) => (isChecked ? idx + 1 : null))
+            .filter((perm) => perm !== null);
+
+        // Gọi hàm cập nhật permission trong DB
+        updatePermissionsInDB(newPermissions);
     };
 
     useEffect(() => {
-        if (receiver?.permission) {
+        if (receiver?.permission && permissions.length > 0) {
             const updatedStates = permissions.map((_, index) =>
                 receiver.permission.includes(index + 1)
             );
             setCheckedStates(updatedStates);
         }
-    }, [receiver]);
+    }, [receiver, permissions]);
+
+    // Hàm gửi yêu cầu cập nhật permission đến server
+    const updatePermissionsInDB = async (newPermissions) => {
+        try {
+            // Giả sử bạn có một API endpoint để cập nhật permission
+            let res = await dispatch(updatePermission({ groupId: receiver._id, newPermission: newPermissions }))
+            console.log('updatePermission ', res);
+
+            console.log("Permissions updated in DB:", newPermissions);
+        } catch (error) {
+            console.error("Error updating permissions:", error);
+            // Có thể hiển thị thông báo lỗi cho người dùng
+        }
+    };
 
     return (
         <>
@@ -53,7 +77,7 @@ const ManageGroup = (props) => {
                         <h5 className="mb-0">Cho phép các thành viên trong nhóm:</h5>
                     </div>
                     <div className="card-body">
-                        {permissions.map((text, idx) => (
+                        {permissions && checkedStates.length === permissions.length && permissions.map((per, idx) => (
                             <div className="form-check mb-2" key={idx}>
                                 <input
                                     className="form-check-input"
@@ -61,7 +85,7 @@ const ManageGroup = (props) => {
                                     checked={checkedStates[idx]}
                                     onChange={() => handleCheckboxChange(idx)}
                                 />
-                                <label className="form-check-label">{text}</label>
+                                <label className="form-check-label">{per.desc}</label>
                             </div>
                         ))}
                     </div>

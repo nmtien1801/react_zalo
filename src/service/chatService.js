@@ -1,22 +1,20 @@
 import customizeAxios from "../component/customizeAxios";
 
 const loadMessagesService = (sender, receiver, type) => {
-  return customizeAxios.get(
-    `/api/messages/${sender}/${receiver}/${type}`
-  );
+  return customizeAxios.get(`/api/messages/${sender}/${receiver}/${type}`);
 };
 
-
 const getConversationsService = (sender) => {
-  return customizeAxios.get(
-    `/api/getConversations/${sender}`
-  );
+  return customizeAxios.get(`/api/getConversations/${sender}`);
 };
 
 const createConversationGroupService = (nameGroup, avatarGroup, members) => {
-  return customizeAxios.post(
-    `/api/createConversationGroup`, {nameGroup, avatarGroup, members});
-}
+  return customizeAxios.post(`/api/createConversationGroup`, {
+    nameGroup,
+    avatarGroup,
+    members,
+  });
+};
 
 const recallMessageService = (id) => {
   return customizeAxios.put(`/api/messages/recall/${id}`);
@@ -27,11 +25,31 @@ const deleteMessageForMeService = (id, userId) => {
 };
 
 const sendReactionService = (messageId, userId, emoji) => {
-  return customizeAxios.post(`/api/messages/handleReaction`, {messageId, userId, emoji});
-}
+  return customizeAxios.post(`/api/messages/handleReaction`, {
+    messageId,
+    userId,
+    emoji,
+  });
+};
 
 const getReactionMessageService = (messageId) => {
   return customizeAxios.get(`/api/messages/${messageId}/reactions/`);
-}
+};
 
-export { loadMessagesService, getConversationsService, createConversationGroupService, recallMessageService, deleteMessageForMeService, sendReactionService, getReactionMessageService };
+const updatePermissionService = (groupId, newPermission) => {
+  return customizeAxios.post(`/api/updatePermission`, {
+    groupId,
+    newPermission,
+  });
+};
+
+export {
+  loadMessagesService,
+  getConversationsService,
+  createConversationGroupService,
+  recallMessageService,
+  deleteMessageForMeService,
+  sendReactionService,
+  getReactionMessageService,
+  updatePermissionService,
+};

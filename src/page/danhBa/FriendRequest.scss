@@ -1,0 +1,107 @@
+.friend-request-container {
+    padding            : 20px;
+    margin             : 0 auto;
+    background-color   : #fff;
+    border-radius      : 12px;
+    box-shadow         : 0 4px 16px rgba(0, 0, 0, 0.08);
+    font-family        : 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    // max-width       : 800px;
+
+    h5 {
+        font-size    : 20px;
+        margin-bottom: 24px;
+        font-weight  : 600;
+        color        : #333;
+    }
+
+    // Thêm grid layout để hiển thị 2 cột
+    .friend-request-grid {
+        display              : grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap                  : 20px;
+    }
+}
+
+.friend-request-card {
+    display         : flex;
+    align-items     : flex-start;
+    padding         : 16px;
+    background-color: #f9f9f9;
+    border-radius   : 10px;
+    transition      : box-shadow 0.3s;
+    border          : 1px solid #e0e0e0;
+
+    &:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+}
+
+.avatar {
+    width        : 56px;
+    height       : 56px;
+    border-radius: 50%;
+    object-fit   : cover;
+    margin-right : 16px;
+    border       : 2px solid #ccc;
+}
+
+.friend-request-info {
+    flex: 1;
+
+    .friend-request-header {
+        display      : flex;
+        align-items  : center;
+        margin-bottom: 4px;
+
+        .friend-name {
+            font-size  : 17px;
+            font-weight: 600;
+            color      : #2c3e50;
+        }
+    }
+
+    .friend-date {
+        font-size    : 12px;
+        color        : #888;
+        margin-bottom: 8px;
+        display      : inline-block;
+    }
+
+    .friend-message {
+        font-size    : 14px;
+        color        : #555;
+        margin-bottom: 12px;
+    }
+
+    .friend-actions {
+        display: flex;
+        gap    : 12px;
+
+        .btn {
+            padding      : 6px 14px;
+            font-size    : 14px;
+            border-radius: 8px;
+            transition   : all 0.3s ease;
+
+            &.btn-outline-secondary {
+                background-color: transparent;
+                border          : 1px solid #aaa;
+                color           : #444;
+
+                &:hover {
+                    background-color: #eee;
+                }
+            }
+
+            &.btn-primary {
+                background-color: #007bff;
+                border          : none;
+                color           : white;
+
+                &:hover {
+                    background-color: #0069d9;
+                }
+            }
+        }
+    }
+}

@@ -1,20 +1,22 @@
-// /* Add these additional styles */
-// .form-check-input {
-//     background-color: #e9ecef;
-//     border-color: #e9ecef;
-//     cursor: pointer;
-//   }
-  
-//   .form-check-input:checked {
-//     background-color: #0068ff;
-//     border-color: #0068ff;
-//   }
-  
-//   .form-switch .form-check-input {
-//     margin-left: 0;
-//   }
-  
-//   .form-switch .form-check-input:focus {
-//     box-shadow: none;
-//   }
-  
+.cursor-pointer {
+    cursor: pointer;
+}
+
+.hover-bg-light:hover {
+    background-color: #f8f9fa;
+}
+
+.header-right-sidebar {
+    padding-top: 17px;
+    padding-bottom: 17px;
+    padding-left: 8px;
+}
+
+.search-border {
+    border-bottom: 1px solid #e9ecef;
+    padding      : 11px;
+}
+
+.red {
+    background-color: red;
+}

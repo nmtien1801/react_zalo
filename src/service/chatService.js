@@ -23,7 +23,7 @@ const recallMessageService = (id) => {
 };
 
 const deleteMessageForMeService = (id, userId) => {
-  return customizeAxios.put(`/api/messages/deleteForMe/${id}`, { userId });
+  return customizeAxios.put(`/api/messages/deleteForMe/${id}`, userId);
 };
 
 const sendReactionService = (messageId, userId, emoji) => {

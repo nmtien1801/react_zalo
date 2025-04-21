@@ -150,6 +150,8 @@ export default function ChatInterface() {
       setSearchResults([]);
     }
 
+    setMembers([{ _id: user._id, phone: user.phone, avatar: user.avatar }]);
+
     setShowPopupCreateGroup(true);
   };
 
@@ -635,7 +637,7 @@ export default function ChatInterface() {
 
                   {/* Danh sách đã chọn */}
                   {members.length > 0 && (
-                    <div className="col-auto">
+                    <div className="col-auto" style={{ maxWidth: "300px", minWidth: "200px" }}>
                       <div className="selected-list">
                         <h6>Đã chọn</h6>
                         <div className="selected-list-container">
@@ -647,13 +649,22 @@ export default function ChatInterface() {
                                 className="rounded-circle"
                                 style={{ width: "40px", height: "40px" }}
                               />
-                              <span className="ms-2 me-2">{member.name || member.phone}</span>
-                              <button
-                                className="btn btn-danger btn-sm ms-auto"
-                                onClick={() => handleSelectUser(member)} // Bỏ chọn khi nhấn nút
-                              >
-                                Xóa
-                              </button>
+                              
+                              {member.phone === user.phone ? (
+                                <>
+                                  <span className="text-muted fst-italic ms-2 me-2">Bạn</span>
+                                </>
+                              ) : (
+                                <>
+                                  <span className="ms-2 me-2">{member.name || member.phone}</span>
+                                  <button
+                                    className="btn btn-danger btn-sm ms-auto"
+                                    onClick={() => handleSelectUser(member)}
+                                  >
+                                    Xóa
+                                  </button>
+                                </>
+                              )}
                             </div>
                           ))}
                         </div>

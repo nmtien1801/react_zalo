@@ -41,15 +41,17 @@ import { deleteMessageForMeService, recallMessageService } from "../../service/c
 import ImageViewer from "./ImageViewer.jsx";
 import ShareMsgModal from "../../component/ShareMsgModal.jsx";
 import ManageGroup from "../auth/ManageGroup.jsx"
+import { uploadAvatarGroup } from '../../redux/profileSlice.js'
 
 export default function ChatGroup(props) {
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.userInfo);
-  const [avatarUrl, setAvatarUrl] = useState(""); // update avatar group
+  const [avatarUrl, setAvatarUrl] = useState(props.roomData.receiver.avatar); // update avatar group
   const receiver = props.roomData.receiver;
   const fileInputRef = useRef(null); // Ref để truy cập input file ẩn
   const imageInputRef = useRef(null); // Ref để truy cập input ảnh nhóm
   const messagesEndRef = useRef(null);
+  const avatarInputRef = useRef(null);  // Ref để truy cập input avatar nhóm
 
   const [showSidebar, setShowSidebar] = useState(true);
   const [message, setMessage] = useState("");
@@ -211,6 +213,7 @@ export default function ChatGroup(props) {
     }
   };
 
+  // xử lý upload image
   const handleImageChange = async (e) => {
     const selectedImages = e.target.files;
 
@@ -244,11 +247,12 @@ export default function ChatGroup(props) {
     }
   };
 
-  // Kích hoạt input file khi nhấn nút
+  // Kích hoạt input ẩn file khi nhấn nút
   const handleButtonClick = () => {
     fileInputRef.current.click(); // Mở dialog chọn file
   };
 
+  // Kích hoạt input ẩn image khi nhấn nút
   const handleButtonClickImage = () => {
     imageInputRef.current.click(); // Mở dialog chọn file
   };
@@ -262,9 +266,9 @@ export default function ChatGroup(props) {
     setSelectedImage(null);
   };
 
-  // Kích hoạt input file khi nhấn nút
+  // Kích hoạt input ẩn avatar khi nhấn nút
   const handleButtonUpdateClick = () => {
-    imageInputRef.current.click(); // Mở dialog chọn file
+    avatarInputRef.current.click(); // Mở dialog chọn file
   };
 
   // Xử lý upload avatar group
@@ -282,16 +286,16 @@ export default function ChatGroup(props) {
     try {
       const response = await dispatch(uploadAvatar({ formData }));
 
-      const { EM, EC, DT } = response.payload;
-      if (EC === 0) {
-        console.log('chua update avatar group xuong db');
-        setAvatarUrl(DT);
+      if (response.payload.EC === 0) {
+        console.log('res S3 avatar', response.payload.DT);
+        let res = await dispatch(uploadAvatarGroup({ groupId: props.roomData.receiver._id, avatar: response.payload.DT }))
+
+        setAvatarUrl(response.payload.DT);
       } else {
-        alert('err')
+        console.log('err upload ', response.payload.EM);
       }
     } catch (error) {
       console.error("Upload error:", error);
-      alert('err')
     }
   };
 
@@ -696,7 +700,7 @@ export default function ChatGroup(props) {
         >
           {
             showManageGroup ?
-              (<ManageGroup handleManageGroup={handleManageGroup} receiver={receiver}/>) :
+              (<ManageGroup handleManageGroup={handleManageGroup} receiver={receiver} />) :
               (
                 <>
                   {/* Header */}
@@ -721,7 +725,7 @@ export default function ChatGroup(props) {
                         type="file"
                         accept="image/jpeg,image/png"
                         onChange={handleUpdateAvatarGroup}
-                        ref={imageInputRef}
+                        ref={avatarInputRef}
                         style={{ display: "none" }} // Ẩn input
                       />
 

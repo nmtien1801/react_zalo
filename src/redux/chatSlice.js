@@ -73,8 +73,6 @@ const chatSlice = createSlice({
     builder
       .addCase(getConversations.fulfilled, (state, action) => {
         if (action.payload.EC === 0) {
-          console.log("getConversations: ", action.payload);
-
           state.conversations = action.payload.DT || [];
         }
       })

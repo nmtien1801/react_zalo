@@ -132,9 +132,6 @@ export default function ChatInterface() {
     }
   };
 
-  console.log(onlineUsers, "onlineUsers");
-
-
   // Hàm mở popup
   const handleOpenPopupCreateGroup = async () => {
 

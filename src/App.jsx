@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -18,13 +18,22 @@ import Register from "./page/auth/Register";
 import { useSelector, useDispatch } from "react-redux";
 import { doGetAccount } from "./redux/authSlice";
 import ChatInfoPanel from "./page/danhBa/DanhBa";
-// import CallControls from "./component/CallControls";
 import ResetPassword from "./page/auth/ResetPassword";
+import io from "socket.io-client";
 
 function App() {
   const dispatch = useDispatch();
   let isLoggedIn = useSelector((state) => state.auth.isLoggedIn);
   const user = useSelector((state) => state.auth.userInfo);
+  const socketRef = useRef();
+
+   // connect docket
+   useEffect(() => {
+    const socket = io.connect(import.meta.env.VITE_BACKEND_URL);
+
+    socketRef.current = socket;
+  }, []);
+  // console.log("Connected to socket server with ID:", socketRef);
 
   const fetchDataAccount = async () => {
     if (!user || !user?.access_Token) {
@@ -50,7 +59,7 @@ function App() {
             <Route path="/register" element={<Register />} />
             <Route path="/forgot-password" element={<ResetPassword />} />
 
-            <Route path="/chat" element={isLoggedIn && <Chat />} />
+            <Route path="/chat" element={isLoggedIn && <Chat socketRef={socketRef}/>} />
             <Route path="/danh-ba" element={isLoggedIn && <DanhBa />} />
           </Routes>
         </div>

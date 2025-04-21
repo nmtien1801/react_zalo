@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Search, UserPlus, Users } from "lucide-react";
 import "./Chat.scss";
 import ChatPerson from "./ChatPerson";
@@ -9,7 +9,6 @@ import AddFriendModal from "../../component/AddFriendModal";
 import { Modal } from "react-bootstrap";
 import { loadMessages, getConversations } from "../../redux/chatSlice";
 import { useSelector, useDispatch } from "react-redux";
-import io from "socket.io-client";
 
 import axios from "axios";
 import { getUserByPhoneService } from "../../service/userService";
@@ -17,14 +16,13 @@ import { createConversationGroupService } from "../../service/chatService";
 import { getFriendListService } from "../../service/friendShipService";
 import { uploadAvatar } from "../../redux/profileSlice";
 
-export default function ChatInterface() {
+export default function ChatInterface(props) {
   const dispatch = useDispatch();
-  const socketRef = useRef();
+  const socketRef = props.socketRef
 
   const [allMsg, setAllMsg] = useState([]);
   const user = useSelector((state) => state.auth.userInfo);
   const conversationRedux = useSelector((state) => state.chat.conversations);
-  const [isConnect, setIsConnect] = useState(false); // connect socket
   const [selected, setSelected] = useState(0);
 
   const [showPopupCreateGroup, setShowPopupCreateGroup] = useState(false);
@@ -62,50 +60,31 @@ export default function ChatInterface() {
   };
   const [showModalAddFriend, setShowModalAddFriend] = useState(false);
 
-  // connect docket
-  useEffect(() => {
-    const socket = io.connect(import.meta.env.VITE_BACKEND_URL);
-
-    socketRef.current = socket;
-    socket.on("connect", () => setIsConnect(true));
-    socket.off("disconnect", () => setIsConnect(false));
-  }, []);
-  // console.log("Connected to socket server with ID:", socketRef);
-
   // action socket
   useEffect(() => {
-    if (isConnect) {
+    socketRef.current.emit("register", user._id);
 
-      socketRef.current.emit("register", user._id);
+    socketRef.current.on("user-list", (usersList) => {
+      setOnlineUsers(usersList); // Lưu danh sách user online
+    });
 
-      socketRef.current.on("user-list", (usersList) => {
-        setOnlineUsers(usersList); // Lưu danh sách user online
-      });
+    socketRef.current.on("RECEIVED_MSG", (data) => {
+      console.log("form another users", data);
+      setAllMsg((prevState) => [...prevState, data]);
+    });
 
-      socketRef.current.on("RECEIVED_MSG", (data) => {
-        console.log("form another users", data);
-        setAllMsg((prevState) => [...prevState, data]);
-      });
+    socketRef.current.on("RECALL_MSG", (data) => {
+      setAllMsg((prevMsgs) =>
+        prevMsgs.map((msg) =>
+          msg._id === data._id
+            ? { ...msg, msg: "Tin nhắn đã được thu hồi", type: "system" }
+            : msg
+        )
+      );
+    });
 
-      socketRef.current.on("RECALL_MSG", (data) => {
-        setAllMsg((prevMsgs) =>
-          prevMsgs.map((msg) =>
-            msg._id === data._id
-              ? { ...msg, msg: "Tin nhắn đã được thu hồi", type: "system" }
-              : msg
-          )
-        );
-      });
-
-      socketRef.current.on("DELETED_MSG", (data) => {
-        setAllMsg((prevState) =>
-          prevState.filter((item) => item._id != data.msg._id)
-        );
-      });
-
-      return () => socketRef.current.disconnect();
-    }
-  }, [isConnect]);
+    return () => socketRef.current.disconnect();
+  }, []);
 
   const handleSendMsg = (msg, typeUpload) => {
     if (socketRef.current.connected) {
@@ -154,10 +133,10 @@ export default function ChatInterface() {
 
   // Hàm đóng popup
   const handleClosePopupCreateGroup = () => {
-    document.querySelector("#group-name").value = ""; 
-    document.querySelector("#group-avatar").value = ""; 
+    document.querySelector("#group-name").value = "";
+    document.querySelector("#group-avatar").value = "";
     setGroupAvatarPreview("https://i.imgur.com/cIRFqAL.png");
-    setMembers([]); 
+    setMembers([]);
     setShowPopupCreateGroup(false);
 
 
@@ -295,7 +274,7 @@ export default function ChatInterface() {
         return;
       }
 
-      if(selectedMembers.length < 3) {
+      if (selectedMembers.length < 3) {
         alert("Vui lòng chọn ít nhất ba thành viên.");
         return;
       }
@@ -646,7 +625,7 @@ export default function ChatInterface() {
                                 className="rounded-circle"
                                 style={{ width: "40px", height: "40px" }}
                               />
-                              
+
                               {member.phone === user.phone ? (
                                 <>
                                   <span className="text-muted fst-italic ms-2 me-2">Bạn</span>

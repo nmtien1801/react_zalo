@@ -420,9 +420,6 @@ export default function ChatPerson(props) {
     const chatContainer = document.querySelector(".chat-container");
     const containerRect = chatContainer.getBoundingClientRect();
 
-    // console.log(x);
-    // console.log(containerRect.right);
-
     if (x > containerRect.right - 200) { 
       x = rect.left - containerRect.right - 50;
     }else {
@@ -430,13 +427,6 @@ export default function ChatPerson(props) {
     }
 
     y = 0;
-
-    // const reactionList = await getReactions(messageId);
-
-    // setReactions((prev) => ({
-    //   ...prev,
-    //   [messageId]: reactionList, 
-    // }));
   
     setReactionPopupVisible({
       messageId,

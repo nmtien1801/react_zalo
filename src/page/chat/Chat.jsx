@@ -14,6 +14,8 @@ import io from "socket.io-client";
 import axios from "axios";
 import { getUserByPhoneService } from "../../service/userService";
 import { createConversationGroupService } from "../../service/chatService";
+import { getFriendListService } from "../../service/friendShipService";
+import { uploadAvatar } from "../../redux/profileSlice";
 
 export default function ChatInterface() {
   const dispatch = useDispatch();
@@ -29,6 +31,7 @@ export default function ChatInterface() {
   const [searchResults, setSearchResults] = useState([]); // Khởi tạo là mảng rỗng
   const [members, setMembers] = useState([]);
 
+  const [groupAvatarPreview, setGroupAvatarPreview] = useState("https://i.imgur.com/cIRFqAL.png");
 
   const [roomData, setRoomData] = useState({
     room: null,
@@ -133,13 +136,32 @@ export default function ChatInterface() {
 
 
   // Hàm mở popup
-  const handleOpenPopupCreateGroup = () => {
+  const handleOpenPopupCreateGroup = async () => {
+
+    try {
+      const response = await getFriendListService();
+      if (response.EC === 0 && response.DT) {
+        setSearchResults(response.DT); // Lưu danh sách bạn bè vào searchResults
+      } else {
+        setSearchResults([]); // Không có bạn bè
+      }
+    } catch (error) {
+      console.error("Lỗi khi lấy danh sách bạn bè:", error);
+      setSearchResults([]);
+    }
+
     setShowPopupCreateGroup(true);
   };
 
   // Hàm đóng popup
   const handleClosePopupCreateGroup = () => {
+    document.querySelector("#group-name").value = ""; 
+    document.querySelector("#group-avatar").value = ""; 
+    setGroupAvatarPreview("https://i.imgur.com/cIRFqAL.png");
+    setMembers([]); 
     setShowPopupCreateGroup(false);
+
+
   };
 
   const handleTypeChat = (type, receiver) => {
@@ -186,8 +208,39 @@ export default function ChatInterface() {
   const handleSearchPhone = async (e) => {
     const query = e.target.value.trim(); // Lấy giá trị từ input
     if (!query) {
-      setSearchResults([]); // Xóa kết quả nếu input rỗng
+
+      try {
+        const response = await getFriendListService();
+        if (response.EC === 0 && response.DT) {
+          setSearchResults(response.DT); // Lưu danh sách bạn bè vào searchResults
+        } else {
+          setSearchResults([]); // Không có bạn bè
+        }
+      } catch (error) {
+        console.error("Lỗi khi lấy danh sách bạn bè:", error);
+        setSearchResults([]);
+      }
       return;
+
+    }
+
+    // Kiểm tra xem query có phải là số điện thoại hay không
+    const isPhoneNumber = /^\d+$/.test(query);
+    if (!isPhoneNumber) {
+
+      try {
+        const response = await getFriendListService();
+        if (response.EC === 0 && response.DT) {
+          setSearchResults(response.DT); // Lưu danh sách bạn bè vào searchResults
+        } else {
+          setSearchResults([]); // Không có bạn bè
+        }
+      } catch (error) {
+        console.error("Lỗi khi lấy danh sách bạn bè:", error);
+        setSearchResults([]);
+      }
+      return;
+
     }
 
     try {
@@ -205,6 +258,14 @@ export default function ChatInterface() {
     } catch (error) {
       console.error("Lỗi khi tìm kiếm số điện thoại:", error);
       setSearchResults([]); // Xóa kết quả nếu có lỗi
+    }
+  };
+
+  const handleAvatarUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const previewUrl = URL.createObjectURL(file); // Tạo URL tạm thời
+      setGroupAvatarPreview(previewUrl); // Lưu URL vào state
     }
   };
 
@@ -230,39 +291,55 @@ export default function ChatInterface() {
       const selectedMembers = members.map((member) => member._id);
 
       // Kiểm tra dữ liệu đầu vào
-      if (!nameGroup || selectedMembers.length < 2) {
-        alert("Vui lòng nhập tên nhóm và chọn ít nhất hai thành viên.");
+      if (!nameGroup) {
+        alert("Vui lòng nhập tên nhóm.");
+        return;
+      }
+
+      if(selectedMembers.length < 3) {
+        alert("Vui lòng chọn ít nhất ba thành viên.");
         return;
       }
 
       // Xử lý upload avatar nếu có
       let avatarUrl = "";
       if (avatarGroup) {
-        const formData = new FormData();
-        formData.append("file", avatarGroup);
-        formData.append("upload_preset", "your_upload_preset"); // Thay bằng upload preset của bạn nếu dùng Cloudinary
 
-        const uploadRes = await axios.post(
-          "https://api.cloudinary.com/v1_1/your_cloud_name/image/upload",
-          formData
-        );
-        avatarUrl = uploadRes.data.secure_url;
+        const formData = new FormData();
+        formData.append("avatar", avatarGroup);
+
+        try {
+          const response = await dispatch(uploadAvatar({ formData }));
+          if (response.payload.EC === 0) {
+            avatarUrl = response.payload.DT;
+          } else {
+            alert(response.payload.EM || "Lỗi khi tải lên ảnh!");
+          }
+        } catch (error) {
+          console.error("Lỗi khi tải lên ảnh:", error);
+          alert("Đã xảy ra lỗi khi tải lên ảnh.");
+        }
       }
 
       console.log(selectedMembers);
 
-      // Gửi yêu cầu đến API tạo nhóm
-      const response = await createConversationGroupService({
-        nameGroup,
-        avatarGroup: avatarUrl,
-        members: selectedMembers,
-      });
+      // Nếu không có avatar, sử dụng ảnh mặc định
+      if (avatarUrl.trim() === "") {
+        avatarUrl = "https://i.imgur.com/jUTa2UN.png";
+      }
 
-      if (response.data.EC === 0) {
+      // Gửi yêu cầu đến API tạo nhóm
+      const response = await createConversationGroupService(
+        nameGroup,
+        avatarUrl,
+        selectedMembers,
+      );
+
+      if (response.EC === 0) {
         alert("Tạo nhóm thành công!");
         setShowPopupCreateGroup(false); // Đóng popup
       } else {
-        alert(response.data.EM || "Đã xảy ra lỗi khi tạo nhóm.");
+        alert(response.EM || "Đã xảy ra lỗi khi tạo nhóm.");
       }
     } catch (error) {
       console.error("Lỗi khi tạo nhóm:", error);
@@ -345,7 +422,8 @@ export default function ChatInterface() {
                     show={showModalAddFriend}
                     onHide={() => setShowModalAddFriend(false)}
                   />
-                  <button className="btn btn-light rounded-circle mb-1">
+                  <button className="btn btn-light rounded-circle mb-1"
+                    onClick={() => handleOpenPopupCreateGroup()}>
                     <Users size={20} />
                   </button>
                 </>
@@ -472,7 +550,7 @@ export default function ChatInterface() {
                   <div className="avatar-upload position-relative">
                     <label htmlFor="group-avatar" className="avatar-label">
                       <img
-                        src="https://i.imgur.com/cIRFqAL.png"
+                        src={groupAvatarPreview}
                         alt="Avatar"
                         className="rounded-circle"
                         style={{ width: "50px", height: "50px", cursor: "pointer" }}
@@ -520,31 +598,68 @@ export default function ChatInterface() {
                     )}
                   </div>
                 </div>
-                <div className="group-list">
-                  <h6>Trò chuyện gần đây</h6>
-                  <div className="group-list-container">
-                    {searchResults.map((user) => (
-                      <div key={user._id} className="group-item">
-                        <input
-                          type="checkbox"
-                          id={`user-${user._id}`}
-                          name="group-user"
-                          value={user._id}
-                          checked={members.some((member) => member._id === user._id)} // Kiểm tra nếu user đã được chọn
-                          onChange={() => handleSelectUser(user)} // Gọi hàm xử lý khi chọn/bỏ chọn
-                        />
-                        <label htmlFor={`user-${user._id}`} className="d-flex align-items-center">
-                          <img
-                            src={user.avatar || "/placeholder.svg"}
-                            alt={user.name}
-                            className="rounded-circle"
-                            style={{ width: "40px", height: "40px" }}
-                          />
-                          <span className="ms-2">{user.name || user.phone}</span>
-                        </label>
+                <div className="row">
+                  {/* Danh sách tìm kiếm */}
+                  <div className="col">
+                    <div className="group-list">
+                      <h6>Bạn bè gần đây</h6>
+                      <div className="group-list-container">
+                        {searchResults.length > 0 ? (
+                          searchResults.map((user) => (
+                            <div key={user._id} className="group-item">
+                              <input
+                                type="checkbox"
+                                id={`user-${user._id}`}
+                                name="group-user"
+                                value={user._id}
+                                checked={members.some((member) => member._id === user._id)}
+                                onChange={() => handleSelectUser(user)} // Gọi hàm xử lý khi chọn/bỏ chọn
+                              />
+                              <label htmlFor={`user-${user._id}`} className="d-flex align-items-center">
+                                <img
+                                  src={user.avatar || "/placeholder.svg"}
+                                  alt={user.name}
+                                  className="rounded-circle"
+                                  style={{ width: "40px", height: "40px" }}
+                                />
+                                <span className="ms-2">{user.name || user.phone}</span>
+                              </label>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-muted">Không tìm thấy kết quả nào</div>
+                        )}
                       </div>
-                    ))}
+                    </div>
                   </div>
+
+                  {/* Danh sách đã chọn */}
+                  {members.length > 0 && (
+                    <div className="col-auto">
+                      <div className="selected-list">
+                        <h6>Đã chọn</h6>
+                        <div className="selected-list-container">
+                          {members.map((member) => (
+                            <div key={member._id} className="selected-item d-flex align-items-center mb-2">
+                              <img
+                                src={member.avatar || "/placeholder.svg"}
+                                alt={member.name}
+                                className="rounded-circle"
+                                style={{ width: "40px", height: "40px" }}
+                              />
+                              <span className="ms-2 me-2">{member.name || member.phone}</span>
+                              <button
+                                className="btn btn-danger btn-sm ms-auto"
+                                onClick={() => handleSelectUser(member)} // Bỏ chọn khi nhấn nút
+                              >
+                                Xóa
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

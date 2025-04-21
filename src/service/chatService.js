@@ -13,9 +13,9 @@ const getConversationsService = (sender) => {
   );
 };
 
-const createConversationGroupService = (data) => {
+const createConversationGroupService = (nameGroup, avatarGroup, members) => {
   return customizeAxios.post(
-    `/api/createConversationGroup`, data);
+    `/api/createConversationGroup`, {nameGroup, avatarGroup, members});
 }
 
 const recallMessageService = (id) => {

@@ -62,10 +62,9 @@ export default function ChatInterface(props) {
 
   // action socket
   useEffect(() => {
-    socketRef.current.emit("register", user._id);
-
     socketRef.current.on("user-list", (usersList) => {
       setOnlineUsers(usersList); // Lưu danh sách user online
+
     });
 
     socketRef.current.on("RECEIVED_MSG", (data) => {
@@ -83,8 +82,17 @@ export default function ChatInterface(props) {
       );
     });
 
-    return () => socketRef.current.disconnect();
-  }, []);
+    // accept friend
+    socketRef.current.on("RES_ACCEPT_FRIEND", async () => {
+      dispatch(getConversations(user._id));
+    });
+
+    // delete friend
+    socketRef.current.on("RES_DELETE_FRIEND", async () => {
+      dispatch(getConversations(user._id));
+    });
+
+  }, [socketRef]);
 
   const handleSendMsg = (msg, typeUpload) => {
     if (socketRef.current.connected) {
@@ -399,6 +407,7 @@ export default function ChatInterface(props) {
                   <AddFriendModal
                     show={showModalAddFriend}
                     onHide={() => setShowModalAddFriend(false)}
+                    socketRef={socketRef}
                   />
                   <button className="btn btn-light rounded-circle mb-1"
                     onClick={() => handleOpenPopupCreateGroup()}>

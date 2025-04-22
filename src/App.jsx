@@ -27,13 +27,20 @@ function App() {
   const user = useSelector((state) => state.auth.userInfo);
   const socketRef = useRef();
 
-   // connect docket
-   useEffect(() => {
+  // connect docket
+  useEffect(() => {
     const socket = io.connect(import.meta.env.VITE_BACKEND_URL);
 
     socketRef.current = socket;
   }, []);
   // console.log("Connected to socket server with ID:", socketRef);
+
+  // action socket
+  useEffect(() => {
+    if (user && user._id) {
+      socketRef.current.emit("register", user._id);
+    }
+  }, [user]);
 
   const fetchDataAccount = async () => {
     if (!user || !user?.access_Token) {
@@ -59,8 +66,8 @@ function App() {
             <Route path="/register" element={<Register />} />
             <Route path="/forgot-password" element={<ResetPassword />} />
 
-            <Route path="/chat" element={isLoggedIn && <Chat socketRef={socketRef}/>} />
-            <Route path="/danh-ba" element={isLoggedIn && <DanhBa />} />
+            <Route path="/chat" element={isLoggedIn && <Chat socketRef={socketRef} />} />
+            <Route path="/danh-ba" element={isLoggedIn && <DanhBa socketRef={socketRef} />} />
           </Routes>
         </div>
       </div>

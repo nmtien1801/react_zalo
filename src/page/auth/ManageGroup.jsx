@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Trash, UserX, Users } from 'lucide-react';
 import { updatePermission } from '../../redux/chatSlice'
 import { getAllPermission } from '../../redux/permissionSlice'
+import ManagePermissionModal from '../auth/ManagePermissionModal'
 
 const ManageGroup = (props) => {
     const dispatch = useDispatch();
@@ -14,6 +15,15 @@ const ManageGroup = (props) => {
     const permissions = useSelector((state) => state.permission.permission);
 
     const [checkedStates, setCheckedStates] = useState([]);
+    const [isModalOpen, setIsModalOpen] = useState(false); // mở modal ManagePermissionModal 
+
+    const openModal = () => {
+        setIsModalOpen(true);
+    };
+
+    const closeModal = () => {
+        setIsModalOpen(false);
+    };
 
     // getAllPermission
     useEffect(() => {
@@ -141,9 +151,12 @@ const ManageGroup = (props) => {
                         <button className="btn btn-outline-danger w-100 mb-2 d-flex align-items-center justify-content-center gap-2">
                             <UserX size={18} /> Chặn khỏi nhóm
                         </button>
-                        <button className="btn btn-outline-secondary w-100 d-flex align-items-center justify-content-center gap-2">
+                        <button className="btn btn-outline-secondary w-100 d-flex align-items-center justify-content-center gap-2"
+                            onClick={openModal}
+                        >
                             <Users size={18} /> Trưởng & phó nhóm
                         </button>
+                        {isModalOpen && <ManagePermissionModal closeModal={closeModal} receiver={receiver}/>}
                     </div>
                 </div>
 

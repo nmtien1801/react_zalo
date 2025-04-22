@@ -81,7 +81,7 @@ export default function ChatGroup(props) {
 
   // ManageGroup
   const [showManageGroup, setShowManageGroup] = useState(false)
-  const [role, setRole] = useState('member')
+  const [role, setRole] = useState('')
 
   const [sections] = useState([
     { id: "media", title: "Ảnh/Video", icon: ImageIcon },
@@ -453,7 +453,7 @@ export default function ChatGroup(props) {
     if (role) {
       setRole(role.role)
     }
-  }, [conversations, receiver]);
+  }, []);
 
   // action socket
   useEffect(() => {
@@ -472,6 +472,23 @@ export default function ChatGroup(props) {
       }
       const member = data.find((item) => item.sender._id === user._id);
       setRole(member.role);
+    });
+
+    socketRef.current.on("RES_TRANS_LEADER", (data) => {
+      const { newLeader, oldLeader } = data;
+      let member = null;
+      if (newLeader?.sender?._id === user._id) {
+        member = newLeader;
+      } else if (oldLeader?.sender?._id === user._id) {
+        member = oldLeader;
+      }
+
+      setRole(member.role);
+      setReceiver({
+        ...receiver,
+        role: member.role,
+      })
+      setShowManageGroup(false);
     });
 
   }, [])

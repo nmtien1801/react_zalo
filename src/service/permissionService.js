@@ -6,8 +6,16 @@ const getAllPermissionService = async () => {
 };
 
 const updateDeputyService = async (members) => {
-  const response = await customizeAxios.post(`/api/updateDeputy`, {members});
+  const response = await customizeAxios.post(`/api/updateDeputy`, { members });
   return response;
 };
 
-export { getAllPermissionService, updateDeputyService };
+const transLeaderService = async (groupId, newLeaderId) => {
+  const response = await customizeAxios.post(`/api/transLeader`, {
+    groupId,
+    newLeaderId,
+  });
+  return response;
+};
+
+export { getAllPermissionService, updateDeputyService, transLeaderService };

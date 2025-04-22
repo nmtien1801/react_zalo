@@ -150,21 +150,23 @@ const ManageGroup = (props) => {
                         <button className="btn btn-outline-danger w-100 mb-2 d-flex align-items-center justify-content-center gap-2">
                             <UserX size={18} /> Chặn khỏi nhóm
                         </button>
-                        <button className="btn btn-outline-secondary w-100 d-flex align-items-center justify-content-center gap-2"
-                            onClick={openModal}
-                        >
-                            <Users size={18} /> Trưởng & phó nhóm
-                        </button>
-                        {isModalOpen && <ManagePermissionModal closeModal={closeModal} receiver={receiver} socketRef={socketRef}/>}
+                        {receiver.role === 'leader' &&
+                            <button className="btn btn-outline-secondary w-100 d-flex align-items-center justify-content-center gap-2"
+                                onClick={openModal}
+                            >
+                                <Users size={18} /> Trưởng & phó nhóm
+                            </button>}
+                        {isModalOpen && <ManagePermissionModal closeModal={closeModal} receiver={receiver} socketRef={socketRef} />}
                     </div>
                 </div>
 
                 {/* Nút giải tán */}
                 <div className="text-center">
-                    <button className="btn btn-danger">
-                        <Trash size={16} className="me-2" />
-                        Giải tán nhóm
-                    </button>
+                    {receiver.role === 'leader' &&
+                        <button className="btn btn-danger">
+                            <Trash size={16} className="me-2" />
+                            Giải tán nhóm
+                        </button>}
                 </div>
             </div>
         </>

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search } from 'lucide-react';
 import { useSelector, useDispatch } from "react-redux";
 import { getAllMemberGroupService, getMemberByPhoneService } from "../../service/roomChatService";
-import { updateDeputyService } from "../../service/permissionService";
+import { updateDeputyService, transLeaderService } from "../../service/permissionService";
 
 const ManagePermissionModal = ({ closeModal, receiver, socketRef }) => {
     const dispatch = useDispatch();
@@ -104,6 +104,14 @@ const ManagePermissionModal = ({ closeModal, receiver, socketRef }) => {
             if (res.EC === 0) {
                 closeModal();
                 socketRef.current.emit("REQ_UPDATE_DEPUTY", res.DT);
+            }
+        } else {
+            // Chuyển quyền trưởng nhóm
+            let response = await transLeaderService(members[0].receiver._id, members[0].sender._id)
+
+            if (response.EC === 0) {
+                closeModal();
+                socketRef.current.emit("REQ_TRANS_LEADER", response.DT);
             }
         }
     }

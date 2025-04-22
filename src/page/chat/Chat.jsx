@@ -25,6 +25,7 @@ export default function ChatInterface(props) {
   const conversationRedux = useSelector((state) => state.chat.conversations);
   const [selected, setSelected] = useState(0);
 
+
   const [showPopupCreateGroup, setShowPopupCreateGroup] = useState(false);
   const [searchResults, setSearchResults] = useState([]); // Khởi tạo là mảng rỗng
   const [members, setMembers] = useState([]);

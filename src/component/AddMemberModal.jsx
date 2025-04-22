@@ -1,7 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { Modal, Button } from "react-bootstrap";
 import { getAllFriendsService } from "../service/friendShipService"; // API lấy danh sách bạn bè
-import { getRoomChatMembersService, getRoomChatByPhoneService } from "../service/roomChatService"; // API lấy danh sách thành viên nhóm và tìm kiếm theo số điện thoại
+import {
+    getRoomChatMembersService,
+    getRoomChatByPhoneService,
+    addMembersToRoomChatService, // Import API thêm thành viên
+} from "../service/roomChatService"; // API lấy danh sách thành viên nhóm và tìm kiếm theo số điện thoại
+
+// import { sendGroupJoinRequestsService } from "../service/friendRequestService"; // API gửi yêu cầu tham gia nhóm
 
 const AddMemberModal = ({ show, onHide, roomId }) => {
     const [friends, setFriends] = useState([]); // Danh sách bạn bè
@@ -9,6 +15,7 @@ const AddMemberModal = ({ show, onHide, roomId }) => {
     const [selectedFriends, setSelectedFriends] = useState([]); // Danh sách bạn bè đã được tích
     const [searchTerm, setSearchTerm] = useState(""); // Từ khóa tìm kiếm
     const [searchResults, setSearchResults] = useState([]); // Kết quả tìm kiếm theo số điện thoại
+    const [isSubmitting, setIsSubmitting] = useState(false); // Trạng thái gửi yêu cầu
 
     // Gọi API để lấy danh sách bạn bè và thành viên nhóm khi mở modal
     useEffect(() => {
@@ -85,6 +92,32 @@ const AddMemberModal = ({ show, onHide, roomId }) => {
         setSearchTerm("");
         setSearchResults([]);
         onHide();
+    };
+
+    // Hàm xử lý thêm thành viên vào nhóm
+    const handleAddMembers = async () => {
+        if (selectedFriends.length === 0) {
+            alert("Vui lòng chọn ít nhất một thành viên để thêm vào nhóm.");
+            return;
+        }
+
+        setIsSubmitting(true); // Bắt đầu trạng thái gửi yêu cầu
+        try {
+            const response = await addMembersToRoomChatService(roomId, selectedFriends);
+            console.log("response", response);
+
+            if (response.EC === 0) {
+                alert("Thêm thành viên thành công!");
+                handleClose(); // Đóng modal sau khi thêm thành viên thành công
+            } else {
+                alert(response.EM || "Có lỗi xảy ra khi thêm thành viên.");
+            }
+        } catch (error) {
+            console.error("Error adding members:", error);
+            alert("Có lỗi xảy ra khi thêm thành viên.");
+        } finally {
+            setIsSubmitting(false); // Kết thúc trạng thái gửi yêu cầu
+        }
     };
 
     return (
@@ -180,10 +213,12 @@ const AddMemberModal = ({ show, onHide, roomId }) => {
                 </div>
             </Modal.Body>
             <Modal.Footer>
-                <Button variant="secondary" onClick={handleClose}>
+                <Button variant="secondary" onClick={handleClose} disabled={isSubmitting}>
                     Hủy
                 </Button>
-                <Button variant="primary">Xác nhận</Button>
+                <Button variant="primary" onClick={handleAddMembers} disabled={isSubmitting}>
+                    {isSubmitting ? "Đang xử lý..." : "Xác nhận"}
+                </Button>
             </Modal.Footer>
         </Modal>
     );

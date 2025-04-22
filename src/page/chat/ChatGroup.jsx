@@ -49,6 +49,7 @@ export default function ChatGroup(props) {
   const user = useSelector((state) => state.auth.userInfo);
   const [avatarUrl, setAvatarUrl] = useState(props.roomData.receiver.avatar); // update avatar group
   const receiver = props.roomData.receiver;
+
   const fileInputRef = useRef(null); // Ref để truy cập input file ẩn
   const imageInputRef = useRef(null); // Ref để truy cập input ảnh nhóm
   const messagesEndRef = useRef(null);
@@ -98,6 +99,8 @@ export default function ChatGroup(props) {
     { id: "files", title: "File", icon: File },
     { id: "links", title: "Link", icon: LinkIcon },
   ]);
+
+
 
   useEffect(() => {
     if (props.allMsg) {
@@ -522,7 +525,7 @@ export default function ChatGroup(props) {
               messages.map((msg, index) => (
                 <div
                   key={index}
-                  className={`p-2 my-1 d-flex ${msg.sender._id === user._id ? "justify-content-end" : "justify-content-start"
+                  className={`p-2 my-1 d-flex ${msg?.sender?._id === user._id ? "justify-content-end" : "justify-content-start"
                     }`}
                 >
                   <div
@@ -590,7 +593,7 @@ export default function ChatGroup(props) {
 
                     {/* Thời gian gửi */}
                     <div
-                      className={`text-end text-xs mt-1 ${msg.sender._id === user._id ? "text-white" : "text-secondary"
+                      className={`text-end text-xs mt-1 ${msg?.sender?._id === user._id ? "text-white" : "text-secondary"
                         }`}
                     >
                       {convertTime(msg.createdAt)}

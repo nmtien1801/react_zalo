@@ -42,6 +42,7 @@ import ImageViewer from "./ImageViewer.jsx";
 import ShareMsgModal from "../../component/ShareMsgModal.jsx";
 import ManageGroup from "../auth/ManageGroup.jsx"
 import { uploadAvatarGroup } from '../../redux/profileSlice.js'
+import AddMemberModal from "../../component/AddMemberModal.jsx";
 
 export default function ChatGroup(props) {
   const dispatch = useDispatch();
@@ -60,6 +61,16 @@ export default function ChatGroup(props) {
   const openModal = () => setIsOpen(true);
   const closeModal = () => setIsOpen(false);
   const [isOpen, setIsOpen] = useState(false);
+
+  const [showAddMemberModal, setShowAddMemberModal] = useState(false); // State quản lý modal
+
+  const handleOpenAddMemberModal = () => {
+    setShowAddMemberModal(true); // Mở modal
+  };
+
+  const handleCloseAddMemberModal = () => {
+    setShowAddMemberModal(false); // Đóng modal
+  };
 
   const [showCallScreen, setShowCallScreen] = useState(false);
   const [hasSelectedImages, setHasSelectedImages] = useState(false);
@@ -753,7 +764,10 @@ export default function ChatGroup(props) {
                         <div className="small">Ghim hội thoại</div>
                       </div>
                       <div className="text-center">
-                        <button className="btn btn-light rounded-circle mb-1">
+                        <button
+                          className="btn btn-light rounded-circle mb-1"
+                          onClick={handleOpenAddMemberModal} // Mở modal khi nhấn nút
+                        >
                           <UserPlus size={20} />
                         </button>
                         <div className="small">Thêm thành viên</div>
@@ -767,6 +781,13 @@ export default function ChatGroup(props) {
                       </div>}
                     </div>
                   </div>
+
+                  {/* Modal AddMember */}
+                  <AddMemberModal
+                    show={showAddMemberModal} // Truyền state hiển thị
+                    onHide={handleCloseAddMemberModal} // Truyền hàm đóng modal
+                    roomId={receiver._id} // Truyền roomId của nhóm
+                  />
 
                   {/* Collapsible Sections */}
                   <div className="accordion accordion-flush" id="chatInfo">

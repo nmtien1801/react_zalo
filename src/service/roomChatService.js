@@ -6,5 +6,10 @@ const getRoomChatByPhoneService = (phone) => {
     );
 };
 
+const getRoomChatMembersService = async (roomId) => {
+    const response = await customizeAxios.get(`/api/roomChat/${roomId}/members`);
+    return response;
+};
 
-export { getRoomChatByPhoneService };
+
+export { getRoomChatByPhoneService, getRoomChatMembersService };

@@ -11,6 +11,7 @@ const ManageGroup = (props) => {
     const user = useSelector((state) => state.auth.userInfo);
     const navigate = useNavigate();
     const receiver = props.receiver
+    const socketRef = props.socketRef
 
     const permissions = useSelector((state) => state.permission.permission);
 
@@ -58,8 +59,8 @@ const ManageGroup = (props) => {
         try {
             // Giả sử bạn có một API endpoint để cập nhật permission
             let res = await dispatch(updatePermission({ groupId: receiver._id, newPermission: newPermissions }))
-            console.log('updatePermission ', res);
 
+            socketRef.current.emit("REQ_MEMBER_PERMISSION", res.payload.DT);
             console.log("Permissions updated in DB:", newPermissions);
         } catch (error) {
             console.error("Error updating permissions:", error);
@@ -109,8 +110,6 @@ const ManageGroup = (props) => {
                     <div className="card-body">
                         {[
                             "Chế độ phê duyệt thành viên mới",
-                            "Đánh dấu tin nhắn từ trưởng/phó nhóm",
-                            "Cho phép thành viên mới đọc tin nhắn gần nhất",
                             "Cho phép dùng link tham gia nhóm",
                         ].map((label, idx) => (
                             <div className="d-flex justify-content-between align-items-center mb-3" key={idx}>
@@ -156,7 +155,7 @@ const ManageGroup = (props) => {
                         >
                             <Users size={18} /> Trưởng & phó nhóm
                         </button>
-                        {isModalOpen && <ManagePermissionModal closeModal={closeModal} receiver={receiver}/>}
+                        {isModalOpen && <ManagePermissionModal closeModal={closeModal} receiver={receiver} socketRef={socketRef}/>}
                     </div>
                 </div>
 

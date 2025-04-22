@@ -47,11 +47,12 @@ export default function ChatGroup(props) {
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.userInfo);
   const [avatarUrl, setAvatarUrl] = useState(props.roomData.receiver.avatar); // update avatar group
-  const receiver = props.roomData.receiver;
+  const [receiver, setReceiver] = useState(props.roomData?.receiver || null);
   const fileInputRef = useRef(null); // Ref để truy cập input file ẩn
   const imageInputRef = useRef(null); // Ref để truy cập input ảnh nhóm
   const messagesEndRef = useRef(null);
   const avatarInputRef = useRef(null);  // Ref để truy cập input avatar nhóm
+  const socketRef = props.socketRef
 
   const [showSidebar, setShowSidebar] = useState(true);
   const [message, setMessage] = useState("");
@@ -454,6 +455,27 @@ export default function ChatGroup(props) {
     }
   }, [conversations, receiver]);
 
+  // action socket
+  useEffect(() => {
+    socketRef.current.on("RES_MEMBER_PERMISSION", (data) => {
+      const member = data.find((item) => item.sender._id === user._id);
+      setReceiver({
+        ...receiver,
+        permission: member.receiver.permission,
+        role: member.role,
+      });
+    });
+
+    socketRef.current.on("RES_UPDATE_DEPUTY", (data) => {
+      if (data.upsertedCount === 0) {
+        setRole('member');
+      }
+      const member = data.find((item) => item.sender._id === user._id);
+      setRole(member.role);
+    });
+
+  }, [])
+
   return (
     <div className="row g-0 h-100">
       {/* Main Chat Area */}
@@ -703,7 +725,7 @@ export default function ChatGroup(props) {
         >
           {
             showManageGroup ?
-              (<ManageGroup handleManageGroup={handleManageGroup} receiver={receiver} />) :
+              (<ManageGroup handleManageGroup={handleManageGroup} receiver={receiver} socketRef={props.socketRef} />) :
               (
                 <>
                   {/* Header */}

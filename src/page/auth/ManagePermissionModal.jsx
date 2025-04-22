@@ -4,7 +4,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { getAllMemberGroupService, getMemberByPhoneService } from "../../service/roomChatService";
 import { updateDeputyService } from "../../service/permissionService";
 
-const ManagePermissionModal = ({ closeModal , receiver}) => {
+const ManagePermissionModal = ({ closeModal, receiver, socketRef }) => {
     const dispatch = useDispatch();
     const user = useSelector((state) => state.auth.userInfo);
     const [searchTerm, setSearchTerm] = useState('');
@@ -102,8 +102,8 @@ const ManagePermissionModal = ({ closeModal , receiver}) => {
         if (selectedTab === 'Thêm phó nhóm') {
             let res = await updateDeputyService(members)
             if (res.EC === 0) {
-                alert(res.EM);
                 closeModal();
+                socketRef.current.emit("REQ_UPDATE_DEPUTY", res.DT);
             }
         }
     }

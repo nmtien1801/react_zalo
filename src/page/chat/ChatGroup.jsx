@@ -427,7 +427,7 @@ export default function ChatGroup(props) {
         const res = await dispatch(
           reloadMessages({ sender: user._id, receiver: receiver._id, type: receiver.type })
         );
-    
+
         if (res.payload.EC === 0) {
           setAllMsg(res.payload.DT);
         }
@@ -533,6 +533,8 @@ export default function ChatGroup(props) {
     });
 
     socketRef.current.on("RES_UPDATE_DEPUTY", (data) => {
+      console.log('RES_UPDATE_DEPUTY ', data);
+
       // Nếu không có bản ghi nào được cập nhật
       if (data.upsertedCount === 0) {
         setRole("member");
@@ -548,6 +550,11 @@ export default function ChatGroup(props) {
 
       if (member) {
         setRole(member.role);
+        setReceiver({
+          ...receiver,
+          permission: member.receiver.permission,
+          role: member.role,
+        });
       } else {
         if (receiver.role !== 'leader') {
           setRole("member");
@@ -591,13 +598,9 @@ export default function ChatGroup(props) {
       };
       fetchMembers();
     })
-
-    // add member group
-    socketRef.current.on("RES_ADD_MEMBER", (data) => {
-           
-    });
   }, [])
 
+console.log('receiver', receiver);
 
 
   // Handle dissolve group
@@ -760,7 +763,7 @@ export default function ChatGroup(props) {
         {/* Message Input */}
         <div className="bg-white p-2 border-top" >
           {/* Vùng nhập tin nhắn */}
-          {(receiver.permission.includes(3) || receiver.role === 'leader' || receiver.role === 'deputy') ? (<>
+          {(receiver.permission.includes(3) || role === 'leader' || role === 'deputy') ? (<>
             <div className="d-flex align-items-center">
               <input
                 type="file"
@@ -900,7 +903,17 @@ export default function ChatGroup(props) {
 
                       {/* Nút tùy chỉnh */}
                       <button className="btn btn-light btn-sm rounded-circle position-absolute bottom-0 end-0 p-1">
-                        <Edit2 size={14} onClick={handleButtonUpdateClick} />
+                        <Edit2 size={14} onClick={
+                          () => {
+                            if (
+                              receiver.permission.includes(1) || receiver.role === 'leader' || receiver.role === 'deputy'
+                            ) {
+                              handleButtonUpdateClick();
+                            } else {
+                              alert('k có quyền chỉnh sửa');
+                            }
+                          }
+                        } />
                       </button>
                     </div>
                     <h6 className="mb-3 d-flex align-items-center justify-content-center">

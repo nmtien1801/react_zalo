@@ -92,6 +92,11 @@ export default function ChatInterface(props) {
       dispatch(getConversations(user._id));
     });
 
+    // create group
+    socketRef.current.on("RES_CREATE_GROUP", (data) => {
+      dispatch(getConversations(user._id));
+    });
+
   }, [socketRef]);
 
   const handleSendMsg = (msg, typeUpload) => {
@@ -323,6 +328,7 @@ export default function ChatInterface(props) {
 
       if (response.EC === 0) {
         alert("Tạo nhóm thành công!");
+        socketRef.current.emit("REQ_CREATE_GROUP", response.DT);
         setShowPopupCreateGroup(false); // Đóng popup
       } else {
         alert(response.EM || "Đã xảy ra lỗi khi tạo nhóm.");

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { UserX } from "lucide-react";
 import {
   LogOut,
   UserPlus,
@@ -37,7 +38,7 @@ import { useSelector, useDispatch } from "react-redux";
 import CallScreen from "../../component/CallScreen.jsx";
 import { uploadAvatar } from '../../redux/profileSlice.js'
 import IconModal from '../../component/IconModal.jsx'
-import { deleteMessageForMeService, recallMessageService } from "../../service/chatService.js";
+import { deleteMessageForMeService, recallMessageService, dissolveGroupService } from "../../service/chatService.js";
 import ImageViewer from "./ImageViewer.jsx";
 import ShareMsgModal from "../../component/ShareMsgModal.jsx";
 import ManageGroup from "../auth/ManageGroup.jsx"
@@ -450,6 +451,31 @@ export default function ChatGroup(props) {
     }
   }, [conversations, receiver]);
 
+
+
+   // Handle dissolve group
+   const handleDissolveGroup = async () => {
+    debugger
+    try {
+      alert("Thông báo", "Đang giải tán nhóm...");
+  
+      const response = await dissolveGroupService(receiver._id);
+  
+      const { EC, EM } = response || {};
+  
+      if (EC === 0) {
+        alert("Thành công", "Nhóm đã được giải tán!");
+       window.location.reload(); // Tải lại trang sau khi giải tán nhóm
+      } else {
+        alert("Lỗi", EM || "Không thể giải tán nhóm.");
+      }
+    } catch (error) {
+      console.error("Lỗi khi giải tán nhóm:", error);
+      alert("Lỗi", "Không thể giải tán nhóm, vui lòng thử lại sau.");
+    }
+  };
+  
+
   return (
     <div className="row g-0 h-100">
       {/* Main Chat Area */}
@@ -696,7 +722,7 @@ export default function ChatGroup(props) {
         >
           {
             showManageGroup ?
-              (<ManageGroup handleManageGroup={handleManageGroup} receiver={receiver}/>) :
+              (<ManageGroup handleManageGroup={handleManageGroup} receiver={receiver} />) :
               (
                 <>
                   {/* Header */}
@@ -904,7 +930,23 @@ export default function ChatGroup(props) {
                             </div>
                             <div className="ms-2 text-danger">Rời nhóm</div>
                           </div>
+
+                          {/* DissolveDissolve Group */}
+                          {role === "leader"   && (  <button className="d-flex align-items-center p-3 hover-bg-light cursor-pointer w-100 "
+                          onClick = {handleDissolveGroup}
+                          >
+                            <div
+                              className="d-flex align-items-center justify-content-center rounded-circle bg-light"
+                              style={{ width: "32px", height: "32px" }}
+                            >
+                              <UserX size={18} className="text-danger" />
+                            </div>
+                            <div className="ms-2 text-danger">Giải tán nhóm</div>
+                          </button>)}
+
                         </div>
+
+
                       </div>
                     </div>
                   </div>

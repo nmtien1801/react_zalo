@@ -34,4 +34,9 @@ const getReactionMessageService = (messageId) => {
   return customizeAxios.get(`/api/messages/${messageId}/reactions/`);
 }
 
-export { loadMessagesService, getConversationsService, createConversationGroupService, recallMessageService, deleteMessageForMeService, sendReactionService, getReactionMessageService };
+const dissolveGroupService = async (groupId) => {
+  return customizeAxios.delete(`/api/group/${groupId}/dissolve`);
+  
+};
+
+export { loadMessagesService, getConversationsService, createConversationGroupService, recallMessageService, deleteMessageForMeService, sendReactionService, getReactionMessageService, dissolveGroupService };

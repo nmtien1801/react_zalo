@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { Modal, Form, Button, ListGroup, InputGroup } from 'react-bootstrap';
 import { getRoomChatByPhoneService } from "../service/roomChatService"; // Import hàm gọi API
 import { sendRequestFriendService } from '../service/friendRequestService';
-import AccountInfo from '../page/info/AccountInfo';
-
+import AccountInfo from '../page/info/accountInfo';
 
 const AddFriendModal = ({ show, onHide, socketRef }) => {
     const [searchQuery, setSearchQuery] = useState('');

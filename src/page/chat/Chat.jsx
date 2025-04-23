@@ -380,6 +380,9 @@ export default function ChatInterface(props) {
     }
   }, [conversationRedux]);
 
+  console.log("roomData", roomData);
+
+
   return (
     <div className="container-fluid vh-100 p-0">
       <div className="row h-100 g-0 ">

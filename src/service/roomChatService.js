@@ -30,8 +30,8 @@ const addMembersToRoomChatService = async (roomId, members) => {
 
 export {
   getRoomChatByPhoneService,
-  getRoomChatMembersService,
-  addMembersToRoomChatService,
   getAllMemberGroupService,
   getMemberByPhoneService,
+  getRoomChatMembersService,
+  addMembersToRoomChatService,
 };

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ListGroup } from 'react-bootstrap';
 import './DanhBa.scss';
 import FriendsList from './FriendsList';
@@ -7,6 +7,7 @@ import FriendRequest from './FriendRequest';
 import GroupRequest from './GroupRequest';
 import { Search, UserPlus, Users } from 'lucide-react';
 import AddFriendModal from '../../component/AddFriendModal';
+import { getFriendRequestsService } from '../../service/friendRequestService';
 
 
 const DanhBa = (props) => {
@@ -14,7 +15,27 @@ const DanhBa = (props) => {
   const socketRef = props.socketRef
 
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const friendRequests = props.friendRequests;
+  const setFriendRequests = props.setFriendRequests;
+  const groupRequests = props.groupRequests;
+  const setGroupRequests = props.setGroupRequests;
 
+
+  useEffect(() => {
+    const getFriendRequests = async () => {
+      const response = await getFriendRequestsService();
+      setFriendRequests(response.DT);
+    };
+
+    socketRef.current.on("RES_ADD_FRIEND", getFriendRequests);
+    socketRef.current.on("RES_REJECT_FRIEND", getFriendRequests);
+
+    // Cleanup
+    return () => {
+      socketRef.current.off("RES_ADD_FRIEND", getFriendRequests);
+      socketRef.current.off("RES_REJECT_FRIEND", getFriendRequests);
+    };
+  }, [socketRef]);
   const handleSearchFocus = () => {
     setIsSearchFocused(true);
   };
@@ -32,9 +53,9 @@ const DanhBa = (props) => {
       case 'Danh sách nhóm và cộng đồng':
         return <GroupsList />;
       case 'Lời mời kết bạn':
-        return <FriendRequest socketRef={socketRef}/>;
+        return <FriendRequest socketRef={socketRef} />;
       case 'Lời mời vào nhóm và cộng đồng':
-        return <GroupRequest />;
+        return <GroupRequest socketRef={socketRef} />;
       default:
         return null;
     }
@@ -106,14 +127,26 @@ const DanhBa = (props) => {
               <ListGroup.Item
                 active={activeTab === 'Lời mời kết bạn'}
                 onClick={() => setActiveTab('Lời mời kết bạn')}
+                className="d-flex justify-content-between align-items-center"
               >
-                Lời mời kết bạn
+                <span>Lời mời kết bạn</span>
+                {friendRequests.length > 0 && (
+                  <span className="badge bg-primary rounded-pill">
+                    {friendRequests.length}
+                  </span>
+                )}
               </ListGroup.Item>
               <ListGroup.Item
                 active={activeTab === 'Lời mời vào nhóm và cộng đồng'}
                 onClick={() => setActiveTab('Lời mời vào nhóm và cộng đồng')}
+                className="d-flex justify-content-between align-items-center"
               >
-                Lời mời vào nhóm và cộng đồng
+                <span>Lời mời vào nhóm </span>
+                {groupRequests.length > 0 && (
+                  <span className="badge bg-primary rounded-pill">
+                    {groupRequests.length}
+                  </span>
+                )}
               </ListGroup.Item>
             </ListGroup>
           </div>

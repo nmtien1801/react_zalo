@@ -57,7 +57,8 @@ export default function ChatGroup(props) {
   const imageInputRef = useRef(null); // Ref để truy cập input ảnh nhóm
   const messagesEndRef = useRef(null);
   const avatarInputRef = useRef(null);  // Ref để truy cập input avatar nhóm
-  const socketRef = props.socketRef
+  const socketRef = props.socketRef;
+  const roomData = props.roomData;
 
   const [showSidebar, setShowSidebar] = useState(true);
   const [message, setMessage] = useState("");
@@ -566,7 +567,7 @@ export default function ChatGroup(props) {
           if (receiver?._id) {
             const response = await getRoomChatMembersService(receiver._id);
             console.log("response ", response);
-            
+
             if (response.EC === 0) {
               setMembers(response.DT); // Lưu danh sách thành viên vào state
             } else {
@@ -914,6 +915,9 @@ export default function ChatGroup(props) {
                     show={showAddMemberModal} // Truyền state hiển thị
                     onHide={handleCloseAddMemberModal} // Truyền hàm đóng modal
                     roomId={receiver._id} // Truyền roomId của nhóm
+                    roomData={roomData}
+                    socketRef={socketRef} // Truyền socketRef
+                    user={user} // Truyền thông tin người dùng
                   />
 
                   {/* Collapsible Sections */}

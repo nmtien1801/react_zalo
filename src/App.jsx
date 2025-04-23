@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -52,11 +52,20 @@ function App() {
     fetchDataAccount();
   }, [dispatch, user?.access_Token]); // Chỉ phụ thuộc vào dispatch và access_Token
 
+  const [friendRequests, setFriendRequests] = useState([]);
+  const [groupRequests, setGroupRequests] = useState([]);
+
   return (
     <Router>
       <div className="w-100 vh-100 overflow-hidden d-flex">
         {/* Header bên trái */}
-        {isLoggedIn && <Header />}
+        {isLoggedIn && <Header
+          socketRef={socketRef}
+          friendRequests={friendRequests}
+          setFriendRequests={setFriendRequests}
+          groupRequests={groupRequests}
+          setGroupRequests={setGroupRequests}
+        />}
 
         {/* Nội dung chính */}
         <div className="content flex-grow-1 d-flex justify-content-center align-items-center">
@@ -67,7 +76,20 @@ function App() {
             <Route path="/forgot-password" element={<ResetPassword />} />
 
             <Route path="/chat" element={isLoggedIn && <Chat socketRef={socketRef} />} />
-            <Route path="/danh-ba" element={isLoggedIn && <DanhBa socketRef={socketRef} />} />
+            <Route
+              path="/danh-ba"
+              element={
+                isLoggedIn && (
+                  <DanhBa
+                    socketRef={socketRef}
+                    friendRequests={friendRequests}
+                    setFriendRequests={setFriendRequests}
+                    groupRequests={groupRequests}
+                    setGroupRequests={setGroupRequests}
+                  />
+                )
+              }
+            />
           </Routes>
         </div>
       </div>

@@ -1220,6 +1220,10 @@ export default function ChatGroup(props) {
         message={selectedMessageShareModal}
         conversations={conversations}
         onlineUsers={props.onlineUsers}
+        socketRef={props.socketRef}
+        setAllMsg={props.setAllMsg}
+        user={user}
+        selectedUser={props.selectedUser}
       />
     </div>
   );

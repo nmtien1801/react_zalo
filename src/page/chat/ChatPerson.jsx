@@ -687,10 +687,10 @@ export default function ChatPerson(props) {
                       </div>
                       <div
                         className={`message-time ${msg.type === "video" || msg.type === "image"
-                            ? "text-secondary"
-                            : msg.sender._id === user._id
-                              ? "text-white"
-                              : "text-secondary"
+                          ? "text-secondary"
+                          : msg.sender._id === user._id
+                            ? "text-white"
+                            : "text-secondary"
                           }`}
                       >
                         {convertTime(msg.createdAt)}
@@ -1013,6 +1013,10 @@ export default function ChatPerson(props) {
         message={selectedMessageShareModal}
         conversations={conversations}
         onlineUsers={props.onlineUsers}
+        socketRef={props.socketRef}
+        setAllMsg={props.setAllMsg}
+        user={user}
+        selectedUser={props.selectedUser}
       />
     </div>
   );

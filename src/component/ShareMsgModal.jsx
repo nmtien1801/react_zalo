@@ -5,7 +5,7 @@ import { Modal, Button, Form, Tab, Tabs, ListGroup, InputGroup } from "react-boo
 import { useDispatch, useSelector } from "react-redux";
 import io from "socket.io-client";
 import { getConversations } from "../redux/chatSlice";
-export default function ShareMsgModal({ show, onHide, message, conversations, onlineUsers }) {
+export default function ShareMsgModal({ show, onHide, message, conversations, onlineUsers, socketRef, setAllMsg, selectedUser }) {
 
 
     const [conversations1, setConversations1] = useState([]);
@@ -16,18 +16,6 @@ export default function ShareMsgModal({ show, onHide, message, conversations, on
 
 
     const user = useSelector((state) => state.auth.userInfo);
-
-    const socketRef = useRef();
-
-    // connect docket
-    useEffect(() => {
-        const socket = io.connect(import.meta.env.VITE_BACKEND_URL);
-
-        socketRef.current = socket;
-        socket.on("connect", () => setIsConnect(true));
-        socket.off("disconnect", () => setIsConnect(false));
-    }, []);
-
 
     useEffect(() => {
         setConversations1(conversations);
@@ -76,8 +64,14 @@ export default function ShareMsgModal({ show, onHide, message, conversations, on
         onHide();
     };
 
+    const handleCloseModal = () => {
+        setSelectedRecipients([]);
+        setSearchTerm("");
+        onHide();
+    };
+
     return (
-        <Modal show={show} onHide={onHide} centered>
+        <Modal show={show} onHide={handleCloseModal} centered>
             <Modal.Header closeButton>
                 <Modal.Title>Chia sẻ</Modal.Title>
             </Modal.Header>

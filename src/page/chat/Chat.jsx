@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Search, UserPlus, Users } from "lucide-react";
 import "./Chat.scss";
 import ChatPerson from "./ChatPerson";
@@ -36,6 +36,7 @@ export default function ChatInterface(props) {
     room: null,
     receiver: null,
   });
+
   const [conversations, setConversations] = useState([
     {
       _id: 1,
@@ -61,6 +62,8 @@ export default function ChatInterface(props) {
   };
   const [showModalAddFriend, setShowModalAddFriend] = useState(false);
 
+  const [selectedUser, setSelectedUser] = useState(null);
+
   // action socket
   useEffect(() => {
     socketRef.current.on("user-list", (usersList) => {
@@ -68,10 +71,17 @@ export default function ChatInterface(props) {
 
     });
 
-    socketRef.current.on("RECEIVED_MSG", (data) => {
-      console.log("form another users", data);
-      setAllMsg((prevState) => [...prevState, data]);
-    });
+    // socketRef.current.on("RECEIVED_MSG", (data) => {
+    //   console.log("RECEIVED_MSG: ", data);
+    //   console.log("selected: ", selectedUser);
+
+
+    //   if (data.receiver._id === selectedUser._id) {
+    //     setAllMsg((prevState) => [...prevState, data]);
+    //   }
+
+    // });
+
 
     socketRef.current.on("RECALL_MSG", (data) => {
       setAllMsg((prevMsgs) =>
@@ -93,11 +103,6 @@ export default function ChatInterface(props) {
       dispatch(getConversations(user._id));
     });
 
-    // remove member group
-    socketRef.current.on("RES_REMOVE_MEMBER", async () => {
-      dispatch(getConversations(user._id));
-    });
-
     // create group
     socketRef.current.on("RES_CREATE_GROUP", (data) => {
       dispatch(getConversations(user._id));
@@ -105,7 +110,27 @@ export default function ChatInterface(props) {
 
   }, [socketRef]);
 
+  useEffect(() => {
+    socketRef.current.on("RECEIVED_MSG", (data) => {
+      console.log("RECEIVED_MSG: ", data);
+      console.log("selected: ", selectedUser);
+      // Kiểm tra selectedUser trước khi dùng
+      if (data.receiver._id === user._id && data.sender._id === selectedUser._id)
+        setAllMsg((prevState) => [...prevState, data]);
+      if (data.receiver._id === selectedUser._id)
+        setAllMsg((prevState) => [...prevState, data]);
+    });
+
+    // Cleanup
+    return () => {
+      socketRef.current.off("RECEIVED_MSG");
+    };
+  }, [socketRef, selectedUser]);
+
+
   const handleSendMsg = (msg, typeUpload) => {
+    console.log("msg: ", msg);
+
     if (socketRef.current.connected) {
       let sender = { ...user };
       sender.socketId = socketRef.current.id;
@@ -125,7 +150,6 @@ export default function ChatInterface(props) {
         type: typeUpload,  // 1 - text , 2 - image, 3 - video, 4 - file, 5 - icon
       };
       console.log("data: ", data);
-
       socketRef.current.emit("SEND_MSG", data);
     }
   };
@@ -380,8 +404,6 @@ export default function ChatInterface(props) {
     }
   }, [conversationRedux]);
 
-  console.log("roomData", roomData);
-
 
   return (
     <div className="container-fluid vh-100 p-0">
@@ -470,7 +492,11 @@ export default function ChatInterface(props) {
                     <div
                       key={chat._id}
                       className="d-flex align-items-center p-2 border-bottom hover-bg-light cursor-pointer"
-                      onClick={() => handleTypeChat(chat.type, chat)}
+                      onClick={() => {
+                        handleTypeChat(chat.type, chat);
+                        setSelectedUser(chat);
+                      }}
+
                     >
                       <img
                         src={chat.avatar || "/placeholder.svg"}
@@ -501,20 +527,24 @@ export default function ChatInterface(props) {
                   roomData={roomData}
                   handleSendMsg={handleSendMsg}
                   allMsg={allMsg}
+                  setAllMsg={setAllMsg}
                   user={user}
                   socketRef={socketRef}
                   conversations={conversations}
                   onlineUsers={onlineUsers}
+                  selectedUser={selectedUser}
                 />
               ) : typeChatRoom === "single" ? (
                 <ChatPerson
                   roomData={roomData}
                   handleSendMsg={handleSendMsg}
                   allMsg={allMsg}
+                  setAllMsg={setAllMsg}
                   user={user}
                   socketRef={socketRef}
                   conversations={conversations}
                   onlineUsers={onlineUsers}
+                  selectedUser={selectedUser}
                 />
               ) : (
                 <ChatCloud

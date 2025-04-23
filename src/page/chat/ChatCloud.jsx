@@ -20,18 +20,20 @@ import {
   Trash2
 } from "lucide-react";
 import "./Chat.scss";
-import AccountInfo from "../info/AccountInfo";
+
 import { useSelector, useDispatch } from "react-redux";
 import { uploadAvatar } from '../../redux/profileSlice.js'
 import IconModal from '../../component/IconModal.jsx'
 import { deleteMessageForMeService } from "../../service/chatService.js";
 import ImageViewer from "./ImageViewer.jsx";
+import AccountInfo from "../info/accountInfo.jsx";
 
 export default function ChatCloud(props) {
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.userInfo);
   const [showSidebar, setShowSidebar] = useState(true);
   const fileInputRef = useRef(null); // Ref để truy cập input file ẩn
+  const socketRef = props.socketRef
 
   const [sections] = useState([
     { id: "media", title: "Ảnh/Video", icon: ImageIcon },
@@ -334,7 +336,7 @@ export default function ChatCloud(props) {
               onClick={openModal}
             />
 
-            <AccountInfo isOpen={isOpen} closeModal={closeModal} />
+            <AccountInfo isOpen={isOpen} closeModal={closeModal} socketRef={socketRef} />
 
             <div className="ms-2">
               <div className="fw-medium">Cloud của tôi</div>

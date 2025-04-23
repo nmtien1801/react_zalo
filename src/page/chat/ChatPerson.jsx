@@ -34,7 +34,6 @@ import {
   Share2
 } from "lucide-react";
 import "./Chat.scss";
-import AccountInfo from "../info/AccountInfo.jsx";
 import { useSelector, useDispatch } from "react-redux";
 import CallScreen from "../../component/CallScreen.jsx";
 import { uploadAvatar } from '../../redux/profileSlice.js'
@@ -42,6 +41,7 @@ import IconModal from '../../component/IconModal.jsx'
 import { deleteMessageForMeService, getReactionMessageService, recallMessageService, sendReactionService } from "../../service/chatService.js";
 import ImageViewer from "./ImageViewer.jsx";
 import ShareMsgModal from "../../component/ShareMsgModal.jsx";
+import AccountInfo from "../info/accountInfo.jsx";
 
 export default function ChatPerson(props) {
   const dispatch = useDispatch();
@@ -420,31 +420,31 @@ export default function ChatPerson(props) {
     const chatContainer = document.querySelector(".chat-container");
     const containerRect = chatContainer.getBoundingClientRect();
 
-    if (x > containerRect.right - 200) { 
+    if (x > containerRect.right - 200) {
       x = rect.left - containerRect.right - 50;
-    }else {
+    } else {
       x = 0;
     }
 
     y = 0;
-  
+
     setReactionPopupVisible({
       messageId,
       position: { x, y },
     });
   };
-  
+
   const handleHideReactionPopup = (messageId) => {
     if (reactionPopupVisible?.messageId === messageId) {
       setReactionPopupVisible(null);
     }
   };
-  
+
   //Hàm phản ứng
   const handleReactToMessage = (messageId, emoji) => {
     const emojiText = emojiToTextMap[emoji];
     if (!emojiText) return;
-  
+
     sendReactionService(messageId, user._id, emojiText)
       .then((response) => {
         if (response.EC === 0) {
@@ -455,7 +455,7 @@ export default function ChatPerson(props) {
             const existingReactionIndex = currentReactions.findIndex(
               (reaction) => reaction.emoji === emojiText && reaction.userId === user._id
             );
-  
+
             if (existingReactionIndex !== -1) {
               currentReactions.splice(existingReactionIndex, 1);
             } else {
@@ -465,7 +465,7 @@ export default function ChatPerson(props) {
                 count: 1,
               });
             }
-            
+
             return {
               ...prevReactions,
               [messageId]: [...currentReactions],
@@ -507,7 +507,7 @@ export default function ChatPerson(props) {
       setReactions(reactionsData); // Cập nhật state reactions
       console.log(reactions);
     };
-  
+
     if (messages.length > 0) {
       fetchReactions();
     }
@@ -538,7 +538,7 @@ export default function ChatPerson(props) {
               style={{ width: "40px", height: "40px" }}
               onClick={openModal}
             />
-            <AccountInfo isOpen={isOpen} closeModal={closeModal} user={receiver} />
+            <AccountInfo isOpen={isOpen} closeModal={closeModal} user={receiver} socketRef={props.socketRef} />
             <div className="ms-2">
               <div className="fw-medium">{props.roomData.receiver.username}</div>
               <small className="text-muted">Hoạt động 2 giờ trước</small>
@@ -649,7 +649,7 @@ export default function ChatPerson(props) {
 
                     {/* Phản ứng và thời gian */}
                     <div className="reaction-time-container">
-                      <div 
+                      <div
                         className="reaction-container"
                         onMouseEnter={(event) => handleShowReactionPopup(msg._id, event)}
                         onMouseLeave={() => handleHideReactionPopup(msg._id)}
@@ -661,7 +661,7 @@ export default function ChatPerson(props) {
                           <div className="reaction-summary">
                             {reactions[msg._id].map((reaction, index) => (
                               <span key={index} className="reaction-item">
-                                {textToIconMap[reaction.emoji]} 
+                                {textToIconMap[reaction.emoji]}
                                 {reaction.count || 1}
                               </span>
                             ))}
@@ -686,18 +686,17 @@ export default function ChatPerson(props) {
                         )}
                       </div>
                       <div
-                        className={`message-time ${
-                          msg.type === "video" || msg.type === "image"
+                        className={`message-time ${msg.type === "video" || msg.type === "image"
                             ? "text-secondary"
                             : msg.sender._id === user._id
-                            ? "text-white"
-                            : "text-secondary"
-                        }`}
+                              ? "text-white"
+                              : "text-secondary"
+                          }`}
                       >
                         {convertTime(msg.createdAt)}
                       </div>
                     </div>
-                    
+
                     {/* Thời gian gửi */}
                     <div
                       className={`text-end text-xs mt-1 ${msg.sender._id === user._id ? "text-white" : "text-secondary"

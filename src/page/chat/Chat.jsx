@@ -63,10 +63,9 @@ export default function ChatInterface(props) {
 
   // action socket
   useEffect(() => {
-    socketRef.current.emit("register", user._id);
-
     socketRef.current.on("user-list", (usersList) => {
       setOnlineUsers(usersList); // Lưu danh sách user online
+
     });
 
     socketRef.current.on("RECEIVED_MSG", (data) => {
@@ -84,8 +83,22 @@ export default function ChatInterface(props) {
       );
     });
 
-    return () => socketRef.current.disconnect();
-  }, []);
+    // accept friend
+    socketRef.current.on("RES_ACCEPT_FRIEND", async () => {
+      dispatch(getConversations(user._id));
+    });
+
+    // delete friend
+    socketRef.current.on("RES_DELETE_FRIEND", async () => {
+      dispatch(getConversations(user._id));
+    });
+
+    // create group
+    socketRef.current.on("RES_CREATE_GROUP", (data) => {
+      dispatch(getConversations(user._id));
+    });
+
+  }, [socketRef]);
 
   const handleSendMsg = (msg, typeUpload) => {
     if (socketRef.current.connected) {
@@ -316,6 +329,7 @@ export default function ChatInterface(props) {
 
       if (response.EC === 0) {
         alert("Tạo nhóm thành công!");
+        socketRef.current.emit("REQ_CREATE_GROUP", response.DT);
         setShowPopupCreateGroup(false); // Đóng popup
       } else {
         alert(response.EM || "Đã xảy ra lỗi khi tạo nhóm.");
@@ -361,6 +375,9 @@ export default function ChatInterface(props) {
     }
   }, [conversationRedux]);
 
+  console.log("roomData", roomData);
+
+
   return (
     <div className="container-fluid vh-100 p-0">
       <div className="row h-100 g-0 ">
@@ -400,6 +417,7 @@ export default function ChatInterface(props) {
                   <AddFriendModal
                     show={showModalAddFriend}
                     onHide={() => setShowModalAddFriend(false)}
+                    socketRef={socketRef}
                   />
                   <button className="btn btn-light rounded-circle mb-1"
                     onClick={() => handleOpenPopupCreateGroup()}>

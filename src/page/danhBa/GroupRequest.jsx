@@ -4,27 +4,63 @@ import { useSelector } from 'react-redux';
 import { acceptGroupJoinRequestService, getGroupJoinRequestsService } from '../../service/friendRequestService';
 import { rejectFriendRequestService } from '../../service/friendRequestService';
 
-const GroupRequest = () => {
+const GroupRequest = (props) => {
     const [groupRequests, setGroupRequests] = useState([]); // Danh sách lời mời vào nhóm
     const userInfo = useSelector((state) => state.auth.userInfo); // Lấy thông tin người dùng từ Redux Store
 
+    const socketRef = props.socketRef; // Lấy socketRef từ props
+
     const fetchGroupRequests = async () => {
         try {
-            const response = await getGroupJoinRequestsService(); // Gọi API để lấy danh sách lời mời vào nhóm
-            console.log("response", response);
-            setGroupRequests(response.DT || []); // Cập nhật danh sách lời mời
+            const response = await getGroupJoinRequestsService();
+            setGroupRequests(response.DT || []);
         } catch (error) {
             console.error('Error fetching group requests:', error);
+        }
+        // Lắng nghe socket
+        if (socketRef && socketRef.current) {
+            socketRef.current.on("RES_ADD_GROUP", async () => {
+                try {
+                    const response = await getGroupJoinRequestsService();
+                    setGroupRequests(response.DT || []);
+                } catch (error) {
+                    console.error('Error fetching group requests:', error);
+                }
+            });
+            socketRef.current.on("RES_ACCEPT_FRIEND", async () => {
+                try {
+                    const response = await getGroupJoinRequestsService();
+                    setGroupRequests(response.DT || []);
+                } catch (error) {
+                    console.error('Error fetching group requests:', error);
+                }
+            });
+            socketRef.current.on("RES_REJECT_FRIEND", async () => {
+                try {
+                    const response = await getGroupJoinRequestsService();
+                    setGroupRequests(response.DT || []);
+                } catch (error) {
+                    console.error('Error fetching group requests:', error);
+                }
+            });
         }
     };
 
     useEffect(() => {
         fetchGroupRequests();
-    }, []);
+        // Cleanup socket khi unmount
+        return () => {
+            if (socketRef && socketRef.current) {
+            }
+        };
+    }, [socketRef]);
 
     const handleAcceptRequest = async (requestId) => {
         try {
-            const response = await acceptGroupJoinRequestService(requestId); // Gọi API để chấp nhận lời mời vào nhóm
+            const response = await acceptGroupJoinRequestService(requestId);
+            if (response.EC === 0) {
+                socketRef.current.emit("REQ_ACCEPT_FRIEND", response.DT);
+            } // Gọi API để chấp nhận lời mời vào nhóm
             fetchGroupRequests(); // Cập nhật lại danh sách lời mời sau khi chấp nhận
         } catch (error) {
             console.error('Error accepting group request:', error);
@@ -34,6 +70,9 @@ const GroupRequest = () => {
     const handleRejectRequest = async (requestId) => {
         try {
             const response = await rejectFriendRequestService(requestId); // Gọi API để từ chối lời mời vào nhóm
+            if (response.EC === 0) {
+                socketRef.current.emit("REQ_REJECT_fRIEND", response.DT);
+            }
             fetchGroupRequests(); // Cập nhật lại danh sách lời mời sau khi từ chối
         } catch (error) {
             console.error('Error rejecting group request:', error);

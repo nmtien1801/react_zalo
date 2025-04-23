@@ -7,9 +7,9 @@
 }
 
 .header-right-sidebar {
-    padding-top: 17px;
+    padding-top   : 17px;
     padding-bottom: 17px;
-    padding-left: 8px;
+    padding-left  : 8px;
 }
 
 .search-border {
@@ -19,4 +19,20 @@
 
 .red {
     background-color: red;
+}
+
+.badge {
+    font-size       : 12px;
+    padding         : 4px 8px;
+    background-color: #dc3545 !important; // Đổi sang màu đỏ
+    color           : #fff;
+
+    &.rounded-pill {
+        border-radius: 20px;
+    }
+}
+
+.list-group-item.active .badge {
+    background-color: #fff !important;
+    color           : #dc3545; // Đổi màu chữ khi active sang đỏ
 }

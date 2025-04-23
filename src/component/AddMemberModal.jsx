@@ -9,7 +9,7 @@ import {
 
 // import { sendGroupJoinRequestsService } from "../service/friendRequestService"; // API gửi yêu cầu tham gia nhóm
 
-const AddMemberModal = ({ show, onHide, roomId }) => {
+const AddMemberModal = ({ show, onHide, roomId, socketRef, user, roomData }) => {
     const [friends, setFriends] = useState([]); // Danh sách bạn bè
     const [members, setMembers] = useState([]); // Danh sách thành viên nhóm
     const [selectedFriends, setSelectedFriends] = useState([]); // Danh sách bạn bè đã được tích
@@ -24,7 +24,7 @@ const AddMemberModal = ({ show, onHide, roomId }) => {
                 const friendsResponse = await getAllFriendsService();
                 setFriends(friendsResponse.DT || []);
 
-                const membersResponse = await getRoomChatMembersService(roomId);
+                const membersResponse = await getRoomChatMembersService(roomData.receiver._id);
                 setMembers(membersResponse.DT || []);
             } catch (error) {
                 console.error("Error fetching data:", error);
@@ -103,11 +103,13 @@ const AddMemberModal = ({ show, onHide, roomId }) => {
 
         setIsSubmitting(true); // Bắt đầu trạng thái gửi yêu cầu
         try {
-            const response = await addMembersToRoomChatService(roomId, selectedFriends);
+            const response = await addMembersToRoomChatService(roomData.receiver._id, selectedFriends);
             console.log("response", response);
 
             if (response.EC === 0) {
+                socketRef.current.emit("REQ_ADD_GROUP", response.DT);
                 alert("Thêm thành viên thành công!");
+
                 handleClose(); // Đóng modal sau khi thêm thành viên thành công
             } else {
                 alert(response.EM || "Có lỗi xảy ra khi thêm thành viên.");

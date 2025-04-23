@@ -17,32 +17,35 @@ import AccountSetting from "../page/accountSetting/accountSetting";
 import { useSelector, useDispatch } from "react-redux";
 import SettingModel from "../page/accountSetting/settingModel";
 import InfomationAccount from "../page/accountSetting/infomationAccount";
-import "./Header.css"; 
+import "./Header.css";
 import { logout } from "../redux/authSlice";
 import { logoutUserService } from "../service/authService";
+import { getFriendRequestsService, getGroupJoinRequestsService } from "../service/friendRequestService";
 
-const Header = () => {
+const Header = (props) => {
   const [showModal, setShowModal] = useState(false);
   const dispatch = useDispatch();
   const [showDropdown, setShowDropdown] = useState(false);
   const [modalContent, setModalContent] = useState("");
   const user = useSelector((state) => state.auth.userInfo);
+  const socketRef = props.socketRef;
+
 
   const [isOpenModelSetting, setIsOpenModelSetting] = useState(false);
   const [isOpenModelInfomationAccount, setIsOpenModelInfomationAccount] = useState(false);
 
   const toggleModalSetting = () => {
-    if(!isOpenModelSetting) {
-        toggleDropdown();
+    if (!isOpenModelSetting) {
+      toggleDropdown();
     }
     setIsOpenModelSetting(!isOpenModelSetting);
   };
 
   const toggleModalInfomation = () => {
-      if(!isOpenModelInfomationAccount) {
-          toggleDropdown();
-      }
-      setIsOpenModelInfomationAccount(!isOpenModelInfomationAccount);
+    if (!isOpenModelInfomationAccount) {
+      toggleDropdown();
+    }
+    setIsOpenModelInfomationAccount(!isOpenModelInfomationAccount);
   };
 
   const toggleDropdown = () => {
@@ -52,15 +55,15 @@ const Header = () => {
   const handleLogout = async () => {
     try {
       const response = await logoutUserService();
-  
+
       if (response.EC === 2) {
         dispatch(logout());
-  
+
         localStorage.removeItem("access_Token");
         localStorage.removeItem("refresh_Token");
-  
+
         alert("Đăng xuất thành công!");
-        window.location.href = "/login"; 
+        window.location.href = "/login";
       } else {
         alert(response.EM || "Đăng xuất thất bại!");
       }
@@ -69,6 +72,57 @@ const Header = () => {
       alert("Đã xảy ra lỗi khi đăng xuất.");
     }
   }
+
+  const friendRequests = props.friendRequests;
+  const groupRequests = props.groupRequests;
+  const setFriendRequests = props.setFriendRequests;
+  const setGroupRequests = props.setGroupRequests;
+
+  // Gọi API và lắng nghe socket
+  useEffect(() => {
+    const fetchRequests = async () => {
+      const resFriend = await getFriendRequestsService();
+      setFriendRequests(resFriend.DT || []);
+      const resGroup = await getGroupJoinRequestsService();
+
+      setGroupRequests(resGroup.DT || []);
+    };
+
+    fetchRequests();
+
+    const handleFriend = async () => {
+      const res = await getFriendRequestsService();
+      setFriendRequests(res.DT || []);
+    };
+    const handleGroup = async () => {
+      const res = await getGroupJoinRequestsService();
+      setGroupRequests(res.DT || []);
+    };
+
+    if (socketRef.current) {
+      console.log("socketRef.current", socketRef.current);
+
+      socketRef.current.on("RES_ADD_FRIEND", handleFriend);
+      socketRef.current.on("RES_REJECT_FRIEND", handleFriend);
+      socketRef.current.on("RES_ACCEPT_FRIEND", handleFriend);
+      socketRef.current.on("RES_CANCEL_FRIEND", handleFriend);
+      socketRef.current.on("RES_ADD_GROUP", handleGroup);
+      socketRef.current.on("RES_REJECT_FRIEND", handleGroup);
+      socketRef.current.on("RES_ACCEPT_FRIEND", handleGroup);
+    }
+
+    return () => {
+      if (socketRef.current) {
+        socketRef.current.off("RES_ADD_FRIEND", handleFriend);
+        socketRef.current.off("RES_REJECT_FRIEND", handleFriend);
+        socketRef.current.off("RES_ACCEPT_FRIEND", handleFriend);
+        socketRef.current.off("RES_CANCEL_FRIEND", handleFriend);
+        socketRef.current.off("RES_ADD_GROUP", handleGroup);
+        socketRef.current.off("RES_REJECT_FRIEND", handleGroup);
+        socketRef.current.off("RES_ACCEPT_FRIEND", handleGroup);
+      }
+    };
+  }, [socketRef]);
 
   return (
     <Navbar
@@ -106,8 +160,16 @@ const Header = () => {
           <Nav.Link as={NavLink} to="/chat" className="fw-normal">
             <MessageCircle size={24} />
           </Nav.Link>
-          <Nav.Link as={NavLink} to="/danh-ba" className="fw-normal">
+          <Nav.Link as={NavLink} to="/danh-ba" className="fw-normal position-relative">
             <Users size={24} />
+            {(friendRequests.length > 0 || groupRequests.length > 0) && (
+              <span
+                className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                style={{ fontSize: 10, minWidth: 18 }}
+              >
+                {friendRequests.length + groupRequests.length}
+              </span>
+            )}
           </Nav.Link>
 
           <Nav.Link as={NavLink} to="/to-do/call/room1" className="fw-normal">
@@ -137,11 +199,11 @@ const Header = () => {
       </div>
 
       {isOpenModelSetting && (
-          <SettingModel toggleModalSetting={toggleModalSetting} />
+        <SettingModel toggleModalSetting={toggleModalSetting} />
       )}
 
       {isOpenModelInfomationAccount && (
-          <InfomationAccount toggleModalInfomation={toggleModalInfomation} />
+        <InfomationAccount toggleModalInfomation={toggleModalInfomation} />
       )}
 
     </Navbar>

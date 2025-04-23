@@ -101,6 +101,7 @@ const ManagePermissionModal = ({ closeModal, receiver, socketRef }) => {
     const handleConfirm = async () => {
         if (selectedTab === 'Thêm phó nhóm') {
             let res = await updateDeputyService(members)
+            
             if (res.EC === 0) {
                 closeModal();
                 socketRef.current.emit("REQ_UPDATE_DEPUTY", res.DT);

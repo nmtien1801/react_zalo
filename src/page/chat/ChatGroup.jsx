@@ -42,6 +42,11 @@ import ImageViewer from "./ImageViewer.jsx";
 import ShareMsgModal from "../../component/ShareMsgModal.jsx";
 import ManageGroup from "../auth/ManageGroup.jsx"
 import { uploadAvatarGroup } from '../../redux/profileSlice.js'
+import AddMemberModal from "../../component/AddMemberModal.jsx";
+
+// nghiem
+import { getRoomChatMembersService } from "../../service/roomChatService"; // Import service
+import { removeMemberFromGroupService } from "../../service/chatService"; // Import service
 
 export default function ChatGroup(props) {
   const dispatch = useDispatch();
@@ -61,6 +66,16 @@ export default function ChatGroup(props) {
   const openModal = () => setIsOpen(true);
   const closeModal = () => setIsOpen(false);
   const [isOpen, setIsOpen] = useState(false);
+
+  const [showAddMemberModal, setShowAddMemberModal] = useState(false); // State quản lý modal
+
+  const handleOpenAddMemberModal = () => {
+    setShowAddMemberModal(true); // Mở modal
+  };
+
+  const handleCloseAddMemberModal = () => {
+    setShowAddMemberModal(false); // Đóng modal
+  };
 
   const [showCallScreen, setShowCallScreen] = useState(false);
   const [hasSelectedImages, setHasSelectedImages] = useState(false);
@@ -88,6 +103,59 @@ export default function ChatGroup(props) {
     { id: "files", title: "File", icon: File },
     { id: "links", title: "Link", icon: LinkIcon },
   ]);
+
+  // nghiem
+  const [showMemberModal, setShowMemberModal] = useState(false);
+  const [members, setMembers] = useState([]); // State để lưu danh sách thành viên
+
+  
+  // Gọi API để lấy danh sách thành viên nhóm
+  useEffect(() => {
+    const fetchMembers = async () => {
+      try {
+        if (receiver?._id) {
+          const response = await getRoomChatMembersService(receiver._id); // Gọi API với roomId
+          if (response.EC === 0) {
+            setMembers(response.DT); // Lưu danh sách thành viên vào state
+            console.log("Danh sách thành viên nhóm:", response.DT); // Log danh sách thành viên
+          } else {
+            console.error("Lỗi khi lấy danh sách thành viên:", response.EM);
+          }
+        }
+      } catch (error) {
+        console.error("Lỗi khi gọi API:", error);
+      }
+    };
+
+    fetchMembers();
+  }, [receiver?._id]);
+
+  //   const handleRemoveMember = async (memberId) => {
+  //     try {
+  //         // Gọi API xóa thành viên khỏi RoomChat
+  //         console.log("Xóa thành viên:", memberId);
+  //         console.log("ID nhóm:", receiver._id); // Kiểm tra ID nhóm
+  //         const roomResponse = await removeMemberFromGroupService(receiver._id, memberId);
+  //         if (roomResponse.EC === 0) {
+  //             console.log("Xóa thành viên khỏi RoomChat thành công:", roomResponse.DT);
+  
+  //             // Cập nhật danh sách thành viên
+  //             setMembers((prevMembers) => prevMembers.filter((member) => member._id !== memberId));
+  //         } else {
+  //             console.error("Lỗi khi xóa thành viên khỏi RoomChat:", roomResponse.EM);
+  //         }
+  //     } catch (error) {
+  //         console.error("Lỗi khi gọi API xóa thành viên:", error);
+  //     }
+  // };
+
+  const handleRemoveMember = (memberId) => {
+    console.log("Xóa thành viên:", memberId);
+    console.log("ID nhóm:", receiver._id); // Kiểm tra ID nhóm
+
+    removeMemberFromGroupService(receiver._id, memberId);
+    setMembers((prevMembers) => prevMembers.filter((member) => member._id !== memberId));
+};
 
   useEffect(() => {
     if (props.allMsg) {
@@ -550,7 +618,7 @@ export default function ChatGroup(props) {
               messages.map((msg, index) => (
                 <div
                   key={index}
-                  className={`p-2 my-1 d-flex ${msg.sender._id === user._id ? "justify-content-end" : "justify-content-start"
+                  className={`p-2 my-1 d-flex ${msg?.sender?._id === user._id ? "justify-content-end" : "justify-content-start"
                     }`}
                 >
                   <div
@@ -618,7 +686,7 @@ export default function ChatGroup(props) {
 
                     {/* Thời gian gửi */}
                     <div
-                      className={`text-end text-xs mt-1 ${msg.sender._id === user._id ? "text-white" : "text-secondary"
+                      className={`text-end text-xs mt-1 ${msg?.sender?._id === user._id ? "text-white" : "text-secondary"
                         }`}
                     >
                       {convertTime(msg.createdAt)}
@@ -799,7 +867,7 @@ export default function ChatGroup(props) {
                           className="btn btn-light rounded-circle mb-1"
                           onClick={() =>
                             (receiver.permission.includes(2) || receiver.role === 'leader' || receiver.role === 'deputy')
-                              ? alert('có quyền thêm')
+                              ? onClick={handleOpenAddMemberModal}
                               : alert('k có quyền thêm')
                           }
                         >
@@ -816,6 +884,13 @@ export default function ChatGroup(props) {
                       </div>}
                     </div>
                   </div>
+
+                  {/* Modal AddMember */}
+                  <AddMemberModal
+                    show={showAddMemberModal} // Truyền state hiển thị
+                    onHide={handleCloseAddMemberModal} // Truyền hàm đóng modal
+                    roomId={receiver._id} // Truyền roomId của nhóm
+                  />
 
                   {/* Collapsible Sections */}
                   <div className="accordion accordion-flush" id="chatInfo">
@@ -850,10 +925,82 @@ export default function ChatGroup(props) {
                     ))}
                   </div>
 
+
+{/* Thành viên */}
+<div
+  className="d-flex align-items-center justify-content-between p-3 border-bottom hover-bg-light cursor-pointer"
+  onClick={() => setShowMemberModal(true)}
+>
+  <div className="d-flex align-items-center">
+    <Users size={20} className="me-2" />
+    <span>Thành viên</span>
+  </div>
+  <span className="badge bg-primary">{members.length}</span></div>
+
+{/* Modal danh sách thành viên */}
+{showMemberModal && (
+  <div className="modal show d-block" tabIndex="-1" role="dialog">
+    <div className="modal-dialog" role="document">
+      <div className="modal-content">
+        <div className="modal-header">
+          <h5 className="modal-title">Danh sách thành viên</h5>
+          <button
+            type="button"
+            className="btn-close"
+            onClick={() => setShowMemberModal(false)}
+          ></button>
+        </div>
+        <div className="modal-body">
+          {members.length > 0 ? (
+            <ul className="list-group">
+              {members.map((member, index) => (
+                <li
+                  key={index}
+                  className="list-group-item d-flex align-items-center justify-content-between"
+                >
+                  <div className="d-flex align-items-center">
+                    <img
+                      src={member.avatar || "/placeholder.svg"}
+                      alt={member.username}
+                      className="rounded-circle me-2"
+                      style={{ width: "40px", height: "40px" }}
+                    />
+                    <span>{member.username}</span>
+                  </div>
+                  <button
+                    className="btn btn-danger btn-sm"
+                    onClick={() => handleRemoveMember(member._id)}
+                  >
+                    Xóa
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p>Không có thành viên nào.</p>
+          )}
+        </div>
+        <div className="modal-footer">
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => setShowMemberModal(false)}
+          >
+            Đóng
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+
+
                   {/* View All Button */}
                   <div className="p-3 border-top border-bottom">
                     <button className="btn btn-light w-100">Xem tất cả</button>
                   </div>
+
+                  
 
                   {/* Security Settings */}
                   <div className="accordion accordion-flush" id="securitySettings">

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Search, UserPlus, Users } from "lucide-react";
 import "./Chat.scss";
 import ChatPerson from "./ChatPerson";
@@ -9,7 +9,6 @@ import AddFriendModal from "../../component/AddFriendModal";
 import { Modal } from "react-bootstrap";
 import { loadMessages, getConversations } from "../../redux/chatSlice";
 import { useSelector, useDispatch } from "react-redux";
-import io from "socket.io-client";
 
 import axios from "axios";
 import { getUserByPhoneService } from "../../service/userService";
@@ -17,15 +16,15 @@ import { createConversationGroupService } from "../../service/chatService";
 import { getFriendListService } from "../../service/friendShipService";
 import { uploadAvatar } from "../../redux/profileSlice";
 
-export default function ChatInterface() {
+export default function ChatInterface(props) {
   const dispatch = useDispatch();
-  const socketRef = useRef();
+  const socketRef = props.socketRef
 
   const [allMsg, setAllMsg] = useState([]);
   const user = useSelector((state) => state.auth.userInfo);
   const conversationRedux = useSelector((state) => state.chat.conversations);
-  const [isConnect, setIsConnect] = useState(false); // connect socket
   const [selected, setSelected] = useState(0);
+
 
   const [showPopupCreateGroup, setShowPopupCreateGroup] = useState(false);
   const [searchResults, setSearchResults] = useState([]); // Khởi tạo là mảng rỗng
@@ -62,50 +61,49 @@ export default function ChatInterface() {
   };
   const [showModalAddFriend, setShowModalAddFriend] = useState(false);
 
-  // connect docket
-  useEffect(() => {
-    const socket = io.connect(import.meta.env.VITE_BACKEND_URL);
-
-    socketRef.current = socket;
-    socket.on("connect", () => setIsConnect(true));
-    socket.off("disconnect", () => setIsConnect(false));
-  }, []);
-  // console.log("Connected to socket server with ID:", socketRef);
-
   // action socket
   useEffect(() => {
-    if (isConnect) {
+    socketRef.current.on("user-list", (usersList) => {
+      setOnlineUsers(usersList); // Lưu danh sách user online
 
-      socketRef.current.emit("register", user._id);
+    });
 
-      socketRef.current.on("user-list", (usersList) => {
-        setOnlineUsers(usersList); // Lưu danh sách user online
-      });
+    socketRef.current.on("RECEIVED_MSG", (data) => {
+      console.log("form another users", data);
+      setAllMsg((prevState) => [...prevState, data]);
+    });
 
-      socketRef.current.on("RECEIVED_MSG", (data) => {
-        console.log("form another users", data);
-        setAllMsg((prevState) => [...prevState, data]);
-      });
+    socketRef.current.on("RECALL_MSG", (data) => {
+      setAllMsg((prevMsgs) =>
+        prevMsgs.map((msg) =>
+          msg._id === data._id
+            ? { ...msg, msg: "Tin nhắn đã được thu hồi", type: "system" }
+            : msg
+        )
+      );
+    });
 
-      socketRef.current.on("RECALL_MSG", (data) => {
-        setAllMsg((prevMsgs) =>
-          prevMsgs.map((msg) =>
-            msg._id === data._id
-              ? { ...msg, msg: "Tin nhắn đã được thu hồi", type: "system" }
-              : msg
-          )
-        );
-      });
+    // accept friend
+    socketRef.current.on("RES_ACCEPT_FRIEND", async () => {
+      dispatch(getConversations(user._id));
+    });
 
-      socketRef.current.on("DELETED_MSG", (data) => {
-        setAllMsg((prevState) =>
-          prevState.filter((item) => item._id != data.msg._id)
-        );
-      });
+    // delete friend
+    socketRef.current.on("RES_DELETE_FRIEND", async () => {
+      dispatch(getConversations(user._id));
+    });
 
-      return () => socketRef.current.disconnect();
-    }
-  }, [isConnect]);
+    // remove member group
+    socketRef.current.on("RES_REMOVE_MEMBER", async () => {
+      dispatch(getConversations(user._id));
+    });
+
+    // create group
+    socketRef.current.on("RES_CREATE_GROUP", (data) => {
+      dispatch(getConversations(user._id));
+    });
+
+  }, [socketRef]);
 
   const handleSendMsg = (msg, typeUpload) => {
     if (socketRef.current.connected) {
@@ -132,9 +130,6 @@ export default function ChatInterface() {
     }
   };
 
-  console.log(onlineUsers, "onlineUsers");
-
-
   // Hàm mở popup
   const handleOpenPopupCreateGroup = async () => {
 
@@ -157,10 +152,10 @@ export default function ChatInterface() {
 
   // Hàm đóng popup
   const handleClosePopupCreateGroup = () => {
-    document.querySelector("#group-name").value = ""; 
-    document.querySelector("#group-avatar").value = ""; 
+    document.querySelector("#group-name").value = "";
+    document.querySelector("#group-avatar").value = "";
     setGroupAvatarPreview("https://i.imgur.com/cIRFqAL.png");
-    setMembers([]); 
+    setMembers([]);
     setShowPopupCreateGroup(false);
 
 
@@ -298,7 +293,7 @@ export default function ChatInterface() {
         return;
       }
 
-      if(selectedMembers.length < 3) {
+      if (selectedMembers.length < 3) {
         alert("Vui lòng chọn ít nhất ba thành viên.");
         return;
       }
@@ -339,6 +334,7 @@ export default function ChatInterface() {
 
       if (response.EC === 0) {
         alert("Tạo nhóm thành công!");
+        socketRef.current.emit("REQ_CREATE_GROUP", response.DT);
         setShowPopupCreateGroup(false); // Đóng popup
       } else {
         alert(response.EM || "Đã xảy ra lỗi khi tạo nhóm.");
@@ -423,6 +419,7 @@ export default function ChatInterface() {
                   <AddFriendModal
                     show={showModalAddFriend}
                     onHide={() => setShowModalAddFriend(false)}
+                    socketRef={socketRef}
                   />
                   <button className="btn btn-light rounded-circle mb-1"
                     onClick={() => handleOpenPopupCreateGroup()}>
@@ -649,7 +646,7 @@ export default function ChatInterface() {
                                 className="rounded-circle"
                                 style={{ width: "40px", height: "40px" }}
                               />
-                              
+
                               {member.phone === user.phone ? (
                                 <>
                                   <span className="text-muted fst-italic ms-2 me-2">Bạn</span>

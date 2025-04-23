@@ -3,7 +3,10 @@ import './FriendRequest.scss';
 import { acceptFriendRequestService, getFriendRequestsService, rejectFriendRequestService } from '../../service/friendRequestService';
 import { useSelector } from 'react-redux';
 import { getRoomChatByPhoneService } from '../../service/roomChatService';
-const FriendRequest = () => {
+
+const FriendRequest = (props) => {
+    const socketRef = props.socketRef;
+    
     const [friendRequests, setFriendRequests] = useState([
     ]);
     // Lấy userInfo từ Redux Store
@@ -13,9 +16,26 @@ const FriendRequest = () => {
 
     const fetchFriendRequests = async () => {
         const response = await getFriendRequestsService(); // Gọi API để lấy danh sách yêu cầu kết bạn
-        console.log("response", response);
 
         setFriendRequests(response.DT); // Cập nhật danh sách yêu cầu kết bạn
+
+        // action socket
+        // add friend
+        socketRef.current.on("RES_ADD_FRIEND", async () => {
+            const response = await getFriendRequestsService();
+            setFriendRequests(response.DT);
+        });
+
+        // reject friend
+        socketRef.current.on("RES_REJECT_FRIEND", async () => {
+            setFriendRequests([]);
+        });
+
+        // accept friend
+        socketRef.current.on("RES_ACCEPT_FRIEND", async () => {
+            const response = await getFriendRequestsService();
+            setFriendRequests(response.DT);
+        });
     };
 
     useEffect(() => {
@@ -25,6 +45,9 @@ const FriendRequest = () => {
     const handleAcceptRequest = async (requestId) => {
         try {
             const response = await acceptFriendRequestService(requestId); // Gọi API để chấp nhận yêu cầu kết bạn
+            if (response.EC === 0) {
+                socketRef.current.emit("REQ_ACCEPT_FRIEND", response.DT);
+            }
             fetchFriendRequests(); // Cập nhật lại danh sách yêu cầu kết bạn sau khi chấp nhận
         } catch (error) {
             console.error('Error accepting friend request:', error);
@@ -34,7 +57,9 @@ const FriendRequest = () => {
     const handleRejectRequest = async (requestId) => {
         try {
             const response = await rejectFriendRequestService(requestId); // Gọi API để từ chối yêu cầu kết bạn
-            console.log("response", response);
+            if (response.EC === 0) {
+                socketRef.current.emit("REQ_REJECT_fRIEND", response.DT);
+            }
             fetchFriendRequests(); // Cập nhật lại danh sách yêu cầu kết bạn sau khi từ chối
         } catch (error) {
             console.error('Error rejecting friend request:', error);

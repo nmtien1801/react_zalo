@@ -15,8 +15,14 @@ const getFriendListService = async () => {
     return response;
 }
 
+const getAllFriendsService = async () => {
+    const response = await customizeAxios.get(`/api/getAllFriends`);
+    return response;
+}
+
 export {
     deleteFriendService,
     checkFriendShipExistsService,
-    getFriendListService
+    getFriendListService,
+    getAllFriendsService
 };

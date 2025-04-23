@@ -41,15 +41,23 @@ import { deleteMessageForMeService, recallMessageService } from "../../service/c
 import ImageViewer from "./ImageViewer.jsx";
 import ShareMsgModal from "../../component/ShareMsgModal.jsx";
 import ManageGroup from "../auth/ManageGroup.jsx"
+import { uploadAvatarGroup } from '../../redux/profileSlice.js'
+import AddMemberModal from "../../component/AddMemberModal.jsx";
+
+// nghiem
+import { getRoomChatMembersService } from "../../service/roomChatService"; // Import service
+import { removeMemberFromGroupService } from "../../service/chatService"; // Import service
 
 export default function ChatGroup(props) {
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.userInfo);
-  const [avatarUrl, setAvatarUrl] = useState(""); // update avatar group
-  const receiver = props.roomData.receiver;
+  const [avatarUrl, setAvatarUrl] = useState(props.roomData.receiver.avatar); // update avatar group
+  const [receiver, setReceiver] = useState(props.roomData?.receiver || null);
   const fileInputRef = useRef(null); // Ref để truy cập input file ẩn
   const imageInputRef = useRef(null); // Ref để truy cập input ảnh nhóm
   const messagesEndRef = useRef(null);
+  const avatarInputRef = useRef(null);  // Ref để truy cập input avatar nhóm
+  const socketRef = props.socketRef
 
   const [showSidebar, setShowSidebar] = useState(true);
   const [message, setMessage] = useState("");
@@ -58,6 +66,16 @@ export default function ChatGroup(props) {
   const openModal = () => setIsOpen(true);
   const closeModal = () => setIsOpen(false);
   const [isOpen, setIsOpen] = useState(false);
+
+  const [showAddMemberModal, setShowAddMemberModal] = useState(false); // State quản lý modal
+
+  const handleOpenAddMemberModal = () => {
+    setShowAddMemberModal(true); // Mở modal
+  };
+
+  const handleCloseAddMemberModal = () => {
+    setShowAddMemberModal(false); // Đóng modal
+  };
 
   const [showCallScreen, setShowCallScreen] = useState(false);
   const [hasSelectedImages, setHasSelectedImages] = useState(false);
@@ -78,13 +96,52 @@ export default function ChatGroup(props) {
 
   // ManageGroup
   const [showManageGroup, setShowManageGroup] = useState(false)
-  const [role, setRole] = useState('member')
+  const [role, setRole] = useState('')
 
   const [sections] = useState([
     { id: "media", title: "Ảnh/Video", icon: ImageIcon },
     { id: "files", title: "File", icon: File },
     { id: "links", title: "Link", icon: LinkIcon },
   ]);
+
+  // nghiem
+  const [showMemberModal, setShowMemberModal] = useState(false);
+  const [members, setMembers] = useState([]); // State để lưu danh sách thành viên
+
+  // Gọi API để lấy danh sách thành viên nhóm
+  useEffect(() => {
+    const fetchMembers = async () => {
+      try {
+        if (receiver?._id) {
+          const response = await getRoomChatMembersService(receiver._id); // Gọi API với roomId
+          if (response.EC === 0) {
+            setMembers(response.DT); // Lưu danh sách thành viên vào state
+            console.log("Danh sách thành viên nhóm:", response.DT); // Log danh sách thành viên
+          } else {
+            console.error("Lỗi khi lấy danh sách thành viên:", response.EM);
+          }
+        }
+      } catch (error) {
+        console.error("Lỗi khi gọi API:", error);
+      }
+    };
+
+    fetchMembers();
+  }, [receiver?._id]);
+
+  const handleRemoveMember = async (memberId) => {
+    console.log("Xóa thành viên:", memberId);
+    console.log("ID nhóm:", receiver._id); // Kiểm tra ID nhóm
+
+    if (memberId === user._id) {
+      alert('Không thể xóa chính mình khỏi nhóm!')
+      return
+    }
+    let res = await removeMemberFromGroupService(receiver._id, memberId);
+    console.log("res xóa thành viên", res);
+
+    socketRef.current.emit("REQ_REMOVE_MEMBER", members);
+  };
 
   useEffect(() => {
     if (props.allMsg) {
@@ -211,6 +268,7 @@ export default function ChatGroup(props) {
     }
   };
 
+  // xử lý upload image
   const handleImageChange = async (e) => {
     const selectedImages = e.target.files;
 
@@ -244,11 +302,12 @@ export default function ChatGroup(props) {
     }
   };
 
-  // Kích hoạt input file khi nhấn nút
+  // Kích hoạt input ẩn file khi nhấn nút
   const handleButtonClick = () => {
     fileInputRef.current.click(); // Mở dialog chọn file
   };
 
+  // Kích hoạt input ẩn image khi nhấn nút
   const handleButtonClickImage = () => {
     imageInputRef.current.click(); // Mở dialog chọn file
   };
@@ -262,9 +321,9 @@ export default function ChatGroup(props) {
     setSelectedImage(null);
   };
 
-  // Kích hoạt input file khi nhấn nút
+  // Kích hoạt input ẩn avatar khi nhấn nút
   const handleButtonUpdateClick = () => {
-    imageInputRef.current.click(); // Mở dialog chọn file
+    avatarInputRef.current.click(); // Mở dialog chọn file
   };
 
   // Xử lý upload avatar group
@@ -282,16 +341,16 @@ export default function ChatGroup(props) {
     try {
       const response = await dispatch(uploadAvatar({ formData }));
 
-      const { EM, EC, DT } = response.payload;
-      if (EC === 0) {
-        console.log('chua update avatar group xuong db');
-        setAvatarUrl(DT);
+      if (response.payload.EC === 0) {
+        console.log('res S3 avatar', response.payload.DT);
+        let res = await dispatch(uploadAvatarGroup({ groupId: props.roomData.receiver._id, avatar: response.payload.DT }))
+
+        setAvatarUrl(response.payload.DT);
       } else {
-        alert('err')
+        console.log('err upload ', response.payload.EM);
       }
     } catch (error) {
       console.error("Upload error:", error);
-      alert('err')
     }
   };
 
@@ -448,7 +507,79 @@ export default function ChatGroup(props) {
     if (role) {
       setRole(role.role)
     }
-  }, [conversations, receiver]);
+  }, []);
+
+  // action socket
+  useEffect(() => {
+    socketRef.current.on("RES_MEMBER_PERMISSION", (data) => {
+      const member = data.find((item) => item.sender._id === user._id);
+      setReceiver({
+        ...receiver,
+        permission: member.receiver.permission,
+        role: member.role,
+      });
+    });
+
+    socketRef.current.on("RES_UPDATE_DEPUTY", (data) => {
+      // Nếu không có bản ghi nào được cập nhật
+      if (data.upsertedCount === 0) {
+        setRole("member");
+        return;
+      }
+
+      // Tìm xem user có phải là sender hoặc receiver không
+      const member = data.find(
+        (item) =>
+          item?.sender?._id === user._id || item?.receiver?._id === user._id
+      );
+      console.log('member ', member);
+
+      if (member) {
+        setRole(member.role);
+      } else {
+        if (receiver.role !== 'leader') {
+          setRole("member");
+        }
+      }
+    });
+
+    socketRef.current.on("RES_TRANS_LEADER", (data) => {
+      const { newLeader, oldLeader } = data;
+      let member = null;
+      if (newLeader?.sender?._id === user._id) {
+        member = newLeader;
+      } else if (oldLeader?.sender?._id === user._id) {
+        member = oldLeader;
+      }
+
+      setRole(member.role);
+      setReceiver({
+        ...receiver,
+        role: member.role,
+      })
+      setShowManageGroup(false);
+    });
+
+    socketRef.current.on("RES_REMOVE_MEMBER", (data) => {
+      const fetchMembers = async () => {
+        try {
+          if (receiver?._id) {
+            const response = await getRoomChatMembersService(receiver._id);
+            console.log("response ", response);
+            
+            if (response.EC === 0) {
+              setMembers(response.DT); // Lưu danh sách thành viên vào state
+            } else {
+              console.error("Lỗi khi lấy danh sách thành viên:", response.EM);
+            }
+          }
+        } catch (error) {
+          console.error("Lỗi khi gọi API getRoomChatMembersService:", error);
+        }
+      };
+      fetchMembers();
+    })
+  }, [])
 
   return (
     <div className="row g-0 h-100">
@@ -507,7 +638,7 @@ export default function ChatGroup(props) {
               messages.map((msg, index) => (
                 <div
                   key={index}
-                  className={`p-2 my-1 d-flex ${msg.sender._id === user._id ? "justify-content-end" : "justify-content-start"
+                  className={`p-2 my-1 d-flex ${msg?.sender?._id === user._id ? "justify-content-end" : "justify-content-start"
                     }`}
                 >
                   <div
@@ -575,7 +706,7 @@ export default function ChatGroup(props) {
 
                     {/* Thời gian gửi */}
                     <div
-                      className={`text-end text-xs mt-1 ${msg.sender._id === user._id ? "text-white" : "text-secondary"
+                      className={`text-end text-xs mt-1 ${msg?.sender?._id === user._id ? "text-white" : "text-secondary"
                         }`}
                     >
                       {convertTime(msg.createdAt)}
@@ -590,86 +721,89 @@ export default function ChatGroup(props) {
         {/* Message Input */}
         <div className="bg-white p-2 border-top" >
           {/* Vùng nhập tin nhắn */}
-          <div className="d-flex align-items-center">
-            <input
-              type="file"
-              multiple
-              accept=".doc,.docx,.xls,.xlsx,.pdf,.mp4"
-              onChange={handleFileChange}
-              ref={fileInputRef}
-              style={{ display: "none" }} // Ẩn input
-            />
-            <button className="btn btn-light me-2" onClick={handleButtonClick}>
-              <Paperclip size={20} />
-            </button>
-
-            <input
-              type="file"
-              multiple
-              accept="image/jpeg,image/png"
-              onChange={handleImageChange}
-              ref={imageInputRef}
-              style={{ display: "none" }} // Ẩn input
-            />
-            <button className="btn btn-light me-2" onClick={handleButtonClickImage}>
-              <Image size={20} />
-            </button>
-
-            {/* Input tin nhắn */}
-            <input
-              className="form-control flex-1 p-2 border rounded-lg outline-none"
-              type="text"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && sendMessage(message, "text")}
-              placeholder="Nhập tin nhắn..."
-            />
-
-            {/* Nút smile */}
-            <button
-              className="btn btn-light ms-2"
-              data-bs-toggle="modal"
-              data-bs-target="#iconModal"
-            >
-              <Smile size={20} />
-            </button>
-            <IconModal onSelect={handleEmojiSelect} />
-
-            {/* Nút gửi */}
-            <button
-              className="btn btn-primary ms-2"
-              onClick={() => handleMessage(message)}
-            >
-              <Send size={20} />
-            </button>
-          </div>
-          <div className="preview-container d-flex flex-wrap gap-2 mt-2" >
-            {previewImages.map((image, index) => (
-              <div key={index} className="preview-item position-relative">
-                <img
-                  src={image}
-                  alt={`Xem trước ${index + 1}`}
-                  className="rounded"
-                  style={{ width: "100px", height: "100px", objectFit: "cover" }}
-                />
-                <button
-                  className="btn btn-danger btn-sm position-absolute top-0 end-0 d-flex justify-content-center align-items-center"
-                  onClick={() => handleRemovePreview(index)}
-                  style={{ borderRadius: "50%" }}
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            ))}
-            {previewImages.length > 0 && (
-              <button
-                className="btn btn-link text-danger mt-2"
-                onClick={handleClearAllPreviews}
-              >
-                Xóa tất cả
+          {(receiver.permission.includes(3) || receiver.role === 'leader' || receiver.role === 'deputy') ? (<>
+            <div className="d-flex align-items-center">
+              <input
+                type="file"
+                multiple
+                accept=".doc,.docx,.xls,.xlsx,.pdf,.mp4"
+                onChange={handleFileChange}
+                ref={fileInputRef}
+                style={{ display: "none" }} // Ẩn input
+              />
+              <button className="btn btn-light me-2" onClick={handleButtonClick}>
+                <Paperclip size={20} />
               </button>
-            )}
-          </div>
+
+              <input
+                type="file"
+                multiple
+                accept="image/jpeg,image/png"
+                onChange={handleImageChange}
+                ref={imageInputRef}
+                style={{ display: "none" }} // Ẩn input
+              />
+              <button className="btn btn-light me-2" onClick={handleButtonClickImage}>
+                <Image size={20} />
+              </button>
+
+              {/* Input tin nhắn */}
+              <input
+                className="form-control flex-1 p-2 border rounded-lg outline-none"
+                type="text"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && sendMessage(message, "text")}
+                placeholder="Nhập tin nhắn..."
+              />
+
+              {/* Nút smile */}
+              <button
+                className="btn btn-light ms-2"
+                data-bs-toggle="modal"
+                data-bs-target="#iconModal"
+              >
+                <Smile size={20} />
+              </button>
+              <IconModal onSelect={handleEmojiSelect} />
+
+              {/* Nút gửi */}
+              <button
+                className="btn btn-primary ms-2"
+                onClick={() => handleMessage(message)}
+              >
+                <Send size={20} />
+              </button>
+            </div>
+            <div className="preview-container d-flex flex-wrap gap-2 mt-2" >
+              {previewImages.map((image, index) => (
+                <div key={index} className="preview-item position-relative">
+                  <img
+                    src={image}
+                    alt={`Xem trước ${index + 1}`}
+                    className="rounded"
+                    style={{ width: "100px", height: "100px", objectFit: "cover" }}
+                  />
+                  <button
+                    className="btn btn-danger btn-sm position-absolute top-0 end-0 d-flex justify-content-center align-items-center"
+                    onClick={() => handleRemovePreview(index)}
+                    style={{ borderRadius: "50%" }}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              ))}
+              {previewImages.length > 0 && (
+                <button
+                  className="btn btn-link text-danger mt-2"
+                  onClick={handleClearAllPreviews}
+                >
+                  Xóa tất cả
+                </button>
+              )}
+            </div>
+          </>) : (<div className="d-flex flex-wrap align-items-center">Chỉ có trưởng nhóm/ phó nhóm mới được phép nhắn tin</div>)}
+
         </div>
       </div>
 
@@ -696,7 +830,7 @@ export default function ChatGroup(props) {
         >
           {
             showManageGroup ?
-              (<ManageGroup handleManageGroup={handleManageGroup} receiver={receiver}/>) :
+              (<ManageGroup handleManageGroup={handleManageGroup} receiver={receiver} socketRef={props.socketRef} />) :
               (
                 <>
                   {/* Header */}
@@ -721,7 +855,7 @@ export default function ChatGroup(props) {
                         type="file"
                         accept="image/jpeg,image/png"
                         onChange={handleUpdateAvatarGroup}
-                        ref={imageInputRef}
+                        ref={avatarInputRef}
                         style={{ display: "none" }} // Ẩn input
                       />
 
@@ -749,7 +883,18 @@ export default function ChatGroup(props) {
                         <div className="small">Ghim hội thoại</div>
                       </div>
                       <div className="text-center">
-                        <button className="btn btn-light rounded-circle mb-1">
+                        <button
+                          className="btn btn-light rounded-circle mb-1"
+                          onClick={() => {
+                            if (
+                              receiver.permission.includes(2) || receiver.role === 'leader' || receiver.role === 'deputy'
+                            ) {
+                              handleOpenAddMemberModal();
+                            } else {
+                              alert('k có quyền thêm');
+                            }
+                          }}
+                        >
                           <UserPlus size={20} />
                         </button>
                         <div className="small">Thêm thành viên</div>
@@ -763,6 +908,13 @@ export default function ChatGroup(props) {
                       </div>}
                     </div>
                   </div>
+
+                  {/* Modal AddMember */}
+                  <AddMemberModal
+                    show={showAddMemberModal} // Truyền state hiển thị
+                    onHide={handleCloseAddMemberModal} // Truyền hàm đóng modal
+                    roomId={receiver._id} // Truyền roomId của nhóm
+                  />
 
                   {/* Collapsible Sections */}
                   <div className="accordion accordion-flush" id="chatInfo">
@@ -797,10 +949,83 @@ export default function ChatGroup(props) {
                     ))}
                   </div>
 
+
+                  {/* Thành viên */}
+                  <div
+                    className="d-flex align-items-center justify-content-between p-3 border-bottom hover-bg-light cursor-pointer"
+                    onClick={() => setShowMemberModal(true)}
+                  >
+                    <div className="d-flex align-items-center">
+                      <Users size={20} className="me-2" />
+                      <span>Thành viên</span>
+                    </div>
+                    <span className="badge bg-primary">{members.length}</span></div>
+
+                  {/* Modal danh sách thành viên */}
+                  {showMemberModal && (
+                    <div className="modal show d-block" tabIndex="-1" role="dialog">
+                      <div className="modal-dialog" role="document">
+                        <div className="modal-content">
+                          <div className="modal-header">
+                            <h5 className="modal-title">Danh sách thành viên</h5>
+                            <button
+                              type="button"
+                              className="btn-close"
+                              onClick={() => setShowMemberModal(false)}
+                            ></button>
+                          </div>
+                          <div className="modal-body">
+                            {members.length > 0 ? (
+                              <ul className="list-group">
+                                {members.map((member, index) => (
+                                  <li
+                                    key={index}
+                                    className="list-group-item d-flex align-items-center justify-content-between"
+                                  >
+                                    <div className="d-flex align-items-center">
+                                      <img
+                                        src={member.avatar || "/placeholder.svg"}
+                                        alt={member.username}
+                                        className="rounded-circle me-2"
+                                        style={{ width: "40px", height: "40px" }}
+                                      />
+                                      <span>{member.username}</span>
+                                    </div>
+                                    {((role === 'leader' && member.role != 'leader') || (role === 'deputy' && member.role != 'leader')) &&
+                                      <button
+                                        className="btn btn-danger btn-sm"
+                                        onClick={() => handleRemoveMember(member._id)}
+                                      >
+                                        Xóa
+                                      </button>}
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <p>Không có thành viên nào.</p>
+                            )}
+                          </div>
+                          <div className="modal-footer">
+                            <button
+                              type="button"
+                              className="btn btn-secondary"
+                              onClick={() => setShowMemberModal(false)}
+                            >
+                              Đóng
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+
                   {/* View All Button */}
                   <div className="p-3 border-top border-bottom">
                     <button className="btn btn-light w-100">Xem tất cả</button>
                   </div>
+
+
 
                   {/* Security Settings */}
                   <div className="accordion accordion-flush" id="securitySettings">

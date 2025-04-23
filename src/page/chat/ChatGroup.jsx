@@ -581,23 +581,25 @@ export default function ChatGroup(props) {
       };
       fetchMembers();
     })
+
+    // add member group
+    socketRef.current.on("RES_ADD_MEMBER", (data) => {
+           
+    });
   }, [])
 
 
 
-   // Handle dissolve group
-   const handleDissolveGroup = async () => {
-    debugger
+  // Handle dissolve group
+  const handleDissolveGroup = async () => {
     try {
-      alert("Thông báo", "Đang giải tán nhóm...");
-  
       const response = await dissolveGroupService(receiver._id);
-  
+
       const { EC, EM } = response || {};
-  
+
       if (EC === 0) {
         alert("Thành công", "Nhóm đã được giải tán!");
-       window.location.reload(); // Tải lại trang sau khi giải tán nhóm
+        socketRef.current.emit("REQ_DISSOLVE_GROUP", receiver);
       } else {
         alert("Lỗi", EM || "Không thể giải tán nhóm.");
       }
@@ -606,7 +608,7 @@ export default function ChatGroup(props) {
       alert("Lỗi", "Không thể giải tán nhóm, vui lòng thử lại sau.");
     }
   };
-  
+
 
   return (
     <div className="row g-0 h-100">
@@ -1161,21 +1163,17 @@ export default function ChatGroup(props) {
                           </div>
 
                           {/* DissolveDissolve Group */}
-                          {role === "leader"   && (  <button className="d-flex align-items-center p-3 hover-bg-light cursor-pointer w-100 "
-                          onClick = {handleDissolveGroup}
-                          >
-                            <div
-                              className="d-flex align-items-center justify-content-center rounded-circle bg-light"
-                              style={{ width: "32px", height: "32px" }}
-                            >
-                              <UserX size={18} className="text-danger" />
-                            </div>
-                            <div className="ms-2 text-danger">Giải tán nhóm</div>
-                          </button>)}
-
+                          {role === "leader" &&
+                            <div className="d-flex align-items-center p-3 hover-bg-light cursor-pointer" onClick={handleDissolveGroup}>
+                              <div
+                                className="d-flex align-items-center justify-content-center rounded-circle bg-light"
+                                style={{ width: "32px", height: "32px" }}
+                              >
+                                <UserX size={18} className="text-danger" />
+                              </div>
+                              <div className="ms-2 text-danger">Giải tán nhóm</div>
+                            </div>}
                         </div>
-
-
                       </div>
                     </div>
                   </div>

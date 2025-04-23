@@ -35,6 +35,7 @@ const GroupRequest = (props) => {
                     console.error('Error fetching group requests:', error);
                 }
             });
+            
             socketRef.current.on("RES_REJECT_FRIEND", async () => {
                 try {
                     const response = await getGroupJoinRequestsService();

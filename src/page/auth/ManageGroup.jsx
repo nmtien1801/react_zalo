@@ -5,6 +5,7 @@ import { ArrowLeft, Trash, UserX, Users } from 'lucide-react';
 import { updatePermission } from '../../redux/chatSlice'
 import { getAllPermission } from '../../redux/permissionSlice'
 import ManagePermissionModal from '../auth/ManagePermissionModal'
+import { dissolveGroupService } from '../../service/chatService'
 
 const ManageGroup = (props) => {
     const dispatch = useDispatch();
@@ -65,6 +66,24 @@ const ManageGroup = (props) => {
         } catch (error) {
             console.error("Error updating permissions:", error);
             // Có thể hiển thị thông báo lỗi cho người dùng
+        }
+    };
+
+    const handleDissolveGroup = async () => {
+        try {
+            const response = await dissolveGroupService(receiver._id);
+
+            const { EC, EM } = response || {};
+
+            if (EC === 0) {
+                alert("Thành công", "Nhóm đã được giải tán!");
+                socketRef.current.emit("REQ_DISSOLVE_GROUP", receiver);
+            } else {
+                alert("Lỗi", EM || "Không thể giải tán nhóm.");
+            }
+        } catch (error) {
+            console.error("Lỗi khi giải tán nhóm:", error);
+            alert("Lỗi", "Không thể giải tán nhóm, vui lòng thử lại sau.");
         }
     };
 
@@ -163,7 +182,7 @@ const ManageGroup = (props) => {
                 {/* Nút giải tán */}
                 <div className="text-center">
                     {receiver.role === 'leader' &&
-                        <button className="btn btn-danger">
+                        <button className="btn btn-danger" onClick={handleDissolveGroup}>
                             <Trash size={16} className="me-2" />
                             Giải tán nhóm
                         </button>}

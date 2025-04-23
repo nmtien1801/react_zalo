@@ -103,6 +103,15 @@ export default function ChatInterface(props) {
       dispatch(getConversations(user._id));
     });
 
+    // Dissolve Group
+    socketRef.current.on("RES_DISSOLVE_GROUP", (data) => {
+      dispatch(getConversations(user._id));
+    });
+
+    // add member group
+    socketRef.current.on("RES_ADD_GROUP", (data) => {
+      dispatch(getConversations(user._id));
+    });
   }, [socketRef]);
 
   const handleSendMsg = (msg, typeUpload) => {

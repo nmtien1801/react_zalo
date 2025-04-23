@@ -104,7 +104,6 @@ const AddMemberModal = ({ show, onHide, roomId, socketRef, user, roomData }) => 
         setIsSubmitting(true); // Bắt đầu trạng thái gửi yêu cầu
         try {
             const response = await addMembersToRoomChatService(roomData.receiver._id, selectedFriends);
-            console.log("response", response);
 
             if (response.EC === 0) {
                 socketRef.current.emit("REQ_ADD_GROUP", response.DT);

@@ -55,6 +55,10 @@ const removeMemberFromGroupService = async (groupId, memberId) => {
   }
 };
 
+const dissolveGroupService = async (groupId) => {
+  return customizeAxios.delete(`/api/group/${groupId}/dissolve`);
+};
+
 export {
   removeMemberFromGroupService,
   loadMessagesService,
@@ -65,4 +69,5 @@ export {
   sendReactionService,
   getReactionMessageService,
   updatePermissionService,
+  dissolveGroupService
 };

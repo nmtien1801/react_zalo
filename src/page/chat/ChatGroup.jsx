@@ -45,7 +45,6 @@ import ManageGroup from "../auth/ManageGroup.jsx"
 import { uploadAvatarGroup } from '../../redux/profileSlice.js'
 import AddMemberModal from "../../component/AddMemberModal.jsx";
 
-// nghiem
 import { getRoomChatMembersService } from "../../service/roomChatService"; // Import service
 import { removeMemberFromGroupService } from "../../service/chatService"; // Import service
 import { reloadMessages } from "../../redux/chatSlice.js";

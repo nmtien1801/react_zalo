@@ -42,6 +42,7 @@ import { deleteMessageForMeService, getReactionMessageService, recallMessageServ
 import ImageViewer from "./ImageViewer.jsx";
 import ShareMsgModal from "../../component/ShareMsgModal.jsx";
 import AccountInfo from "../info/accountInfo.jsx";
+import { reloadMessages } from "../../redux/chatSlice.js";
 
 export default function ChatPerson(props) {
   const dispatch = useDispatch();
@@ -50,6 +51,7 @@ export default function ChatPerson(props) {
   const fileInputRef = useRef(null); // Ref để truy cập input file ẩn
   const imageInputRef = useRef(null);
   const messagesEndRef = useRef(null);
+  const { setAllMsg } = props;
 
   const [showSidebar, setShowSidebar] = useState(true);
   const [message, setMessage] = useState("");
@@ -344,6 +346,14 @@ export default function ChatPerson(props) {
         setMessages((prevMessages) =>
           prevMessages.filter((msg) => msg._id !== id)
         );
+
+        const res = await dispatch(
+          reloadMessages({ sender: user._id, receiver: receiver._id, type: receiver.type })
+        );
+
+        if (res.payload.EC === 0) {
+          setAllMsg(res.payload.DT);
+        }
       } else {
         console.error("Xóa tin nhắn thất bại:", response.EM);
       }
@@ -687,10 +697,10 @@ export default function ChatPerson(props) {
                       </div>
                       <div
                         className={`message-time ${msg.type === "video" || msg.type === "image"
-                            ? "text-secondary"
-                            : msg.sender._id === user._id
-                              ? "text-white"
-                              : "text-secondary"
+                          ? "text-secondary"
+                          : msg.sender._id === user._id
+                            ? "text-white"
+                            : "text-secondary"
                           }`}
                       >
                         {convertTime(msg.createdAt)}

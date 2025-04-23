@@ -44,6 +44,18 @@ export const updatePermission = createAsyncThunk(
   }
 );
 
+export const reloadMessages = createAsyncThunk(
+  "chat/reloadMessages",
+  async ({ sender, receiver, type }, thunkAPI) => {
+    try {
+      const response = await loadMessagesService(sender, receiver, type);
+      return response;
+    } catch (error) {
+      return thunkAPI.rejectWithValue(error.response?.data || "Lỗi không xác định");
+    }
+  }
+);
+
 const chatSlice = createSlice({
   name: "chat",
   initialState,
@@ -101,6 +113,23 @@ const chatSlice = createSlice({
         }
       })
       .addCase(updatePermission.rejected, (state, action) => {});
+
+    // reloadMessages
+    builder
+      .addCase(reloadMessages.pending, (state) => {
+        console.log("Đang tải lại messages...");
+      })
+      .addCase(reloadMessages.fulfilled, (state, action) => {
+        if (action.payload.EC === 0) {
+          state.messages = action.payload.DT || [];
+          console.log("Tải lại messages thành công:", action.payload.DT);
+        } else {
+          console.error("Lỗi khi tải lại messages:", action.payload.EM);
+        }
+      })
+      .addCase(reloadMessages.rejected, (state, action) => {
+        console.error("Lỗi khi tải lại messages:", action.payload);
+      });
   },
 });
 

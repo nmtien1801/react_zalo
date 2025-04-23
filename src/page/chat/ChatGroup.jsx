@@ -47,6 +47,7 @@ import AddMemberModal from "../../component/AddMemberModal.jsx";
 // nghiem
 import { getRoomChatMembersService } from "../../service/roomChatService"; // Import service
 import { removeMemberFromGroupService } from "../../service/chatService"; // Import service
+import { reloadMessages } from "../../redux/chatSlice.js";
 
 export default function ChatGroup(props) {
   const dispatch = useDispatch();
@@ -62,6 +63,8 @@ export default function ChatGroup(props) {
   const [showSidebar, setShowSidebar] = useState(true);
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
+
+  const { setAllMsg } = props;
 
   const openModal = () => setIsOpen(true);
   const closeModal = () => setIsOpen(false);
@@ -402,7 +405,7 @@ export default function ChatGroup(props) {
   // Xử lý recall for me
   const handleDeleteMessageForMe = async (id) => {
     try {
-      let member
+      let member;
       if (receiver.type === 2) {
         member = {
           ...receiver,
@@ -419,6 +422,14 @@ export default function ChatGroup(props) {
         setMessages((prevMessages) =>
           prevMessages.filter((msg) => msg._id !== id)
         );
+
+        const res = await dispatch(
+          reloadMessages({ sender: user._id, receiver: receiver._id, type: receiver.type })
+        );
+    
+        if (res.payload.EC === 0) {
+          setAllMsg(res.payload.DT);
+        }
       } else {
         console.error("Xóa tin nhắn thất bại:", response.EM);
       }

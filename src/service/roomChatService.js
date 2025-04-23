@@ -1,9 +1,7 @@
 import customizeAxios from "../component/customizeAxios";
 
 const getRoomChatByPhoneService = (phone) => {
-    return customizeAxios.get(
-        `/api/roomChat/${phone}`
-    );
+    return customizeAxios.get(`/api/roomChat/${phone}`);
 };
 
 const getRoomChatMembersService = async (roomId) => {
@@ -20,4 +18,18 @@ const addMembersToRoomChatService = async (roomId, members) => {
 };
 
 
-export { getRoomChatByPhoneService, getRoomChatMembersService, addMembersToRoomChatService };
+const getAllMemberGroupService = (groupId) => {
+    return customizeAxios.get(`/api/getAllMemberGroup/${groupId}`);
+};
+
+const getMemberByPhoneService = (phone, groupId) => {
+    return customizeAxios.post(`/api/getMemberByPhone/${phone}`, { groupId });
+};
+
+export {
+    getRoomChatByPhoneService,
+    getAllMemberGroupService,
+    getMemberByPhoneService,
+    getRoomChatMembersService,
+    addMembersToRoomChatService,
+};

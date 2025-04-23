@@ -48,12 +48,13 @@ export default function ChatGroup(props) {
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.userInfo);
   const [avatarUrl, setAvatarUrl] = useState(props.roomData.receiver.avatar); // update avatar group
-  const receiver = props.roomData.receiver;
 
+  const [receiver, setReceiver] = useState(props.roomData?.receiver || null);
   const fileInputRef = useRef(null); // Ref để truy cập input file ẩn
   const imageInputRef = useRef(null); // Ref để truy cập input ảnh nhóm
   const messagesEndRef = useRef(null);
   const avatarInputRef = useRef(null);  // Ref để truy cập input avatar nhóm
+  const socketRef = props.socketRef
 
   const [showSidebar, setShowSidebar] = useState(true);
   const [message, setMessage] = useState("");
@@ -92,7 +93,7 @@ export default function ChatGroup(props) {
 
   // ManageGroup
   const [showManageGroup, setShowManageGroup] = useState(false)
-  const [role, setRole] = useState('member')
+  const [role, setRole] = useState('')
 
   const [sections] = useState([
     { id: "media", title: "Ảnh/Video", icon: ImageIcon },
@@ -466,7 +467,45 @@ export default function ChatGroup(props) {
     if (role) {
       setRole(role.role)
     }
-  }, [conversations, receiver]);
+  }, []);
+
+  // action socket
+  useEffect(() => {
+    socketRef.current.on("RES_MEMBER_PERMISSION", (data) => {
+      const member = data.find((item) => item.sender._id === user._id);
+      setReceiver({
+        ...receiver,
+        permission: member.receiver.permission,
+        role: member.role,
+      });
+    });
+
+    socketRef.current.on("RES_UPDATE_DEPUTY", (data) => {
+      if (data.upsertedCount === 0) {
+        setRole('member');
+      }
+      const member = data.find((item) => item.sender._id === user._id);
+      setRole(member.role);
+    });
+
+    socketRef.current.on("RES_TRANS_LEADER", (data) => {
+      const { newLeader, oldLeader } = data;
+      let member = null;
+      if (newLeader?.sender?._id === user._id) {
+        member = newLeader;
+      } else if (oldLeader?.sender?._id === user._id) {
+        member = oldLeader;
+      }
+
+      setRole(member.role);
+      setReceiver({
+        ...receiver,
+        role: member.role,
+      })
+      setShowManageGroup(false);
+    });
+
+  }, [])
 
   return (
     <div className="row g-0 h-100">
@@ -608,86 +647,89 @@ export default function ChatGroup(props) {
         {/* Message Input */}
         <div className="bg-white p-2 border-top" >
           {/* Vùng nhập tin nhắn */}
-          <div className="d-flex align-items-center">
-            <input
-              type="file"
-              multiple
-              accept=".doc,.docx,.xls,.xlsx,.pdf,.mp4"
-              onChange={handleFileChange}
-              ref={fileInputRef}
-              style={{ display: "none" }} // Ẩn input
-            />
-            <button className="btn btn-light me-2" onClick={handleButtonClick}>
-              <Paperclip size={20} />
-            </button>
-
-            <input
-              type="file"
-              multiple
-              accept="image/jpeg,image/png"
-              onChange={handleImageChange}
-              ref={imageInputRef}
-              style={{ display: "none" }} // Ẩn input
-            />
-            <button className="btn btn-light me-2" onClick={handleButtonClickImage}>
-              <Image size={20} />
-            </button>
-
-            {/* Input tin nhắn */}
-            <input
-              className="form-control flex-1 p-2 border rounded-lg outline-none"
-              type="text"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && sendMessage(message, "text")}
-              placeholder="Nhập tin nhắn..."
-            />
-
-            {/* Nút smile */}
-            <button
-              className="btn btn-light ms-2"
-              data-bs-toggle="modal"
-              data-bs-target="#iconModal"
-            >
-              <Smile size={20} />
-            </button>
-            <IconModal onSelect={handleEmojiSelect} />
-
-            {/* Nút gửi */}
-            <button
-              className="btn btn-primary ms-2"
-              onClick={() => handleMessage(message)}
-            >
-              <Send size={20} />
-            </button>
-          </div>
-          <div className="preview-container d-flex flex-wrap gap-2 mt-2" >
-            {previewImages.map((image, index) => (
-              <div key={index} className="preview-item position-relative">
-                <img
-                  src={image}
-                  alt={`Xem trước ${index + 1}`}
-                  className="rounded"
-                  style={{ width: "100px", height: "100px", objectFit: "cover" }}
-                />
-                <button
-                  className="btn btn-danger btn-sm position-absolute top-0 end-0 d-flex justify-content-center align-items-center"
-                  onClick={() => handleRemovePreview(index)}
-                  style={{ borderRadius: "50%" }}
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            ))}
-            {previewImages.length > 0 && (
-              <button
-                className="btn btn-link text-danger mt-2"
-                onClick={handleClearAllPreviews}
-              >
-                Xóa tất cả
+          {(receiver.permission.includes(3) || receiver.role === 'leader' || receiver.role === 'deputy') ? (<>
+            <div className="d-flex align-items-center">
+              <input
+                type="file"
+                multiple
+                accept=".doc,.docx,.xls,.xlsx,.pdf,.mp4"
+                onChange={handleFileChange}
+                ref={fileInputRef}
+                style={{ display: "none" }} // Ẩn input
+              />
+              <button className="btn btn-light me-2" onClick={handleButtonClick}>
+                <Paperclip size={20} />
               </button>
-            )}
-          </div>
+
+              <input
+                type="file"
+                multiple
+                accept="image/jpeg,image/png"
+                onChange={handleImageChange}
+                ref={imageInputRef}
+                style={{ display: "none" }} // Ẩn input
+              />
+              <button className="btn btn-light me-2" onClick={handleButtonClickImage}>
+                <Image size={20} />
+              </button>
+
+              {/* Input tin nhắn */}
+              <input
+                className="form-control flex-1 p-2 border rounded-lg outline-none"
+                type="text"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && sendMessage(message, "text")}
+                placeholder="Nhập tin nhắn..."
+              />
+
+              {/* Nút smile */}
+              <button
+                className="btn btn-light ms-2"
+                data-bs-toggle="modal"
+                data-bs-target="#iconModal"
+              >
+                <Smile size={20} />
+              </button>
+              <IconModal onSelect={handleEmojiSelect} />
+
+              {/* Nút gửi */}
+              <button
+                className="btn btn-primary ms-2"
+                onClick={() => handleMessage(message)}
+              >
+                <Send size={20} />
+              </button>
+            </div>
+            <div className="preview-container d-flex flex-wrap gap-2 mt-2" >
+              {previewImages.map((image, index) => (
+                <div key={index} className="preview-item position-relative">
+                  <img
+                    src={image}
+                    alt={`Xem trước ${index + 1}`}
+                    className="rounded"
+                    style={{ width: "100px", height: "100px", objectFit: "cover" }}
+                  />
+                  <button
+                    className="btn btn-danger btn-sm position-absolute top-0 end-0 d-flex justify-content-center align-items-center"
+                    onClick={() => handleRemovePreview(index)}
+                    style={{ borderRadius: "50%" }}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              ))}
+              {previewImages.length > 0 && (
+                <button
+                  className="btn btn-link text-danger mt-2"
+                  onClick={handleClearAllPreviews}
+                >
+                  Xóa tất cả
+                </button>
+              )}
+            </div>
+          </>) : (<div className="d-flex flex-wrap align-items-center">Chỉ có trưởng nhóm/ phó nhóm mới được phép nhắn tin</div>)}
+
         </div>
       </div>
 
@@ -714,7 +756,7 @@ export default function ChatGroup(props) {
         >
           {
             showManageGroup ?
-              (<ManageGroup handleManageGroup={handleManageGroup} receiver={receiver} />) :
+              (<ManageGroup handleManageGroup={handleManageGroup} receiver={receiver} socketRef={props.socketRef} />) :
               (
                 <>
                   {/* Header */}
@@ -769,7 +811,11 @@ export default function ChatGroup(props) {
                       <div className="text-center">
                         <button
                           className="btn btn-light rounded-circle mb-1"
-                          onClick={handleOpenAddMemberModal} // Mở modal khi nhấn nút
+                          onClick={() =>
+                            (receiver.permission.includes(2) || receiver.role === 'leader' || receiver.role === 'deputy')
+                              ? handleOpenAddMemberModal()
+                              : alert('k có quyền thêm')
+                          }
                         >
                           <UserPlus size={20} />
                         </button>

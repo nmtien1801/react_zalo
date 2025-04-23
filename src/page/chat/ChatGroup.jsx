@@ -129,31 +129,18 @@ export default function ChatGroup(props) {
     fetchMembers();
   }, [receiver?._id]);
 
-  //   const handleRemoveMember = async (memberId) => {
-  //     try {
-  //         // Gọi API xóa thành viên khỏi RoomChat
-  //         console.log("Xóa thành viên:", memberId);
-  //         console.log("ID nhóm:", receiver._id); // Kiểm tra ID nhóm
-  //         const roomResponse = await removeMemberFromGroupService(receiver._id, memberId);
-  //         if (roomResponse.EC === 0) {
-  //             console.log("Xóa thành viên khỏi RoomChat thành công:", roomResponse.DT);
-
-  //             // Cập nhật danh sách thành viên
-  //             setMembers((prevMembers) => prevMembers.filter((member) => member._id !== memberId));
-  //         } else {
-  //             console.error("Lỗi khi xóa thành viên khỏi RoomChat:", roomResponse.EM);
-  //         }
-  //     } catch (error) {
-  //         console.error("Lỗi khi gọi API xóa thành viên:", error);
-  //     }
-  // };
-
-  const handleRemoveMember = (memberId) => {
+  const handleRemoveMember = async (memberId) => {
     console.log("Xóa thành viên:", memberId);
     console.log("ID nhóm:", receiver._id); // Kiểm tra ID nhóm
 
-    removeMemberFromGroupService(receiver._id, memberId);
-    setMembers((prevMembers) => prevMembers.filter((member) => member._id !== memberId));
+    if (memberId === user._id) {
+      alert('Không thể xóa chính mình khỏi nhóm!')
+      return
+    }
+    let res = await removeMemberFromGroupService(receiver._id, memberId);
+    console.log("res xóa thành viên", res);
+
+    socketRef.current.emit("REQ_REMOVE_MEMBER", members);
   };
 
   useEffect(() => {
@@ -573,9 +560,26 @@ export default function ChatGroup(props) {
       setShowManageGroup(false);
     });
 
+    socketRef.current.on("RES_REMOVE_MEMBER", (data) => {
+      const fetchMembers = async () => {
+        try {
+          if (receiver?._id) {
+            const response = await getRoomChatMembersService(receiver._id);
+            console.log("response ", response);
+            
+            if (response.EC === 0) {
+              setMembers(response.DT); // Lưu danh sách thành viên vào state
+            } else {
+              console.error("Lỗi khi lấy danh sách thành viên:", response.EM);
+            }
+          }
+        } catch (error) {
+          console.error("Lỗi khi gọi API getRoomChatMembersService:", error);
+        }
+      };
+      fetchMembers();
+    })
   }, [])
-  console.log('role ', role);
-
 
   return (
     <div className="row g-0 h-100">
@@ -987,7 +991,7 @@ export default function ChatGroup(props) {
                                       />
                                       <span>{member.username}</span>
                                     </div>
-                                    {(role === 'leader' || (role === 'deputy')) &&
+                                    {((role === 'leader' && member.role != 'leader') || (role === 'deputy' && member.role != 'leader')) &&
                                       <button
                                         className="btn btn-danger btn-sm"
                                         onClick={() => handleRemoveMember(member._id)}

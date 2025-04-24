@@ -42,5 +42,36 @@ const dissolveGroupService = async (groupId) => {
   
 };
 
-export { loadMessagesService, getConversationsService, createConversationGroupService, recallMessageService, deleteMessageForMeService, sendReactionService, getReactionMessageService, dissolveGroupService };
+
+const updatePermissionService = (groupId, newPermission) => {
+  return customizeAxios.post(`/api/updatePermission`, {
+    groupId,
+    newPermission,
+  });
+};
+
+const removeMemberFromGroupService = async (groupId, memberId) => {
+  try {
+    const response = await customizeAxios.delete(
+      `/api/roomChat/${groupId}/members/${memberId}`
+    );
+    return response;
+  } catch (error) {
+    console.error("Lỗi khi gọi API xóa thành viên:", error);
+    return { EC: -1, EM: "Lỗi khi gọi API", DT: null }; // Trả về định dạng mặc định khi lỗi
+  }
+};
+
+export {
+  removeMemberFromGroupService,
+  loadMessagesService,
+  getConversationsService,
+  createConversationGroupService,
+  recallMessageService,
+  deleteMessageForMeService,
+  sendReactionService,
+  getReactionMessageService,
+  updatePermissionService,
+  dissolveGroupService
+};
 

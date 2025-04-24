@@ -1,0 +1,55 @@
+.add-member-container {
+    display       : flex;
+    flex-direction: column;
+}
+
+.member-list-container {
+    display       : flex;
+    flex-direction: row;
+}
+
+.friend-list-container {
+    flex-grow : 1;
+    overflow-y: auto;
+    max-height: 400px;
+}
+
+.selected-list-container {
+    width           : 300px;
+    background-color: #f8f9fa;
+    border-left     : 1px solid #ddd;
+    padding         : 10px;
+    overflow-y      : auto;
+    max-height      : 400px;
+}
+
+.selected-list {
+    display       : flex;
+    flex-direction: column;
+    gap           : 10px;
+}
+
+.selected-item {
+    display         : flex;
+    align-items     : center;
+    background-color: #fff;
+    border          : 1px solid rgba(0, 0, 0, 0.1);
+    /* Mờ mờ để phân biệt */
+    border-radius   : 5px;
+    padding         : 5px;
+    box-shadow      : 0 1px 3px rgba(0, 0, 0, 0.1);
+    /* Nhấn nhẹ */
+}
+
+.selected-item .btn-outline-danger {
+    font-size      : 12px;
+    padding        : 2px 6px;
+    border-radius  : 50%;
+    /* Làm nút tròn */
+    display        : flex;
+    align-items    : center;
+    justify-content: center;
+    width          : 24px;
+    height         : 24px;
+    line-height    : 1;
+}

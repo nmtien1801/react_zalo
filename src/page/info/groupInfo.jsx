@@ -79,13 +79,6 @@ const GroupInfo = ({ isOpen, closeModal }) => {
                                 </div>
                             </div>
                             <div className="link-section">
-                                <div style={{ display: "flex", alignItems: "center", gap: "10px", justifyContent: "center" }}>
-                                    <IoSettingsOutline className="icon" />
-                                    <div className="link-title">Quản lý nhóm</div>
-                                </div>
-                            </div>
-
-                            <div className="link-section">
                                 <div style={{ display: "flex", alignItems: "center", gap: "10px", color: "red" }}>
                                     <IoExitOutline className="icon" />
                                     <div className="link-title">Rời nhóm</div>

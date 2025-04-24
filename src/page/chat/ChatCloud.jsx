@@ -32,7 +32,8 @@ export default function ChatCloud(props) {
   const user = useSelector((state) => state.auth.userInfo);
   const [showSidebar, setShowSidebar] = useState(true);
   const fileInputRef = useRef(null); // Ref để truy cập input file ẩn
-
+  const socketRef = props.socketRef
+  
   const [sections] = useState([
     { id: "media", title: "Ảnh/Video", icon: ImageIcon },
     { id: "files", title: "File", icon: File },
@@ -334,7 +335,7 @@ export default function ChatCloud(props) {
               onClick={openModal}
             />
 
-            <AccountInfo isOpen={isOpen} closeModal={closeModal} />
+            <AccountInfo isOpen={isOpen} closeModal={closeModal} socketRef={socketRef} />
 
             <div className="ms-2">
               <div className="fw-medium">Cloud của tôi</div>

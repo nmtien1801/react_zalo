@@ -30,6 +30,26 @@ const cancelFriendRequestService = async (requestId) => {
     return response;
 }
 
+// mời thành viên vào nhóm
+const sendGroupJoinRequestsService = async (roomId, members) => {
+    const response = await customizeAxios.post(`/api/sendGroupJoinRequests/${roomId}`, {
+        members,
+    });
+    return response;
+};
+
+// danh sách lời mời vào nhóm
+const getGroupJoinRequestsService = async () => {
+    const response = await customizeAxios.get(`/api/getGroupJoinRequests`);
+    return response;
+}
+
+const acceptGroupJoinRequestService = async (requestId) => {
+    const response = await customizeAxios.post(`/api/acceptGroupJoinRequest/${requestId}`);
+    return response;
+}
+
+
 
 export {
     getFriendRequestsService,
@@ -37,5 +57,8 @@ export {
     sendRequestFriendService,
     rejectFriendRequestService,
     getFriendRequestByFromUserAndToUserService,
-    cancelFriendRequestService
+    cancelFriendRequestService,
+    sendGroupJoinRequestsService,
+    getGroupJoinRequestsService,
+    acceptGroupJoinRequestService
 };

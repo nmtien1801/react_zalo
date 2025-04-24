@@ -64,10 +64,6 @@ export default function ShareMsgModal({ show, onHide, message, conversations, on
         }
     };
 
-    console.log("selectedRecipients", selectedRecipients);
-    console.log("onlineUsers", onlineUsers);
-
-
     const handleRecipientToggle = (user) => {
         setSelectedRecipients((prev) =>
             prev.some((recipient) => recipient._id === user._id)

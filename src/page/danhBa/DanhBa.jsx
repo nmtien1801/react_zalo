@@ -9,8 +9,9 @@ import { Search, UserPlus, Users } from 'lucide-react';
 import AddFriendModal from '../../component/AddFriendModal';
 
 
-const DanhBa = () => {
+const DanhBa = (props) => {
   const [activeTab, setActiveTab] = useState('Danh sách bạn bè');
+  const socketRef = props.socketRef
 
   const [isSearchFocused, setIsSearchFocused] = useState(false);
 
@@ -31,7 +32,7 @@ const DanhBa = () => {
       case 'Danh sách nhóm và cộng đồng':
         return <GroupsList />;
       case 'Lời mời kết bạn':
-        return <FriendRequest />;
+        return <FriendRequest socketRef={socketRef}/>;
       case 'Lời mời vào nhóm và cộng đồng':
         return <GroupRequest />;
       default:
@@ -78,6 +79,7 @@ const DanhBa = () => {
                   <AddFriendModal
                     show={showModalAddFriend}
                     onHide={() => setShowModalAddFriend(false)}
+                    socketRef={socketRef}
                   />
                   <button className="btn btn-light rounded-circle mb-1">
                     <Users size={20} />

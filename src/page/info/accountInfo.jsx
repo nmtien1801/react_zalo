@@ -8,8 +8,7 @@ import { getRoomChatByPhoneService } from '../../service/roomChatService';
 import { deleteFriendService, checkFriendShipExistsService } from '../../service/friendShipService';
 import { acceptFriendRequestService, cancelFriendRequestService, getFriendRequestByFromUserAndToUserService, rejectFriendRequestService, sendRequestFriendService } from '../../service/friendRequestService';
 
-const AccountInfo = ({ isOpen, closeModal, user }) => {
-
+const AccountInfo = ({ isOpen, closeModal, user, socketRef }) => {
     const [userInfo, setUserInfo] = useState(null);
     const [isFriend, setIsFriend] = useState(false);
 
@@ -23,6 +22,7 @@ const AccountInfo = ({ isOpen, closeModal, user }) => {
         const response = await sendRequestFriendService(data);
         if (response.EC === 0) {
             alert("Đã gửi lời mời kết bạn thành công!");
+            socketRef.current.emit("REQ_ADD_fRIEND", response.DT);
         }
         else {
             alert(response.EM); // Hiển thị thông báo lỗi nếu có
@@ -34,6 +34,7 @@ const AccountInfo = ({ isOpen, closeModal, user }) => {
         const res = await deleteFriendService(friendId);
         if (res.EC === 0) {
             alert("Xóa bạn bè thành công!");
+            socketRef.current.emit("REQ_DELETE_FRIEND", res.DT);
         } else {
             alert(res.EM);
         }
@@ -44,6 +45,8 @@ const AccountInfo = ({ isOpen, closeModal, user }) => {
         const res = await cancelFriendRequestService(requestId);
         if (res.EC === 0) {
             alert("Hủy yêu cầu kết bạn thành công!");
+            socketRef.current.emit("REQ_CANCEL_FRIEND", res.DT);
+
         } else {
             alert(res.EM);
         }
@@ -56,6 +59,7 @@ const AccountInfo = ({ isOpen, closeModal, user }) => {
 
             if (response.EC === 0) {
                 alert("Đã chấp nhận yêu cầu kết bạn thành công!");
+                socketRef.current.emit("REQ_ACCEPT_FRIEND", response.DT);
             }
             else {
                 alert(response.EM); // Hiển thị thông báo lỗi nếu có
@@ -73,6 +77,7 @@ const AccountInfo = ({ isOpen, closeModal, user }) => {
 
             if (response.EC === 0) {
                 alert("Đã từ chối yêu cầu kết bạn thành công!");
+                socketRef.current.emit("REQ_REJECT_fRIEND", response.DT);
             } else {
                 alert(response.EM); // Hiển thị thông báo lỗi nếu có
             }
@@ -92,12 +97,44 @@ const AccountInfo = ({ isOpen, closeModal, user }) => {
             } else {
                 setIsFriend(false);
             }
-            const friendRequest = await getFriendRequestByFromUserAndToUserService(user?._id);
+            let friendRequest = await getFriendRequestByFromUserAndToUserService(user?._id);
             if (friendRequest.EC === 0) {
                 setFriendRequest(friendRequest.DT);
                 console.log(friendRequest.DT);
             }
             setUserInfo(response.DT);
+
+            // action socket
+            // add friend
+            socketRef.current.on("RES_ADD_FRIEND", async () => {
+                friendRequest = await getFriendRequestByFromUserAndToUserService(
+                    user?._id
+                );
+                if (friendRequest.EC === 0) {
+                    setFriendRequest(friendRequest.DT);
+                }
+            });
+
+            // cancel friend
+            socketRef.current.on("RES_CANCEL_FRIEND", async () => {
+                setFriendRequest(null);
+            });
+
+            // reject friend
+            socketRef.current.on("RES_REJECT_FRIEND", async () => {
+                setFriendRequest(null);
+            });
+
+            // accept friend
+            socketRef.current.on("RES_ACCEPT_FRIEND", async () => {
+                setIsFriend(true)
+            });
+
+            // delete friend
+            socketRef.current.on("RES_DELETE_FRIEND", async () => {
+                setFriendRequest(null);
+                setIsFriend(false)
+            });
         } catch (error) {
             console.error('Error fetching user info:', error);
         }

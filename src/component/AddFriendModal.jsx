@@ -5,7 +5,7 @@ import { sendRequestFriendService } from '../service/friendRequestService';
 import AccountInfo from '../page/info/AccountInfo';
 
 
-const AddFriendModal = ({ show, onHide }) => {
+const AddFriendModal = ({ show, onHide, socketRef }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResult, setSearchResult] = useState({}); // Lưu kết quả tìm kiếm
 
@@ -17,8 +17,6 @@ const AddFriendModal = ({ show, onHide }) => {
         if (!query) return;
 
         const response = await getRoomChatByPhoneService(query);
-
-        console.log("response", response);
 
         if (response.EC === 0) {
             setSearchResult(response.DT);
@@ -59,7 +57,7 @@ const AddFriendModal = ({ show, onHide }) => {
                         }}
                     />
 
-                    <AccountInfo isOpen={isOpen} closeModal={closeModal} user={searchResult} />
+                    <AccountInfo isOpen={isOpen} closeModal={closeModal} user={searchResult} socketRef={socketRef} />
 
                     {searchQuery && (
                         <Button variant="outline-secondary" onClick={() => setSearchQuery('')}>

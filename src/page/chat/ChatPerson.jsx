@@ -538,7 +538,7 @@ export default function ChatPerson(props) {
               style={{ width: "40px", height: "40px" }}
               onClick={openModal}
             />
-            <AccountInfo isOpen={isOpen} closeModal={closeModal} user={receiver} />
+            <AccountInfo isOpen={isOpen} closeModal={closeModal} user={receiver} socketRef={props.socketRef}/>
             <div className="ms-2">
               <div className="fw-medium">{props.roomData.receiver.username}</div>
               <small className="text-muted">Hoạt động 2 giờ trước</small>

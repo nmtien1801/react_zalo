@@ -533,8 +533,6 @@ export default function ChatGroup(props) {
     });
 
     socketRef.current.on("RES_UPDATE_DEPUTY", (data) => {
-      console.log('RES_UPDATE_DEPUTY ', data);
-
       // Nếu không có bản ghi nào được cập nhật
       if (data.upsertedCount === 0) {
         setRole("member");
@@ -671,7 +669,7 @@ console.log('receiver', receiver);
           style={{
             height: hasSelectedImages
               ? "calc(100vh - 278px)" // Khi có ảnh được chọn
-              : "calc(100vh - 120px)", // Khi không có ảnh nào được chọn
+              : "calc(95vh - 120px)", // Khi không có ảnh nào được chọn
             overflowY: "auto",
           }}
         >

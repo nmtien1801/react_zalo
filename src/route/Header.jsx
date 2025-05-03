@@ -194,6 +194,7 @@ const Header = (props) => {
           <AccountSetting
             handleClose={() => setShowModal(false)}
             content={modalContent}
+            socketRef={socketRef}
           />
         </div>
       </div>
@@ -203,7 +204,7 @@ const Header = (props) => {
       )}
 
       {isOpenModelInfomationAccount && (
-        <InfomationAccount toggleModalInfomation={toggleModalInfomation} />
+        <InfomationAccount toggleModalInfomation={toggleModalInfomation} socketRef={socketRef} />
       )}
 
     </Navbar>

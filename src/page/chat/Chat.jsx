@@ -117,6 +117,11 @@ export default function ChatInterface(props) {
     socketRef.current.on("RES_ADD_GROUP", (data) => {
       dispatch(getConversations(user._id));
     });
+
+    // update avatar
+    socketRef.current.on("RES_UPDATE_AVATAR", (data) => {
+      dispatch(getConversations(user._id));
+    });
   }, [socketRef]);
 
   useEffect(() => {

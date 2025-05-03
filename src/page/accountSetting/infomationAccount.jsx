@@ -4,7 +4,7 @@ import { uploadAvatar, uploadProfile } from '../../redux/profileSlice.js'
 import { uploadAvatarProfile } from '../../redux/authSlice.js'
 import { useNavigate } from "react-router-dom";
 
-const infomationAccount = ({ toggleModalInfomation }) => {
+const infomationAccount = ({ toggleModalInfomation, socketRef }) => {
     const user = useSelector((state) => state.auth.userInfo);
     const dispatch = useDispatch();
     const navigate = useNavigate();
@@ -68,6 +68,7 @@ const infomationAccount = ({ toggleModalInfomation }) => {
 
         let res = await dispatch(uploadProfile(data));
         if (res.payload.EC === 0) {
+            socketRef.current.emit("REQ_UPDATE_AVATAR");
             toggleModalInfomation()
         }
     };

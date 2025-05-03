@@ -542,7 +542,7 @@ export default function ChatPerson(props) {
         <div className="bg-white p-2 d-flex align-items-center border-bottom justify-content-between">
           <div className="d-flex align-items-center">
             <img
-              src="/placeholder.svg"
+              src={receiver.avatar ? receiver.avatar : "/placeholder.svg"}
               className="rounded-circle"
               alt=""
               style={{ width: "40px", height: "40px" }}

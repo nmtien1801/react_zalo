@@ -348,6 +348,9 @@ export default function ChatGroup(props) {
       if (response.payload.EC === 0) {
         console.log('res S3 avatar', response.payload.DT);
         let res = await dispatch(uploadAvatarGroup({ groupId: props.roomData.receiver._id, avatar: response.payload.DT }))
+        if (res.payload.EC === 0) {
+          socketRef.current.emit("REQ_UPDATE_AVATAR", receiver);
+        }
 
         setAvatarUrl(response.payload.DT);
       } else {
@@ -620,7 +623,6 @@ console.log('receiver', receiver);
     }
   };
 
-
   return (
     <div className="row g-0 h-100">
       {/* Main Chat Area */}
@@ -629,7 +631,7 @@ console.log('receiver', receiver);
         <div className="bg-white p-2 d-flex align-items-center border-bottom justify-content-between">
           <div className="d-flex align-items-center">
             <img
-              src="/placeholder.svg"
+              src={receiver.avatar ? receiver.avatar : "/placeholder.svg"}
               className="rounded-circle"
               alt=""
               style={{ width: "40px", height: "40px" }}

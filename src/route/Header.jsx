@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import Container from "react-bootstrap/Container";
 import Nav from "react-bootstrap/Nav";
 import Navbar from "react-bootstrap/Navbar";
@@ -124,6 +124,16 @@ const Header = (props) => {
     };
   }, [socketRef]);
 
+  // reload page chat
+  const location = useLocation();
+
+  const handleClick = () => {
+    if (location.pathname === "/chat") {
+      window.location.reload();
+    }
+  };
+
+
   return (
     <Navbar
       className="d-flex flex-column bg-primary h-100 py-2"
@@ -157,7 +167,7 @@ const Header = (props) => {
 
         {/* Menu content */}
         <Nav className="d-flex flex-column w-100">
-          <Nav.Link as={NavLink} to="/chat" className="fw-normal">
+          <Nav.Link as={NavLink} to="/chat" className="fw-normal" onClick={handleClick}>
             <MessageCircle size={24} />
           </Nav.Link>
           <Nav.Link as={NavLink} to="/danh-ba" className="fw-normal position-relative">

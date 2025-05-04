@@ -48,7 +48,7 @@ export default function ChatInterface(props) {
     },
   ]);
 
-  const [typeChatRoom, setTypeChatRoom] = useState("cloud");
+  const [typeChatRoom, setTypeChatRoom] = useState("");
   const [onlineUsers, setOnlineUsers] = useState([]);
 
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -420,11 +420,12 @@ export default function ChatInterface(props) {
 
 
   return (
-    <div className="container-fluid vh-100 p-0">
+    <div className="container-fluid vh-100 p-0 min-vh-100">
       <div className="row h-100 g-0 ">
         {/* Left Sidebar */}
         <div
-          className="col-3 border-end bg-white"
+          className={`col-3 border-end bg-white ${typeChatRoom ? 'd-none d-lg-block' : ''
+            }`}
           style={{ maxWidth: "300px" }}
         >
           {/*  Search */}

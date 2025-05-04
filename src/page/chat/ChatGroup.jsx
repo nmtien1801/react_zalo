@@ -601,9 +601,6 @@ export default function ChatGroup(props) {
     })
   }, [])
 
-console.log('receiver', receiver);
-
-
   // Handle dissolve group
   const handleDissolveGroup = async () => {
     try {
@@ -671,7 +668,7 @@ console.log('receiver', receiver);
           style={{
             height: hasSelectedImages
               ? "calc(100vh - 278px)" // Khi có ảnh được chọn
-              : "calc(95vh - 120px)", // Khi không có ảnh nào được chọn
+              : "calc(100vh - 120px)", // Khi không có ảnh nào được chọn
             overflowY: "auto",
           }}
         >

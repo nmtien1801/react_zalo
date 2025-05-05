@@ -301,6 +301,25 @@ export default function ChatPerson(props) {
     });
   };
 
+  const convertTimeAction = (time) => {
+    const now = Date.now();
+    const past = Number(time);
+    const diff = now - past;
+
+    const seconds = Math.floor(diff / 1000);
+    const minutes = Math.floor(diff / (1000 * 60));
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+    if (seconds < 60) return "Vừa xong";
+    if (minutes < 60) return `${minutes} phút trước`;
+    if (hours < 24) return `${hours} giờ trước`;
+    if (days === 1) return "Hôm qua";
+
+    const date = new Date(past);
+    return date.toLocaleDateString("vi-VN");
+  };
+  
   const handleEmojiSelect = (emoji) => {
     setMessage((prev) => prev + emoji);
   };
@@ -551,7 +570,7 @@ export default function ChatPerson(props) {
             <AccountInfo isOpen={isOpen} closeModal={closeModal} user={receiver} socketRef={props.socketRef} />
             <div className="ms-2">
               <div className="fw-medium">{props.roomData.receiver.username}</div>
-              <small className="text-muted">Hoạt động 2 giờ trước</small>
+              <small className="text-muted">Hoạt động {convertTimeAction(receiver.time)}</small>
             </div>
           </div>
           <div className="d-flex align-items-center gap-2">

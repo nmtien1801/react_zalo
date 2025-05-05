@@ -25,7 +25,6 @@ export default function ChatInterface(props) {
   const conversationRedux = useSelector((state) => state.chat.conversations);
   const [selected, setSelected] = useState(0);
 
-
   const [showPopupCreateGroup, setShowPopupCreateGroup] = useState(false);
   const [searchResults, setSearchResults] = useState([]); // Khởi tạo là mảng rỗng
   const [members, setMembers] = useState([]);
@@ -418,6 +417,24 @@ export default function ChatInterface(props) {
     }
   }, [conversationRedux]);
 
+  const convertTime = (time) => {
+    const now = Date.now();
+    const past = Number(time);
+    const diff = now - past;
+
+    const seconds = Math.floor(diff / 1000);
+    const minutes = Math.floor(diff / (1000 * 60));
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+    if (seconds < 60) return "Vừa xong";
+    if (minutes < 60) return `${minutes} phút trước`;
+    if (hours < 24) return `${hours} giờ trước`;
+    if (days === 1) return "Hôm qua";
+
+    const date = new Date(past);
+    return date.toLocaleDateString("vi-VN");
+  };
 
   return (
     <div className="container-fluid vh-100 p-0 min-vh-100">
@@ -527,7 +544,7 @@ export default function ChatInterface(props) {
                           {chat.message}
                         </div>
                       </div>
-                      <small className="text-muted ms-auto">{chat.time}</small>
+                      <small className="text-muted ms-auto">{convertTime(chat.time)}</small>
                     </div>
                   ))}
               </>)}

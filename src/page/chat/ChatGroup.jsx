@@ -44,6 +44,7 @@ import ShareMsgModal from "../../component/ShareMsgModal.jsx";
 import ManageGroup from "../auth/ManageGroup.jsx"
 import { uploadAvatarGroup } from '../../redux/profileSlice.js'
 import AddMemberModal from "../../component/AddMemberModal.jsx";
+import { transLeaderService } from "../../service/permissionService";
 
 import { getRoomChatMembersService } from "../../service/roomChatService"; // Import service
 import { removeMemberFromGroupService } from "../../service/chatService"; // Import service
@@ -134,16 +135,28 @@ export default function ChatGroup(props) {
   }, [receiver?._id]);
 
   const handleRemoveMember = async (memberId) => {
-    console.log("Xóa thành viên:", memberId);
-    console.log("ID nhóm:", receiver._id); // Kiểm tra ID nhóm
+    // Chuyển quyền trưởng nhóm
+    if (receiver.role === 'leader') {
+      const otherMembers = receiver.members.filter(m => m !== user._id);
 
-    if (memberId === user._id) {
-      alert('Không thể xóa chính mình khỏi nhóm!')
-      return
+      if (otherMembers.length > 0) {
+        // Chọn ngẫu nhiên 1 người trong danh sách
+        const randomIndex = Math.floor(Math.random() * otherMembers.length);
+        const newLeaderId = otherMembers[randomIndex];
+
+        // Gọi API chuyển quyền
+        let response = await transLeaderService(receiver._id, newLeaderId);
+
+        if (response.EC === 0) {
+          socketRef.current.emit("REQ_TRANS_LEADER", response.DT);
+        }
+      }
     }
+
     let res = await removeMemberFromGroupService(receiver._id, memberId);
     console.log("res xóa thành viên", res);
-
+    // Chuyển hướng về trang danh sách nhóm
+    window.location.reload();
     socketRef.current.emit("REQ_REMOVE_MEMBER", members);
   };
 
@@ -581,6 +594,26 @@ export default function ChatGroup(props) {
         }
       }
     });
+
+    socketRef.current.on("RES_ADD_GROUP", (data) => {
+      const fetchMembers = async () => {
+        try {
+          if (receiver?._id) {
+            const response = await getRoomChatMembersService(receiver._id);
+            console.log("response ", response);
+
+            if (response.EC === 0) {
+              setMembers(response.DT); // Lưu danh sách thành viên vào state
+            } else {
+              console.error("Lỗi khi lấy danh sách thành viên:", response.EM);
+            }
+          }
+        } catch (error) {
+          console.error("Lỗi khi gọi API getRoomChatMembersService:", error);
+        }
+      };
+      fetchMembers();
+    })
 
     socketRef.current.on("RES_TRANS_LEADER", (data) => {
       const { newLeader, oldLeader } = data;
@@ -1191,7 +1224,7 @@ export default function ChatGroup(props) {
                           </div>
 
                           {/* Leave Group */}
-                          <div className="d-flex align-items-center p-3 hover-bg-light cursor-pointer">
+                          <div className="d-flex align-items-center p-3 hover-bg-light cursor-pointer" onClick={() => handleRemoveMember(user._id)}>
                             <div
                               className="d-flex align-items-center justify-content-center rounded-circle bg-light"
                               style={{ width: "32px", height: "32px" }}

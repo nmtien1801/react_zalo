@@ -102,6 +102,11 @@ export default function ChatInterface(props) {
       dispatch(getConversations(user._id));
     });
 
+    // remove member group
+    socketRef.current.on("RES_REMOVE_MEMBER", (data) => {
+      dispatch(getConversations(user._id));
+    })
+
     // create group
     socketRef.current.on("RES_CREATE_GROUP", (data) => {
       dispatch(getConversations(user._id));
@@ -110,6 +115,7 @@ export default function ChatInterface(props) {
     // Dissolve Group
     socketRef.current.on("RES_DISSOLVE_GROUP", (data) => {
       dispatch(getConversations(user._id));
+      window.location.reload();
     });
 
     // add member group
@@ -121,6 +127,7 @@ export default function ChatInterface(props) {
     socketRef.current.on("RES_UPDATE_AVATAR", (data) => {
       dispatch(getConversations(user._id));
     });
+
   }, [socketRef]);
 
   useEffect(() => {
@@ -743,7 +750,7 @@ export default function ChatInterface(props) {
               >
                 Đóng
               </button>
-              <button className="btn btn-primary" onClick={handleCreateGroup}>Tạo nhóm</button>
+              <button className="btn btn-primary ms-2" onClick={handleCreateGroup}>Tạo nhóm</button>
             </div>
           </div>
         </div>

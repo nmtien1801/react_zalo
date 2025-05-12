@@ -135,8 +135,9 @@ export default function ChatGroup(props) {
   }, [receiver?._id]);
 
   const handleRemoveMember = async (memberId) => {
+
     // Chuyển quyền trưởng nhóm
-    if (receiver.role === 'leader') {
+    if (receiver.role === 'leader' && memberId === user._id) {
       const otherMembers = receiver.members.filter(m => m !== user._id);
 
       if (otherMembers.length > 0) {
@@ -151,13 +152,19 @@ export default function ChatGroup(props) {
           socketRef.current.emit("REQ_TRANS_LEADER", response.DT);
         }
       }
+
+      // Chuyển hướng về trang danh sách nhóm
+      window.location.reload();
     }
 
     let res = await removeMemberFromGroupService(receiver._id, memberId);
     console.log("res xóa thành viên", res);
-    // Chuyển hướng về trang danh sách nhóm
-    window.location.reload();
-    socketRef.current.emit("REQ_REMOVE_MEMBER", members);
+
+    let req = {
+      member: memberId,
+      all: members,
+    }
+    socketRef.current.emit("REQ_REMOVE_MEMBER", req);
   };
 
   useEffect(() => {
@@ -633,6 +640,9 @@ export default function ChatGroup(props) {
     });
 
     socketRef.current.on("RES_REMOVE_MEMBER", (data) => {
+      if (receiver.role !== 'leader' && data.member === user._id) {
+        window.location.reload();
+      }
       const fetchMembers = async () => {
         try {
           if (receiver?._id) {

@@ -45,7 +45,7 @@ const AddFriendModal = ({ show, onHide, socketRef }) => {
                 <InputGroup className="mb-3">
                     <Form.Control
                         type="tel"
-                        placeholder="Số điện thoại"
+                        placeholder="số tài khoản"
                         value={searchQuery}
                         onChange={(e) => {
                             const value = e.target.value;

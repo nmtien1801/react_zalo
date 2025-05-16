@@ -241,7 +241,7 @@ export default function ChatInterface(props) {
     }
   };
 
-  // Hàm tìm kiếm user theo số điện thoại
+  // Hàm tìm kiếm user theo số tài khoản
   const handleSearchPhone = async (e) => {
     const query = e.target.value.trim(); // Lấy giá trị từ input
     if (!query) {
@@ -261,7 +261,7 @@ export default function ChatInterface(props) {
 
     }
 
-    // Kiểm tra xem query có phải là số điện thoại hay không
+    // Kiểm tra xem query có phải là số tài khoản hay không
     const isPhoneNumber = /^\d+$/.test(query);
     if (!isPhoneNumber) {
 
@@ -293,7 +293,7 @@ export default function ChatInterface(props) {
       }
 
     } catch (error) {
-      console.error("Lỗi khi tìm kiếm số điện thoại:", error);
+      console.error("Lỗi khi tìm kiếm số tài khoản:", error);
       setSearchResults([]); // Xóa kết quả nếu có lỗi
     }
   };
@@ -659,7 +659,7 @@ export default function ChatInterface(props) {
                     <input
                       type="text"
                       className="form-control bg-transparent border-0"
-                      placeholder="Nhập tên, số điện thoại, hoặc danh sách số điện thoại"
+                      placeholder="Nhập tên, số tài khoản, hoặc danh sách số tài khoản"
                       onChange={handleSearchPhone}
                     />
                   </div>

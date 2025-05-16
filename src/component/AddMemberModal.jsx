@@ -5,7 +5,7 @@ import {
     getRoomChatMembersService,
     getRoomChatByPhoneService,
     addMembersToRoomChatService, // Import API thêm thành viên
-} from "../service/roomChatService"; // API lấy danh sách thành viên nhóm và tìm kiếm theo số điện thoại
+} from "../service/roomChatService"; // API lấy danh sách thành viên nhóm và tìm kiếm theo số tài khoản
 
 // import { sendGroupJoinRequestsService } from "../service/friendRequestService"; // API gửi yêu cầu tham gia nhóm
 
@@ -14,7 +14,7 @@ const AddMemberModal = ({ show, onHide, roomId, socketRef, user, roomData }) => 
     const [members, setMembers] = useState([]); // Danh sách thành viên nhóm
     const [selectedFriends, setSelectedFriends] = useState([]); // Danh sách bạn bè đã được tích
     const [searchTerm, setSearchTerm] = useState(""); // Từ khóa tìm kiếm
-    const [searchResults, setSearchResults] = useState([]); // Kết quả tìm kiếm theo số điện thoại
+    const [searchResults, setSearchResults] = useState([]); // Kết quả tìm kiếm theo số tài khoản
     const [isSubmitting, setIsSubmitting] = useState(false); // Trạng thái gửi yêu cầu
 
     // Gọi API để lấy danh sách bạn bè và thành viên nhóm khi mở modal
@@ -36,7 +36,7 @@ const AddMemberModal = ({ show, onHide, roomId, socketRef, user, roomData }) => 
         }
     }, [show, roomId]);
 
-    // Xử lý tìm kiếm theo tên hoặc số điện thoại
+    // Xử lý tìm kiếm theo tên hoặc số tài khoản
     useEffect(() => {
         const search = async () => {
             if (searchTerm.length === 10 && /^\d+$/.test(searchTerm)) {
@@ -132,7 +132,7 @@ const AddMemberModal = ({ show, onHide, roomId, socketRef, user, roomData }) => 
                     <input
                         type="text"
                         className="form-control mb-3"
-                        placeholder="Nhập tên hoặc số điện thoại"
+                        placeholder="Nhập tên hoặc số tài khoản"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />

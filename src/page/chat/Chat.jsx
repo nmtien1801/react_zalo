@@ -9,6 +9,7 @@ import AddFriendModal from "../../component/AddFriendModal";
 import { Modal } from "react-bootstrap";
 import { loadMessages, getConversations } from "../../redux/chatSlice";
 import { useSelector, useDispatch } from "react-redux";
+import { useLocation } from "react-router-dom";
 
 import axios from "axios";
 import { getUserByPhoneService } from "../../service/userService";
@@ -19,6 +20,8 @@ import { uploadAvatar } from "../../redux/profileSlice";
 export default function ChatInterface(props) {
   const dispatch = useDispatch();
   const socketRef = props.socketRef
+  const location = useLocation();
+  const friend = location.state?.friend;
 
   const [allMsg, setAllMsg] = useState([]);
   const user = useSelector((state) => state.auth.userInfo);
@@ -36,16 +39,7 @@ export default function ChatInterface(props) {
     receiver: null,
   });
 
-  const [conversations, setConversations] = useState([
-    {
-      _id: 1,
-      username: "Cloud",
-      message: "[Thông báo] Giới thiệu về Trường Kha...",
-      time: "26/07/24",
-      avatar: "https://i.imgur.com/n7rlrz1.png",
-      type: 3,
-    },
-  ]);
+  const [conversations, setConversations] = useState([]);
 
   const [typeChatRoom, setTypeChatRoom] = useState("");
   const [onlineUsers, setOnlineUsers] = useState([]);
@@ -62,6 +56,8 @@ export default function ChatInterface(props) {
   const [showModalAddFriend, setShowModalAddFriend] = useState(false);
 
   const [selectedUser, setSelectedUser] = useState(null);
+
+
 
   // action socket
   useEffect(() => {
@@ -442,6 +438,16 @@ export default function ChatInterface(props) {
     const date = new Date(past);
     return date.toLocaleDateString("vi-VN");
   };
+
+  useEffect(() => {
+    if (friend && conversations.length > 0) {
+      const existing = conversations.find(c => c._id === friend._id);
+
+      if (existing) {
+        handleTypeChat(existing.type, existing);
+      }
+    }
+  }, [friend, conversations]);
 
   return (
     <div className="container-fluid vh-100 p-0 min-vh-100">

@@ -25,7 +25,7 @@ import { getFriendRequestsService, getGroupJoinRequestsService } from "../servic
 const Header = (props) => {
   const [showModal, setShowModal] = useState(false);
   const dispatch = useDispatch();
-  const [showDropdown, setShowDropdown] = useState(false);
+  // const [showDropdown, setShowDropdown] = useState(false);
   const [modalContent, setModalContent] = useState("");
   const user = useSelector((state) => state.auth.userInfo);
   const socketRef = props.socketRef;
@@ -34,44 +34,44 @@ const Header = (props) => {
   const [isOpenModelSetting, setIsOpenModelSetting] = useState(false);
   const [isOpenModelInfomationAccount, setIsOpenModelInfomationAccount] = useState(false);
 
-  const toggleModalSetting = () => {
-    if (!isOpenModelSetting) {
-      toggleDropdown();
-    }
-    setIsOpenModelSetting(!isOpenModelSetting);
-  };
+  // const toggleModalSetting = () => {
+  //   if (!isOpenModelSetting) {
+  //     toggleDropdown();
+  //   }
+  //   setIsOpenModelSetting(!isOpenModelSetting);
+  // };
 
-  const toggleModalInfomation = () => {
-    if (!isOpenModelInfomationAccount) {
-      toggleDropdown();
-    }
-    setIsOpenModelInfomationAccount(!isOpenModelInfomationAccount);
-  };
+  // const toggleModalInfomation = () => {
+  //   if (!isOpenModelInfomationAccount) {
+  //     toggleDropdown();
+  //   }
+  //   setIsOpenModelInfomationAccount(!isOpenModelInfomationAccount);
+  // };
 
-  const toggleDropdown = () => {
-    setShowDropdown((prev) => !prev);
-  };
+  // const toggleDropdown = () => {
+  //   setShowDropdown((prev) => !prev);
+  // };
 
-  const handleLogout = async () => {
-    try {
-      const response = await logoutUserService();
+  // const handleLogout = async () => {
+  //   try {
+  //     const response = await logoutUserService();
 
-      if (response.EC === 2) {
-        dispatch(logout());
+  //     if (response.EC === 2) {
+  //       dispatch(logout());
 
-        localStorage.removeItem("access_Token");
-        localStorage.removeItem("refresh_Token");
+  //       localStorage.removeItem("access_Token");
+  //       localStorage.removeItem("refresh_Token");
 
-        alert("Đăng xuất thành công!");
-        window.location.href = "/login";
-      } else {
-        alert(response.EM || "Đăng xuất thất bại!");
-      }
-    } catch (error) {
-      console.error("Lỗi khi logout:", error);
-      alert("Đã xảy ra lỗi khi đăng xuất.");
-    }
-  }
+  //       alert("Đăng xuất thành công!");
+  //       window.location.href = "/login";
+  //     } else {
+  //       alert(response.EM || "Đăng xuất thất bại!");
+  //     }
+  //   } catch (error) {
+  //     console.error("Lỗi khi logout:", error);
+  //     alert("Đã xảy ra lỗi khi đăng xuất.");
+  //   }
+  // }
 
   const friendRequests = props.friendRequests;
   const groupRequests = props.groupRequests;
@@ -146,9 +146,9 @@ const Header = (props) => {
             alt="Profile"
             className="rounded-circle border border-2 border-white"
             style={{ width: "40px", height: "40px", objectFit: "cover" }}
-            onClick={toggleDropdown}
+            // onClick={toggleDropdown}
           />
-          {showDropdown && (
+          {/* {showDropdown && (
             <div className="dropdown-menu-custom">
               <div className="dropdown-header">{user?.username || "Người dùng"}</div>
               <div className="dropdown-item">
@@ -160,7 +160,7 @@ const Header = (props) => {
               <hr className="dropdown-divider" />
               <div className="dropdown-item text-danger" onClick={handleLogout}>Đăng xuất</div>
             </div>
-          )}
+          )} */}
         </Navbar.Brand>
 
         {/* Menu content */}
@@ -207,13 +207,13 @@ const Header = (props) => {
         </div>
       </div>
 
-      {isOpenModelSetting && (
+      {/* {isOpenModelSetting && (
         <SettingModel toggleModalSetting={toggleModalSetting} />
       )}
 
       {isOpenModelInfomationAccount && (
         <InfomationAccount toggleModalInfomation={toggleModalInfomation} socketRef={socketRef} />
-      )}
+      )} */}
 
     </Navbar>
   );

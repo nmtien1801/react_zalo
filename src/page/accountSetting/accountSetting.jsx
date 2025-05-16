@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import Modal from 'react-bootstrap/Modal';
 import Button from 'react-bootstrap/Button';
 import { Dropdown } from 'react-bootstrap';
@@ -12,7 +12,7 @@ import SettingModel from "./settingModel";
 import InfomationAccount from "./infomationAccount";
 import { logoutUserService } from "../../service/authService";
 
-const CustomModal = ({socketRef}) => {
+const CustomModal = ({ socketRef }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [isDataSubmenuOpen, setIsDataSubmenuOpen] = useState(false);
     const [isLanguageSubmenuOpen, setIsLanguageSubmenuOpen] = useState(false);
@@ -22,6 +22,24 @@ const CustomModal = ({socketRef}) => {
     const [isOpenModelInfomationAccount, setIsOpenModelInfomationAccount] = useState(false);
 
     const dispatch = useDispatch();
+    const dropdownRef = useRef(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setIsOpen(false);
+                setIsDataSubmenuOpen(false);
+                setIsLanguageSubmenuOpen(false);
+                setIsChatHelpSubmenuOpen(false);
+            }
+        };
+
+        document.addEventListener("mousedown", handleClickOutside);
+
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, []);
 
     const toggleDropdown = () => {
         if (!isOpen) {
@@ -90,7 +108,7 @@ const CustomModal = ({socketRef}) => {
     }
 
     return (
-        <div className="custom-dropdown">
+        <div className="custom-dropdown" ref={dropdownRef}>
             <button className="leftbar-tab" onClick={toggleDropdown}>
                 <div className="mmi-icon-wr">
                     <div className="z-noti-badge-container">

@@ -614,7 +614,7 @@ export default function ChatPerson(props) {
                     }`}
                 >
                   <div
-                    className={`p-3 max-w-[70%] break-words rounded-3 ${msg.type === "text" || msg.type === "file" || msg.type === "system"
+                    className={`p-3 max-w-[70%] break-words rounded-3 wrap-container ${msg.type === "text" || msg.type === "file" || msg.type === "system"
                       ? msg.sender._id === user._id
                         ? "bg-primary text-white"
                         : "bg-light text-dark"
@@ -726,13 +726,6 @@ export default function ChatPerson(props) {
                       </div>
                     </div>
 
-                    {/* Thời gian gửi */}
-                    <div
-                      className={`text-end text-xs mt-1 ${msg.sender._id === user._id ? "text-white" : "text-secondary"
-                        }`}
-                    >
-                      {convertTime(msg.createdAt)}
-                    </div>
                     {/* Nút chia sẻ */}
                     {/* <button
                       className={`share-button-1 `}

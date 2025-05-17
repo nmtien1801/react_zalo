@@ -379,7 +379,7 @@ export default function ChatCloud(props) {
                     }`}
                 >
                   <div
-                    className={`p-3 max-w-[70%] break-words rounded-3 ${msg.type === "text" || msg.type === "file"
+                    className={`p-3 max-w-[70%] break-words rounded-3 wrap-container ${msg.type === "text" || msg.type === "file"
                       ? msg.sender._id === user._id
                         ? "bg-primary text-white"
                         : "bg-light text-dark"

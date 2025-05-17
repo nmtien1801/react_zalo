@@ -329,7 +329,7 @@
 
 /* Khi có nhiều hình ảnh */
 .grid-container.multiple-images {
-  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  grid-template-columns: repeat(2, minmax(100px, 1fr));
   /* Tự động điều chỉnh số cột */
   justify-items        : center;
   /* Căn giữa các hình ảnh */
@@ -514,4 +514,17 @@
 .active {
   background-color: #007bff; /* Màu xanh */
   color: white;
+}
+
+// .wrap-text {
+//   max-width: 50px;
+//   word-wrap: break-word; /* or overflow-wrap: break-word */
+//   white-space: normal;
+//   background-color: red; /* Màu xanh */
+// }
+
+.wrap-container {
+  max-width: 300px !important; /* Override any conflicting max-width */
+  word-wrap: break-word;
+  white-space: normal;
 }

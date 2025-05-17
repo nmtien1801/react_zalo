@@ -322,8 +322,8 @@
 
 /* Khi chỉ có 1 hình ảnh */
 .grid-container.single-image {
-  grid-template-columns: 1fr;
-  justify-items        : center;
+   grid-template-columns: repeat(1, minmax(100px, 1fr));
+  justify-items        : start;
   /* Căn giữa các hình ảnh */
 }
 
@@ -515,13 +515,6 @@
   background-color: #007bff; /* Màu xanh */
   color: white;
 }
-
-// .wrap-text {
-//   max-width: 50px;
-//   word-wrap: break-word; /* or overflow-wrap: break-word */
-//   white-space: normal;
-//   background-color: red; /* Màu xanh */
-// }
 
 .wrap-container {
   max-width: 300px !important; /* Override any conflicting max-width */

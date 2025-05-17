@@ -407,7 +407,7 @@ export default function ChatCloud(props) {
                         </div>
                       ) : (
                         // Nếu chỉ có một URL ảnh, hiển thị ảnh đó
-                        <div className={`grid-container multiple-images`}>
+                        <div className={`grid-container single-image`}>
                           <div className="grid-item">
                             <img
                               src={msg.msg}

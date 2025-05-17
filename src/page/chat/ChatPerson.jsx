@@ -552,6 +552,7 @@ export default function ChatPerson(props) {
     console.log('selectedMessage ', selectedMessage);
 
   }
+console.log('ssssssssss ', messages);
 
   return (
     <div className="row g-0 h-100">
@@ -642,8 +643,8 @@ export default function ChatPerson(props) {
                         </div>
                       ) : (
                         // Nếu chỉ có một URL ảnh, hiển thị ảnh đó
-                        <div className={`grid-container multiple-images`}>
-                          <div className="grid-item">
+                        <div className={`grid-container single-image`}>
+                          <div key={index} className="grid-item">
                             <img
                               src={msg.msg}
                               alt="image"

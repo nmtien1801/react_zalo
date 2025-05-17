@@ -128,6 +128,11 @@ export default function ChatInterface(props) {
     socketRef.current.on("RES_MEMBER_PERMISSION", (data) => {
       dispatch(getConversations(user._id));
     });
+
+    // receiver msg - update message in conversation
+    socketRef.current.on("RECEIVED_MSG", (data) => {
+      dispatch(getConversations(user._id));
+    });
   }, [socketRef]);
 
   useEffect(() => {
@@ -553,15 +558,20 @@ export default function ChatInterface(props) {
                         alt=""
                         style={{ width: "48px", height: "48px" }}
                       />
-                      <div className="ms-2 overflow-hidden ">
-                        <div className="text-truncate fw-medium ">
+                      <div className="ms-2 overflow-hidden flex-grow-1">
+                        <div className="text-truncate fw-medium">
                           {chat.username}
                         </div>
-                        <div className="text-truncate small text-muted ">
+                        <div
+                          className="text-truncate small text-muted"
+                          style={{ maxWidth: "200px", whiteSpace: "nowrap" }}
+                        >
                           {chat.message}
                         </div>
                       </div>
-                      <small className="text-muted ms-auto">{convertTime(chat.time)}</small>
+                      <small className="text-muted ms-auto">
+                        {convertTime(chat.time)}
+                      </small>
                     </div>
                   ))}
               </>)}

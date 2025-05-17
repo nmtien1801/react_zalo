@@ -49,9 +49,9 @@ const DanhBa = (props) => {
   const renderContent = () => {
     switch (activeTab) {
       case 'Danh sách bạn bè':
-        return <FriendsList />;
+        return <FriendsList socketRef={socketRef}/>;
       case 'Danh sách nhóm và cộng đồng':
-        return <GroupsList />;
+        return <GroupsList socketRef={socketRef}/>;
       case 'Lời mời kết bạn':
         return <FriendRequest socketRef={socketRef} />;
       case 'Lời mời vào nhóm và cộng đồng':

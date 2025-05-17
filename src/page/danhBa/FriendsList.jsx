@@ -2,9 +2,10 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getAllFriendsService } from "../../service/friendShipService";
 
-const FriendsList = () => {
+const FriendsList = (props) => {
     const [friends, setFriends] = useState([]);
     const navigate = useNavigate();
+    const socketRef = props.socketRef
 
     const fetchFriendsAndMembers = async () => {
         try {
@@ -22,7 +23,20 @@ const FriendsList = () => {
     const handleFriendClick = (friend) => {
         navigate("/chat", { state: { friend } });
     };
-    
+
+    // action socket
+    useEffect(() => {
+        // accept friend
+        socketRef.current.on("RES_ACCEPT_FRIEND", async () => {
+            fetchFriendsAndMembers()
+        });
+
+        // delete friend
+        socketRef.current.on("RES_DELETE_FRIEND", async () => {
+            fetchFriendsAndMembers()
+        });
+    }, [socketRef]);
+
     return (
         <div className="container mt-4">
             <h5 className="mb-3">Danh sách bạn bè</h5>

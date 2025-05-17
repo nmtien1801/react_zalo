@@ -3,12 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { getConversations } from "../../redux/chatSlice";
 import { useSelector, useDispatch } from "react-redux";
 
-const GroupsList = () => {
+const GroupsList = (props) => {
     const [friends, setFriends] = useState([]);
     const navigate = useNavigate();
     const dispatch = useDispatch();
     const conversationRedux = useSelector((state) => state.chat.conversations);
     const user = useSelector((state) => state.auth.userInfo);
+    const socketRef = props.socketRef
 
     useEffect(() => {
         dispatch(getConversations(user._id));
@@ -40,6 +41,19 @@ const GroupsList = () => {
     const handleFriendClick = (friend) => {
         navigate("/chat", { state: { friend } });
     };
+
+    // action socket
+    useEffect(() => {
+        // remove member group
+        socketRef.current.on("RES_REMOVE_MEMBER", async () => {
+            dispatch(getConversations(user._id));
+        });
+
+        // add member group
+        socketRef.current.on("RES_ADD_GROUP", (data) => {
+            dispatch(getConversations(user._id));
+        });
+    }, [socketRef]);
 
     return (
         <div className="container mt-4">

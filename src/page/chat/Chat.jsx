@@ -124,6 +124,10 @@ export default function ChatInterface(props) {
       dispatch(getConversations(user._id));
     });
 
+    // update permission
+    socketRef.current.on("RES_MEMBER_PERMISSION", (data) => {
+      dispatch(getConversations(user._id));
+    });
   }, [socketRef]);
 
   useEffect(() => {

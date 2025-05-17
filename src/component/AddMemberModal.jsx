@@ -6,7 +6,8 @@ import {
     getRoomChatByPhoneService,
     addMembersToRoomChatService, // Import API thêm thành viên
 } from "../service/roomChatService"; // API lấy danh sách thành viên nhóm và tìm kiếm theo số tài khoản
-
+import { updatePermission } from '../redux/chatSlice'
+import { useSelector, useDispatch } from "react-redux";
 // import { sendGroupJoinRequestsService } from "../service/friendRequestService"; // API gửi yêu cầu tham gia nhóm
 
 const AddMemberModal = ({ show, onHide, roomId, socketRef, user, roomData }) => {
@@ -16,6 +17,7 @@ const AddMemberModal = ({ show, onHide, roomId, socketRef, user, roomData }) => 
     const [searchTerm, setSearchTerm] = useState(""); // Từ khóa tìm kiếm
     const [searchResults, setSearchResults] = useState([]); // Kết quả tìm kiếm theo số tài khoản
     const [isSubmitting, setIsSubmitting] = useState(false); // Trạng thái gửi yêu cầu
+    const dispatch = useDispatch();
 
     // Gọi API để lấy danh sách bạn bè và thành viên nhóm khi mở modal
     useEffect(() => {
@@ -108,6 +110,10 @@ const AddMemberModal = ({ show, onHide, roomId, socketRef, user, roomData }) => 
             if (response.EC === 0) {
                 socketRef.current.emit("REQ_ADD_GROUP", response.DT);
                 alert("Thêm thành viên thành công!");
+
+                // update permission
+                let res = await dispatch(updatePermission({ groupId: roomId, newPermission: roomData.receiver.permission }))
+                socketRef.current.emit("REQ_MEMBER_PERMISSION", res.payload.DT);
 
                 handleClose(); // Đóng modal sau khi thêm thành viên thành công
             } else {

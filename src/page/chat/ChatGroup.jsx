@@ -91,7 +91,6 @@ export default function ChatGroup(props) {
   const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
   const [selectedMessage, setSelectedMessage] = useState(null);
 
-
   const conversations = props.conversations || [];
 
   // ImageViewer

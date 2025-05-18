@@ -319,7 +319,7 @@ export default function ChatPerson(props) {
     const date = new Date(past);
     return date.toLocaleDateString("vi-VN");
   };
-  
+
   const handleEmojiSelect = (emoji) => {
     setMessage((prev) => prev + emoji);
   };
@@ -552,7 +552,7 @@ export default function ChatPerson(props) {
     console.log('selectedMessage ', selectedMessage);
 
   }
-console.log('ssssssssss ', messages);
+  console.log('ssssssssss ', messages);
 
   return (
     <div className="row g-0 h-100">
@@ -577,11 +577,13 @@ console.log('ssssssssss ', messages);
           <div className="d-flex align-items-center gap-2">
             <span
               className="btn btn-light rounded-circle mb-1"
-              onClick={handleStartCall} // Gọi hàm handleStartCall khi bấm
+
             >
               <Phone size={16} />
             </span>
-            <span className="btn btn-light rounded-circle mb-1">
+            <span className="btn btn-light rounded-circle mb-1"
+              onClick={handleStartCall} // Gọi hàm handleStartCall khi bấm
+            >
               <Video size={16} />
             </span>
             <span className="btn btn-light rounded-circle mb-1">

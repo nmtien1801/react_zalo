@@ -702,13 +702,12 @@ export default function ChatGroup(props) {
             </div>
           </div>
           <div className="d-flex align-items-center gap-2">
-            <span
-              className="btn btn-light rounded-circle mb-1"
-              onClick={handleStartCall} // Gọi hàm handleStartCall khi bấm
-            >
+            <span className="btn btn-light rounded-circle mb-1">
               <Phone size={16} />
             </span>
-            <span className="btn btn-light rounded-circle mb-1">
+            <span className="btn btn-light rounded-circle mb-1"
+              onClick={handleStartCall} // Gọi hàm handleStartCall khi bấm
+            >
               <Video size={16} />
             </span>
             <span className="btn btn-light rounded-circle mb-1">

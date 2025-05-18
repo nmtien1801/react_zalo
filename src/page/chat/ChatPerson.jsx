@@ -43,6 +43,7 @@ import ImageViewer from "./ImageViewer.jsx";
 import ShareMsgModal from "../../component/ShareMsgModal.jsx";
 import AccountInfo from "../info/accountInfo.jsx";
 import { reloadMessages } from "../../redux/chatSlice.js";
+import CallVoiceModal from "../../component/CallVoiceModal.jsx";
 
 export default function ChatPerson(props) {
   const dispatch = useDispatch();
@@ -52,6 +53,7 @@ export default function ChatPerson(props) {
   const imageInputRef = useRef(null);
   const messagesEndRef = useRef(null);
   const { setAllMsg } = props;
+  const socketRef = props.socketRef;
 
   const [showSidebar, setShowSidebar] = useState(true);
   const [message, setMessage] = useState("");
@@ -552,7 +554,52 @@ export default function ChatPerson(props) {
     console.log('selectedMessage ', selectedMessage);
 
   }
-  console.log('ssssssssss ', messages);
+
+  // call voice
+  const recordingRef = useRef(null);
+  const [callModalVisible, setCallModalVisible] = useState(false);
+
+  const base64ToBlob = (base64, mime) => {
+    const binary = atob(base64);
+    const array = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      array[i] = binary.charCodeAt(i);
+    }
+    return new Blob([array], { type: mime });
+  }
+
+  useEffect(() => {
+    socketRef.current.on("RES_VOICE", (base64Audio) => {
+      setCallModalVisible(true);
+
+      const audioBlob = base64ToBlob(base64Audio, "audio/wav");
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audio = new Audio(audioUrl);
+      audio.play();
+    });
+
+    return () => socketRef.current.off("RES_VOICE");
+  }, []);
+
+  const stopRecording = async () => {
+    setCallModalVisible(false);
+    const recording = recordingRef.current;
+    if (!recording) return;
+
+    try {
+      // clearInterval(intervalRef.current);
+      // await recording.stopAndUnloadAsync();
+
+      // const uri = recording.getURI();
+      // const base64Audio = await FileSystem.readAsStringAsync(uri, {
+      //   encoding: FileSystem.EncodingType.Base64,
+      // });
+
+      // socketRef.current.emit("REQ_VOICE", { to: receiver, audio: base64Audio });
+    } catch (e) {
+      console.error("Lỗi khi kết thúc ghi:", e);
+    }
+  };
 
   return (
     <div className="row g-0 h-100">
@@ -581,6 +628,11 @@ export default function ChatPerson(props) {
             >
               <Phone size={16} />
             </span>
+            <CallVoiceModal
+              receiver={receiver}
+              callModalVisible={callModalVisible}
+              handleCancelCall={stopRecording}
+            />
             <span className="btn btn-light rounded-circle mb-1"
               onClick={handleStartCall} // Gọi hàm handleStartCall khi bấm
             >

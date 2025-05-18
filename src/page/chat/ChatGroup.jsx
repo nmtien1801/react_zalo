@@ -681,6 +681,27 @@ export default function ChatGroup(props) {
     }
   };
 
+  // call voice
+  const base64ToBlob = (base64, mime) => {
+    const binary = atob(base64);
+    const array = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      array[i] = binary.charCodeAt(i);
+    }
+    return new Blob([array], { type: mime });
+  }
+
+  useEffect(() => {
+    socketRef.current.on("RES_VOICE", (base64Audio) => {
+      const audioBlob = base64ToBlob(base64Audio, "audio/wav");
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audio = new Audio(audioUrl);
+      audio.play();
+    });
+
+    return () => socketRef.current.off("RES_VOICE");
+  }, []);
+
   return (
     <div className="row g-0 h-100">
       {/* Main Chat Area */}

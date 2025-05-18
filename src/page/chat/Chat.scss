@@ -521,3 +521,12 @@
   word-wrap: break-word;
   white-space: normal;
 }
+
+.file-list a {
+  color: black; /* Màu chữ đen */
+  text-decoration: none; /* Loại bỏ gạch chân */
+}
+
+.file-list a:hover {
+  text-decoration: underline; /* Thêm gạch chân khi hover (tùy chọn) */
+}

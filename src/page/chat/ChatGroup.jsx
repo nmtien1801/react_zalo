@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { UserX } from "lucide-react";
+import { Modal, Tab, Tabs } from "react-bootstrap"; // Import Bootstrap components
+
 import {
   LogOut,
   UserPlus,
@@ -107,6 +109,49 @@ export default function ChatGroup(props) {
     { id: "files", title: "File", icon: File },
     { id: "links", title: "Link", icon: LinkIcon },
   ]);
+
+  
+  // nghiem
+const [mediaMessages, setMediaMessages] = useState([]);
+const [fileMessages, setFileMessages] = useState([]);
+const [linkMessages, setLinkMessages] = useState([]);
+
+const [showAllModal, setShowAllModal] = useState(false);
+const [activeTab, setActiveTab] = useState("media"); // Default tab is "media"
+
+useEffect(() => {
+  const media = messages.flatMap((msg) => {
+    if (msg.type === "image") {
+      // Nếu msg chứa nhiều URL, tách chúng thành mảng
+      return msg.msg.split(",").map((url) => ({
+        ...msg,
+        msg: url.trim(), // Loại bỏ khoảng trắng thừa
+      }));
+    }
+    if (msg.type === "video") {
+      return [msg]; // Giữ nguyên video
+    }
+    return [];
+  });
+
+  const files = messages.filter((msg) => msg.type === "file");
+  const links = messages.filter(
+    (msg) =>
+      msg.type === "text" && // Chỉ lấy tin nhắn có type là "text"
+      msg.msg.match(/https?:\/\/[^\s]+/g) // Kiểm tra xem msg có chứa URL
+  );
+
+  setMediaMessages(media); // Cập nhật mediaMessages
+  setFileMessages(files);
+  setLinkMessages(links); // Lưu các tin nhắn dạng URL
+}, [messages]);
+
+const cleanFileName = (fileName) => {
+    // Loại bỏ các ký tự hoặc số không cần thiết ở đầu tên file
+    return fileName.replace(/^\d+_|^\d+-/, ""); // Loại bỏ số và dấu gạch dưới hoặc gạch ngang ở đầu
+  };
+
+// nghiem
 
   // nghiem
   const [showMemberModal, setShowMemberModal] = useState(false);
@@ -1030,36 +1075,309 @@ export default function ChatGroup(props) {
 
                   {/* Collapsible Sections */}
                   <div className="accordion accordion-flush" id="chatInfo">
-                    {sections.map(({ id, title, icon: Icon, content, empty }) => (
-                      <div key={id} className="accordion-item">
-                        <h2 className="accordion-header">
-                          <button
-                            className="accordion-button collapsed"
-                            data-bs-toggle="collapse"
-                            data-bs-target={`#${id}Collapse`}
-                          >
-                            <Icon size={20} className="me-2" />
-                            {title}
-                          </button>
-                        </h2>
-
-                        <div
-                          id={`${id}Collapse`}
-                          className="accordion-collapse collapse"
-                        >
-                          <div className="accordion-body">
-                            {content ? (
-                              content
-                            ) : empty ? (
-                              <div className="text-center text-muted">
-                                <small>{empty}</small>
-                              </div>
-                            ) : null}
-                          </div>
+            {sections.map(({ id, title, icon: Icon }) => (
+              <div key={id} className="accordion-item">
+                <h2 className="accordion-header">
+                  <button
+                    className="accordion-button collapsed"
+                    data-bs-toggle="collapse"
+                    data-bs-target={`#${id}Collapse`}
+                  >
+                    <Icon size={20} className="me-2" />
+                    {title}
+                  </button>
+                </h2>
+                <div id={`${id}Collapse`} className="accordion-collapse collapse">
+                  <div className="accordion-body text-center text-muted">
+                    {id === "media" && mediaMessages.length > 0 ? (
+                      <>
+                        <div className="media-list d-flex flex-wrap gap-2">
+                          {mediaMessages.slice(0, 8).map((msg, index) => (
+                          // {mediaMessages.map((msg, index) => (
+                            <div
+                              key={index}
+                              className="media-item"
+                              style={{
+                                width: "calc(25% - 10px)", // 4 media mỗi hàng
+                                height: "60px",
+                                overflow: "hidden",
+                                borderRadius: "8px",
+                              }}
+                            >
+                              {msg.type === "image" ? (
+                                <img
+                                  src={msg.msg}
+                                  alt={`Media ${index + 1}`}
+                                  style={{
+                                    width: "100%",
+                                    height: "100%",
+                                    objectFit: "cover",
+                                    cursor: "pointer",
+                                  }}
+                                  onClick={() => handleImageClick(msg.msg)}
+                                />
+                              ) : (
+                                <video
+                                  src={msg.msg}
+                                  controls
+                                  style={{
+                                    width: "100%",
+                                    height: "100%",
+                                    objectFit: "cover",
+                                    cursor: "pointer",
+                                  }}
+                                />
+                              )}
+                            </div>
+                          ))}
                         </div>
+                        {/* {mediaMessages.length > 8 && ( */}
+                          <button
+                            className="btn btn-link mt-2"
+                            onClick={() => {
+                              setActiveTab("media"); // Set default tab
+                              setShowAllModal(true); // Open modal
+                            }}
+                          >
+                            Xem tất cả
+                          </button>
+                        {/* )} */}
+                      </>
+                    ) : id === "files" && fileMessages.length > 0 ? (
+                      <>
+                      <div className="file-list">
+                        {fileMessages.slice(0, 4).map((msg, index) => (
+                          <div
+                            key={index}
+                            className="d-flex align-items-center mb-2"
+                            style={{
+                              borderBottom: "1px solid #ddd",
+                              paddingBottom: "5px",
+                            }}
+                          >
+                            {/* Icon loại file */}
+                            <File size={20} className="me-2 text-primary" />
+                            {/* Tên file */}
+                            <a
+                              href={msg.msg}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-truncate"
+                              style={{ maxWidth: "200px" }}
+                            >
+                              {cleanFileName(msg.msg.split("/").pop()) || `File ${index + 1}`}
+                            </a>
+                          </div>
+                        ))}
                       </div>
-                    ))}
+                        {/* {fileMessages.length > 4 && ( */}
+                          <button
+                            className="btn btn-link mt-2"
+                            onClick={() => {
+                              setActiveTab("files"); // Set default tab
+                              setShowAllModal(true); // Open modal
+                            }}
+                          >
+                            Xem tất cả
+                          </button>
+                        {/* )} */}
+                      </>
+
+                    ) : id === "links" && linkMessages.length > 0 ? (
+                      <>
+                        <div className="link-list">
+                          {linkMessages.slice(0, 4).map((msg, index) => (
+                            <div key={index} className="d-flex align-items-center mb-2">
+                              <LinkIcon size={20} className="me-2 text-primary" />
+                              <a
+                                href={msg.msg}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-truncate"
+                                style={{ maxWidth: "200px", color: "black", textDecoration: "none" }}
+                              >
+                                {msg.msg}
+                              </a>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* {linkMessages.length > 4 && ( */}
+                          <button
+                            className="btn btn-link mt-2"
+                            onClick={() => {
+                              setActiveTab("links"); // Set default tab
+                              setShowAllModal(true); // Open modal
+                            }}
+                          >
+                            Xem tất cả
+                          </button>
+                        {/* )} */}
+
+
+                          </>
+
+
+                    ) : (
+                      <small>{`Chưa có ${title} được chia sẻ trong hội thoại này`}</small>
+                    )}
                   </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <Modal
+            show={showAllModal}
+            onHide={() => setShowAllModal(false)}
+            centered
+          >
+                <Modal.Header closeButton>
+                  <Modal.Title>Xem tất cả</Modal.Title>
+                </Modal.Header>
+                <Modal.Body
+                  style={{
+                    overflowY: "auto", // Thêm cuộn dọc nếu nội dung vượt quá chiều cao
+                    // height: "calc(100% - 56px)", // Trừ chiều cao của header
+                    height: "400px", // Giới hạn chiều cao của modal
+                    backgroundColor: "#dddada", // Màu gray mờ   
+                    
+                  }}
+                >
+                  <Tabs
+                    activeKey={activeTab}
+                    onSelect={(tab) => setActiveTab(tab)}
+                    className="mb-3"
+                  >
+                    <Tab eventKey="media" title="Ảnh/Video">
+                      <div
+                        className="d-flex flex-wrap gap-2"
+                        style={{
+                          alignItems: "center",
+                          justifyContent: "center", 
+                          backgroundColor: "#dddada", // Màu gray mờ   
+                          paddingTop: "10px",
+                          paddingBottom: "10px",
+                        }}
+
+                      >
+                        {mediaMessages.map((msg, index) => (
+                          <div
+                            key={index}
+                            className="media-item"
+                            style={{
+                              width: "calc(25% - 10px)",
+                              height: "100px",
+                              overflow: "hidden",
+                              borderRadius: "8px",
+                            }}
+                          >
+                            {msg.type === "image" ? (
+                              <img
+                                src={msg.msg}
+                                alt={`Media ${index + 1}`}
+                                style={{
+                                  width: "100%",
+                                  height: "100%",
+                                  objectFit: "cover",
+                                  cursor: "pointer",
+                                }}
+                                onClick={() => {
+                                  handleImageClick(msg.msg); // Hiển thị ảnh
+                                  setShowAllModal(false); // Đóng modal
+                                }}
+                              />
+                            ) : (
+                              <video
+                                src={msg.msg}
+                                controls
+                                style={{
+                                  width: "100%",
+                                  height: "100%",
+                                  objectFit: "cover",
+                                  cursor: "pointer",
+                                }}
+                                // onClick={() => {
+                                //   setShowAllModal(false); // Đóng modal
+                                // }}
+                              />
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </Tab>
+                    <Tab eventKey="files" title="File">
+                      <div
+                        className="file-list"
+                        style={{
+                          alignItems: "center",
+                          justifyContent: "center", 
+                          backgroundColor: "#dddada", // Màu gray mờ   
+                          paddingTop: "10px",
+                          paddingBottom: "10px",
+
+                        }}
+                      >
+                        {fileMessages.map((msg, index) => (
+                          <div
+                            key={index}
+                            className="d-flex align-items-center mb-2"
+                            style={{
+                              borderBottom: "1px solid black",
+                              paddingBottom: "5px",
+                            }}
+                          >
+                            <File size={20} className="me-2 text-primary" />
+                            <a
+                              href={msg.msg}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-truncate"
+                            >
+                              {cleanFileName(msg.msg.split("/").pop()) || `File ${index + 1}`}
+                            </a>
+                          </div>
+                        ))}
+                      </div>
+                    </Tab>
+                    <Tab eventKey="links" title="Link">
+                      <div
+                        className="link-list"
+                        style={{
+                          alignItems: "center",
+                          justifyContent: "center", 
+                          backgroundColor: "#dddada", // Màu gray mờ   
+                          paddingTop: "10px",
+                          paddingBottom: "10px",
+                        }}
+                      >
+                        {linkMessages.map((msg, index) => (
+                          <div key={index} className="d-flex align-items-center mb-2"
+                          style={{
+                            borderBottom: "1px solid black",
+                            paddingBottom: "5px",
+                          }}
+                          >
+                            <LinkIcon size={20} className="me-2 text-primary" />
+                            <a
+                              href={msg.msg}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-truncate"
+                              style={{
+                                color: "black",
+                                textDecoration: "none",
+                              }}
+                            >
+                              {msg.msg}
+                            </a>
+                          </div>
+                        ))}
+                      </div>
+                    </Tab>
+                  </Tabs>
+                </Modal.Body>
+          </Modal>
 
 
                   {/* Thành viên */}

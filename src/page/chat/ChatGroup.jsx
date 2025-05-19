@@ -82,9 +82,7 @@ export default function ChatGroup(props) {
     setShowAddMemberModal(false); // Đóng modal
   };
 
-  const [showCallScreen, setShowCallScreen] = useState(false);
   const [hasSelectedImages, setHasSelectedImages] = useState(false);
-  const [isInitiator, setIsInitiator] = useState(false); // Thêm state để theo dõi người khởi tạo
 
   // Popup Chuột phải
   const [popupVisible, setPopupVisible] = useState(false);
@@ -234,26 +232,6 @@ export default function ChatGroup(props) {
   const handleClosePopup = () => {
     setPopupVisible(false);
     setSelectedMessage(null);
-  };
-
-  // Xử lý sự kiện incoming-call từ socket
-  useEffect(() => {
-    if (!props.socketRef.current) return;
-
-    const socket = props.socketRef.current;
-    socket.on("incoming-call", () => {
-      setShowCallScreen(true); // Hiển thị modal khi có cuộc gọi đến
-      setIsInitiator(false); // Người nhận không phải là người khởi tạo
-    });
-
-    return () => {
-      socket.off("incoming-call");
-    };
-  }, [props.socketRef]);
-
-  const handleStartCall = () => {
-    setShowCallScreen(true); // Mở modal
-    setIsInitiator(true); // Đặt người dùng hiện tại là người khởi tạo
   };
 
   // Xử lý upload file
@@ -681,6 +659,9 @@ export default function ChatGroup(props) {
     }
   };
 
+  // call
+  const handleStartCall = props?.handleStartCall;
+
   return (
     <div className="row g-0 h-100">
       {/* Main Chat Area */}
@@ -702,12 +683,12 @@ export default function ChatGroup(props) {
             </div>
           </div>
           <div className="d-flex align-items-center gap-2">
-            <span className="btn btn-light rounded-circle mb-1">
+            <span className="btn btn-light rounded-circle mb-1"
+              onClick={() => handleStartCall(user, receiver)} // Gọi hàm handleStartCall khi bấm
+            >
               <Phone size={16} />
             </span>
-            <span className="btn btn-light rounded-circle mb-1"
-              onClick={handleStartCall} // Gọi hàm handleStartCall khi bấm
-            >
+            <span className="btn btn-light rounded-circle mb-1">
               <Video size={16} />
             </span>
             <span className="btn btn-light rounded-circle mb-1">
@@ -906,23 +887,9 @@ export default function ChatGroup(props) {
         </div>
       </div>
 
-      {/* Call Screen Modal */}
-      <CallScreen
-        show={showCallScreen}
-        onHide={() => {
-          setShowCallScreen(false);
-          setIsInitiator(false); // Reset khi đóng modal
-        }}
-        senderId={user._id}
-        receiverId={receiver._id}
-        callerName={user.username}
-        receiverName={receiver.username}
-        socketRef={props.socketRef}
-        isInitiator={isInitiator} // Truyền state isInitiator
-      />
-
       {/* Right Sidebar */}
-      {showSidebar &&
+      {
+        showSidebar &&
         <div
           className="col-auto bg-white border-start"
           style={{ width: "300px", height: "100vh", overflowY: "auto" }}
@@ -1266,71 +1233,75 @@ export default function ChatGroup(props) {
       }
 
 
-      {popupVisible && selectedMessage?.type !== "system" && (
-        <div
-          className="popup-menu"
-          style={{
-            position: "absolute",
-            top: popupPosition.y,
-            left: popupPosition.x,
-            backgroundColor: "white",
-            boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)",
-            borderRadius: "8px",
-            zIndex: 1000,
-            padding: "10px",
-          }}
-        >
-          <div className="popup-item d-flex align-items-center" onClick={() => console.log("Trả lời")}>
-            <Reply size={16} className="me-2" />
-            <span>Trả lời</span>
-          </div>
-          <div className="popup-item d-flex align-items-center" onClick={() => handleOpenShareModal(selectedMessage)}>
-            <Share size={16} className="me-2" />
-            <span>Chia sẻ</span>
-          </div>
-          <hr />
-          {selectedMessage?.type === "text" && (
-            <div className="popup-item d-flex align-items-center" onClick={() => navigator.clipboard.writeText(selectedMessage.msg)}>
-              <Copy size={16} className="me-2" />
-              <span>Copy tin nhắn</span>
+      {
+        popupVisible && selectedMessage?.type !== "system" && (
+          <div
+            className="popup-menu"
+            style={{
+              position: "absolute",
+              top: popupPosition.y,
+              left: popupPosition.x,
+              backgroundColor: "white",
+              boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)",
+              borderRadius: "8px",
+              zIndex: 1000,
+              padding: "10px",
+            }}
+          >
+            <div className="popup-item d-flex align-items-center" onClick={() => console.log("Trả lời")}>
+              <Reply size={16} className="me-2" />
+              <span>Trả lời</span>
             </div>
-          )}
-          {selectedMessage?.type === "image" && (
-            <div className="popup-item d-flex align-items-center" onClick={() => window.open(selectedMessage.msg, "_blank")}>
-              <Image size={16} className="me-2" />
-              <span>Lưu ảnh</span>
+            <div className="popup-item d-flex align-items-center" onClick={() => handleOpenShareModal(selectedMessage)}>
+              <Share size={16} className="me-2" />
+              <span>Chia sẻ</span>
             </div>
-          )}
-          {(selectedMessage?.type === "video" || selectedMessage?.type === "file") && (
-            <div className="popup-item d-flex align-items-center" onClick={() => window.open(selectedMessage.msg, "_blank")}>
-              <Download size={16} className="me-2" />
-              <span>Tải về</span>
-            </div>
-          )}
-          <hr />
-          {selectedMessage?.sender?._id === user?._id &&
-            new Date() - new Date(selectedMessage.createdAt) < 3600000 && (
-              <div
-                className="popup-item d-flex align-items-center text-danger"
-                onClick={() => handleRecallMessage(selectedMessage)}>
-                <RotateCw size={16} className="me-2" />
-                <span>Thu hồi</span>
+            <hr />
+            {selectedMessage?.type === "text" && (
+              <div className="popup-item d-flex align-items-center" onClick={() => navigator.clipboard.writeText(selectedMessage.msg)}>
+                <Copy size={16} className="me-2" />
+                <span>Copy tin nhắn</span>
               </div>
             )}
-          <div
-            className="popup-item d-flex align-items-center text-danger"
-            onClick={() => handleDeleteMessageForMe(selectedMessage._id)}>
-            <Trash2 size={16} className="me-2" />
-            <span>Xóa chỉ ở phía tôi</span>
+            {selectedMessage?.type === "image" && (
+              <div className="popup-item d-flex align-items-center" onClick={() => window.open(selectedMessage.msg, "_blank")}>
+                <Image size={16} className="me-2" />
+                <span>Lưu ảnh</span>
+              </div>
+            )}
+            {(selectedMessage?.type === "video" || selectedMessage?.type === "file") && (
+              <div className="popup-item d-flex align-items-center" onClick={() => window.open(selectedMessage.msg, "_blank")}>
+                <Download size={16} className="me-2" />
+                <span>Tải về</span>
+              </div>
+            )}
+            <hr />
+            {selectedMessage?.sender?._id === user?._id &&
+              new Date() - new Date(selectedMessage.createdAt) < 3600000 && (
+                <div
+                  className="popup-item d-flex align-items-center text-danger"
+                  onClick={() => handleRecallMessage(selectedMessage)}>
+                  <RotateCw size={16} className="me-2" />
+                  <span>Thu hồi</span>
+                </div>
+              )}
+            <div
+              className="popup-item d-flex align-items-center text-danger"
+              onClick={() => handleDeleteMessageForMe(selectedMessage._id)}>
+              <Trash2 size={16} className="me-2" />
+              <span>Xóa chỉ ở phía tôi</span>
+            </div>
+
           </div>
 
-        </div>
+        )
+      }
 
-      )}
-
-      {selectedImage && (
-        <ImageViewer imageUrl={selectedImage} onClose={handleCloseImageViewer} />
-      )}
+      {
+        selectedImage && (
+          <ImageViewer imageUrl={selectedImage} onClose={handleCloseImageViewer} />
+        )
+      }
 
 
       {/* Modal */}
@@ -1345,6 +1316,6 @@ export default function ChatGroup(props) {
         user={user}
         selectedUser={props.selectedUser}
       />
-    </div>
+    </div >
   );
 }

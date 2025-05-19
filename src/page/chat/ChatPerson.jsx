@@ -60,7 +60,7 @@ export default function ChatPerson(props) {
   const [messages, setMessages] = useState([]);
   const [showCallScreen, setShowCallScreen] = useState(false);
   const [hasSelectedImages, setHasSelectedImages] = useState(false);
-  // const [isInitiator, setIsInitiator] = useState(false); // Thêm state để theo dõi người khởi tạo
+  const [isInitiator, setIsInitiator] = useState(false); // Thêm state để theo dõi người khởi tạo
 
   // Popup Chuột phải
   const [popupVisible, setPopupVisible] = useState(false);
@@ -556,36 +556,7 @@ export default function ChatPerson(props) {
   }
 
   // call
-  const [isInitiator, setIsInitiator] = useState(false); // Thêm state để theo dõi người khởi tạo
-  const [incomingCall, setIncomingCall] = useState(null);
-  const [isCalling, setIsCalling] = useState(false);
-
-  useEffect(() => {
-    socketRef.current.on("RES_CALL", (from, to) => {
-      setIncomingCall(from);
-    });
-
-    socketRef.current.on("RES_END_CALL", () => {
-      setIsCalling(false);
-    });
-  }, []);
-
-  const handleStartCall = () => {
-    setIsCalling(true); // Mở modal
-    setIsInitiator(true); // Đặt người dùng hiện tại là người khởi tạo
-
-    socketRef.current.emit("REQ_CALL", user, receiver);
-  };
-
-  const acceptCall = () => {
-    setIsCalling(true);
-    setIncomingCall(null);
-  };
-
-  const endCall = () => {
-    socketRef.current.emit("REQ_END_CALL", user, receiver);
-    setIsCalling(false);
-  };
+  const handleStartCall = props?.handleStartCall;
 
   return (
     <div className="row g-0 h-100">
@@ -610,7 +581,7 @@ export default function ChatPerson(props) {
           <div className="d-flex align-items-center gap-2">
             <span
               className="btn btn-light rounded-circle mb-1"
-              onClick={handleStartCall} // Gọi hàm handleStartCall khi bấm
+              onClick={() => handleStartCall(user, receiver)} // Gọi hàm handleStartCall khi bấm
             >
               <Phone size={16} />
             </span>
@@ -1059,43 +1030,6 @@ export default function ChatPerson(props) {
 
       )}
 
-      {/* Call Screen Modal */}
-      {!isInitiator && incomingCall && (
-        <div className="modal fade show d-block" style={{ backgroundColor: "rgba(0, 0, 0, 0.6)" }} tabIndex="-1">
-          <div className="modal-dialog modal-dialog-centered">
-            <div className="modal-content">
-              <div className="modal-body text-center p-4">
-                <h5 className="mb-3">{incomingCall.username} đang gọi bạn...</h5>
-                <div className="d-flex justify-content-center gap-3">
-                  <button
-                    className="btn btn-success"
-                    onClick={acceptCall}
-                  >
-                    Chấp nhận
-                  </button>
-                  <button
-                    className="btn btn-danger"
-                    onClick={endCall}
-                  >
-                    Hủy
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <VideoCallModal
-        show={isCalling}
-        onHide={endCall}
-        senderId={user._id}
-        receiverId={receiver._id}
-        callerName={user.username}
-        receiverName={receiver.username}
-        socketRef={socketRef}
-        isInitiator={isInitiator} // Truyền state isInitiator
-      />
 
       {selectedImage && (
         <ImageViewer imageUrl={selectedImage} onClose={handleCloseImageViewer} />

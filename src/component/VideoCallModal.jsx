@@ -1,19 +1,6 @@
 import React, { useEffect, useState } from "react";
 
-const VideoCallModal = ({ show, onHide, socketRef }) => {
-  const [jitsiUrl, setJitsiUrl] = useState(null);
-
-  useEffect(() => {
-    if (socketRef?.current) {
-      socketRef.current.on("RES_CALL", (from, to) => {
-        const members = to.members || [];
-        const membersString = members.join("-");
-        setJitsiUrl(`https://meet.jit.si/${membersString}`);
-        console.log("from ", from, "to ", to);
-      });
-    }
-  }, [socketRef]);
-
+const VideoCallModal = ({ show, onHide, socketRef, jitsiUrl }) => {
   return (
     <div
       className={`modal fade ${show ? "show d-block" : "d-none"}`}
@@ -30,13 +17,15 @@ const VideoCallModal = ({ show, onHide, socketRef }) => {
             ></button>
           </div>
           <div className="modal-body p-0" style={{ height: "75vh" }}>
-            {jitsiUrl && (
+            {!jitsiUrl ? (
+              <div className="text-white text-center mt-5">Đang chờ kết nối cuộc gọi...</div>
+            ) : (
               <iframe
                 src={jitsiUrl}
                 title="Video Call"
-                allow="camera; microphone; fullscreen; display-capture"
+                allow="camera; microphone; fullscreen; display-capture; screen-wake-lock"
                 style={{ width: "100%", height: "100%", border: "none" }}
-                sandbox="allow-scripts allow-same-origin allow-forms" // Cho phép các quyền iframe cụ thể
+                sandbox="allow-scripts allow-same-origin allow-forms allow-top-navigation allow-popups"
               ></iframe>
             )}
           </div>

@@ -604,6 +604,7 @@ export default function ChatInterface(props) {
                   conversations={conversations}
                   onlineUsers={onlineUsers}
                   selectedUser={selectedUser}
+                  handleStartCall={props.handleStartCall}
                 />
               ) : (
                 <ChatCloud

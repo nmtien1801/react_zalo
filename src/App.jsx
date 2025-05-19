@@ -20,12 +20,14 @@ import { doGetAccount } from "./redux/authSlice";
 import ChatInfoPanel from "./page/danhBa/DanhBa";
 import ResetPassword from "./page/auth/ResetPassword";
 import io from "socket.io-client";
+import VideoCallModal from "../src/component/VideoCallModal.jsx"
 
 function App() {
   const dispatch = useDispatch();
   let isLoggedIn = useSelector((state) => state.auth.isLoggedIn);
   const user = useSelector((state) => state.auth.userInfo);
   const socketRef = useRef();
+  const [jitsiUrl, setJitsiUrl] = useState(null);
 
   // connect docket
   useEffect(() => {
@@ -40,6 +42,22 @@ function App() {
     if (user && user._id) {
       socketRef.current.emit("register", user._id);
     }
+
+    socketRef.current.on("RES_CALL", (from, to) => {
+      setIncomingCall(from);
+      setReceiver(to);
+
+      const members = to.members || [];
+      const membersString = members.join("-");
+      setJitsiUrl(`https://meet.jit.si/${membersString}`);
+    });
+
+    socketRef.current.on("RES_END_CALL", () => {
+      setIsCalling(false);
+      setIncomingCall(null);
+      setIsInitiator(false);
+      setReceiver(null);
+    });
   }, [user]);
 
   const fetchDataAccount = async () => {
@@ -54,6 +72,34 @@ function App() {
 
   const [friendRequests, setFriendRequests] = useState([]);
   const [groupRequests, setGroupRequests] = useState([]);
+
+  // Trạng thái cuộc gọi
+  const [isCalling, setIsCalling] = useState(false);
+  const [incomingCall, setIncomingCall] = useState(null);
+  const [isInitiator, setIsInitiator] = useState(false);
+  const [receiver, setReceiver] = useState(null);
+
+
+  // Hàm xử lý cuộc gọi
+  const handleStartCall = (caller, callee) => {
+    setIsCalling(true);
+    setIsInitiator(true);
+    setReceiver(callee);
+    socketRef.current.emit("REQ_CALL", caller, callee);
+  };
+
+  const acceptCall = () => {
+    setIsCalling(true);
+    setIncomingCall(null);
+  };
+
+  const endCall = () => {
+    socketRef.current.emit("REQ_END_CALL", user, receiver);
+    setIsCalling(false);
+    setIncomingCall(null);
+    setIsInitiator(false);
+    setReceiver(null);
+  };
 
   return (
     <Router>
@@ -75,7 +121,7 @@ function App() {
             <Route path="/register" element={<Register />} />
             <Route path="/forgot-password" element={<ResetPassword />} />
 
-            <Route path="/chat" element={isLoggedIn && <Chat socketRef={socketRef} />} />
+            <Route path="/chat" element={isLoggedIn && <Chat socketRef={socketRef} handleStartCall={handleStartCall} />} />
             <Route
               path="/danh-ba"
               element={
@@ -106,6 +152,45 @@ function App() {
         pauseOnHover
         theme="light"
       />
+
+      {/* Call Screen Modal */}
+      {!isInitiator && incomingCall && (
+        <div className="modal fade show d-block" style={{ backgroundColor: "rgba(0, 0, 0, 0.6)" }} tabIndex="-1">
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content">
+              <div className="modal-body text-center p-4">
+                <h5 className="mb-3">{incomingCall.username} đang gọi bạn...</h5>
+                <div className="d-flex justify-content-center gap-3">
+                  <button
+                    className="btn btn-success"
+                    onClick={acceptCall}
+                  >
+                    Chấp nhận
+                  </button>
+                  <button
+                    className="btn btn-danger"
+                    onClick={endCall}
+                  >
+                    Hủy
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isCalling && (
+        <VideoCallModal
+          show={isCalling}
+          onHide={endCall}
+          jitsiUrl={jitsiUrl}
+          socketRef={socketRef}
+          isInitiator={isInitiator}
+        />
+      )}
+
+
     </Router>
   );
 }

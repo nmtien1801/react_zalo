@@ -621,14 +621,6 @@ const cleanFileName = (fileName) => {
             </small>
           </div>
 
-          {/* Reminders */}
-          <div className="border-bottom">
-            <div className="d-flex align-items-center p-3 hover-bg-light cursor-pointer">
-              <Clock size={20} className="text-muted me-2" />
-              <div>Danh sách nhắc hẹn</div>
-            </div>
-          </div>
-
           {/* Collapsible Sections */}
           <div className="accordion accordion-flush" id="chatInfo">
             {sections.map(({ id, title, icon: Icon }) => (

@@ -448,7 +448,13 @@ export default function ChatPerson(props) {
 
   const handleMessage = async (message) => {
     if (previewImages.length === 0) {
-      sendMessage(message, "text");
+      if (previewReply !== "") {
+        sendMessage(`${previewReply}\n\n\t${message}`, "text");
+        setHasSelectedImages(false);
+        setPreviewReply("")
+      } else {
+        sendMessage(message, "text");
+      }
     } else if (previewImages.length > 0) {
 
       const listUrlImage = [];
@@ -600,6 +606,22 @@ export default function ChatPerson(props) {
 
   }
 
+  // reply mess
+  let [previewReply, setPreviewReply] = useState("")
+  const handleReply = async (selectedMessage) => {
+    // Tách nội dung từ dòng 2 trở đi (nếu có \n)
+    const parts = selectedMessage.msg.split('\n\n');
+    const contentAfterFirstLine = parts.length > 1 ? parts.slice(1).join('\n') : selectedMessage.msg;
+
+    setPreviewReply(selectedMessage.sender.name + ": " + contentAfterFirstLine);
+    setHasSelectedImages(true)
+  }
+
+  const handleClearReply = async () => {
+    setPreviewReply("")
+    setHasSelectedImages(false);
+  }
+
   // call
   const handleStartCall = props?.handleStartCall;
 
@@ -652,8 +674,8 @@ export default function ChatPerson(props) {
           className="chat-container p-3"
           style={{
             height: hasSelectedImages
-              ? "calc(100vh - 278px)" // Khi có ảnh được chọn
-              : "calc(100vh - 120px)", // Khi không có ảnh nào được chọn
+              ? "calc(100vh - 230px)" // Khi có ảnh được chọn
+              : "calc(100vh - 130px)", // Khi không có ảnh nào được chọn
             overflowY: "auto",
           }}
         >
@@ -669,7 +691,7 @@ export default function ChatPerson(props) {
                     className={`p-3 max-w-[70%] break-words rounded-3 wrap-container ${msg.type === "text" || msg.type === "file" || msg.type === "system"
                       ? msg.sender._id === user._id
                         ? "bg-primary text-white"
-                        : "bg-light text-dark"
+                        : "bg-white text-dark"
                       : "bg-transparent"
                       }`}
                     onContextMenu={(e) => handleShowPopup(e, msg)}
@@ -725,7 +747,9 @@ export default function ChatPerson(props) {
                     ) : msg.type === "system" ? (
                       <span><i>{msg.msg || ""}</i></span>
                     ) : (
-                      <span>{msg.msg || ""}</span>
+                      <div style={{ whiteSpace: 'pre-line' }}>
+                        {msg.msg || ""}
+                      </div>
                     )}
 
                     {/* Phản ứng và thời gian */}
@@ -795,6 +819,51 @@ export default function ChatPerson(props) {
 
         {/* Message Input */}
         <div className="bg-white p-2 border-top" >
+          {/* Xem hình ảnh trước khi gửi */}
+          <div className="preview-container d-flex flex-wrap gap-2 mt-2" >
+            {previewImages.map((image, index) => (
+              <div key={index} className="preview-item position-relative">
+                <img
+                  src={image}
+                  alt={`Xem trước ${index + 1}`}
+                  className="rounded"
+                  style={{ width: "100px", height: "100px", objectFit: "cover" }}
+                />
+                <button
+                  className="btn btn-danger btn-sm position-absolute top-0 end-0 d-flex justify-content-center align-items-center"
+                  onClick={() => handleRemovePreview(index)}
+                  style={{ borderRadius: "50%" }}
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            ))}
+            {previewImages.length > 0 && (
+              <button
+                className="btn btn-link text-danger mt-2"
+                onClick={handleClearAllPreviews}
+              >
+                Xóa tất cả
+              </button>
+            )}
+          </div>
+
+          {/* Xem tin nhắn reply */}
+          {previewReply && (
+            <div className="">
+              <label className="form-label fw-bold">Trả lời tin nhắn:</label>
+              <div className="alert alert-secondary d-flex justify-content-between align-items-start">
+                <div>{previewReply}</div>
+                <button
+                  type="button"
+                  className="btn-close ms-3"
+                  aria-label="Bỏ"
+                  onClick={handleClearReply}
+                ></button>
+              </div>
+            </div>
+          )}
+
           {/* Vùng nhập tin nhắn */}
           <div className="d-flex align-items-center">
             <input
@@ -827,7 +896,17 @@ export default function ChatPerson(props) {
               type="text"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && sendMessage(message, "text")}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  if (previewReply !== "") {
+                    sendMessage(`${previewReply}\n\n${message}`, "text");
+                    setHasSelectedImages(false);
+                    setPreviewReply("")
+                  } else {
+                    sendMessage(message, "text");
+                  }
+                }
+              }}
               placeholder="Nhập tin nhắn..."
             />
 
@@ -849,33 +928,7 @@ export default function ChatPerson(props) {
               <Send size={20} />
             </button>
           </div>
-          <div className="preview-container d-flex flex-wrap gap-2 mt-2" >
-            {previewImages.map((image, index) => (
-              <div key={index} className="preview-item position-relative">
-                <img
-                  src={image}
-                  alt={`Xem trước ${index + 1}`}
-                  className="rounded"
-                  style={{ width: "100px", height: "100px", objectFit: "cover" }}
-                />
-                <button
-                  className="btn btn-danger btn-sm position-absolute top-0 end-0 d-flex justify-content-center align-items-center"
-                  onClick={() => handleRemovePreview(index)}
-                  style={{ borderRadius: "50%" }}
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            ))}
-            {previewImages.length > 0 && (
-              <button
-                className="btn btn-link text-danger mt-2"
-                onClick={handleClearAllPreviews}
-              >
-                Xóa tất cả
-              </button>
-            )}
-          </div>
+
         </div>
       </div>
 
@@ -1302,7 +1355,7 @@ export default function ChatPerson(props) {
             padding: "10px",
           }}
         >
-          <div className="popup-item d-flex align-items-center" onClick={() => console.log("Trả lời")}>
+          <div className="popup-item d-flex align-items-center" onClick={() => handleReply(selectedMessage)}>
             <Reply size={16} className="me-2" />
             <span>Trả lời</span>
           </div>

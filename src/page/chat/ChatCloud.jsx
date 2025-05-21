@@ -6,106 +6,92 @@ import {
   File,
   LinkIcon,
   Shield,
-  Clock,
   EyeOff,
   Smile,
   Paperclip,
   Send,
   Edit2,
+  Trash2,
   Search,
   Layout,
   Reply,
   Share,
   Copy,
   Download,
+  RotateCw,
   Image,
-  Trash2
 } from "lucide-react";
 import "./Chat.scss";
-
 import { useSelector, useDispatch } from "react-redux";
 import { uploadAvatar } from '../../redux/profileSlice.js'
 import IconModal from '../../component/IconModal.jsx'
-import { deleteMessageForMeService } from "../../service/chatService.js";
+import { deleteMessageForMeService, getReactionMessageService, recallMessageService, sendReactionService } from "../../service/chatService.js";
 import ImageViewer from "./ImageViewer.jsx";
+import ShareMsgModal from "../../component/ShareMsgModal.jsx";
 import AccountInfo from "../info/accountInfo.jsx";
+import { reloadMessages } from "../../redux/chatSlice.js";
 
-export default function ChatCloud(props) {
+export default function ChatPerson(props) {
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.userInfo);
-  const [showSidebar, setShowSidebar] = useState(true);
+  const receiver = props.roomData.receiver;
   const fileInputRef = useRef(null); // Ref để truy cập input file ẩn
-  const socketRef = props.socketRef
-
-  const [sections] = useState([
-    { id: "media", title: "Ảnh/Video", icon: ImageIcon },
-    { id: "files", title: "File", icon: File },
-    { id: "links", title: "Link", icon: LinkIcon },
-  ]);
-
-  
-  // nghiem
-const [mediaMessages, setMediaMessages] = useState([]);
-const [fileMessages, setFileMessages] = useState([]);
-const [linkMessages, setLinkMessages] = useState([]);
-
-const [showAllModal, setShowAllModal] = useState(false);
-const [activeTab, setActiveTab] = useState("media"); // Default tab is "media"
-
-useEffect(() => {
-  const media = messages.flatMap((msg) => {
-    if (msg.type === "image") {
-      // Nếu msg chứa nhiều URL, tách chúng thành mảng
-      return msg.msg.split(",").map((url) => ({
-        ...msg,
-        msg: url.trim(), // Loại bỏ khoảng trắng thừa
-      }));
-    }
-    if (msg.type === "video") {
-      return [msg]; // Giữ nguyên video
-    }
-    return [];
-  });
-
-  const files = messages.filter((msg) => msg.type === "file");
-  const links = messages.filter(
-    (msg) =>
-      msg.type === "text" && // Chỉ lấy tin nhắn có type là "text"
-      msg.msg.match(/https?:\/\/[^\s]+/g) // Kiểm tra xem msg có chứa URL
-  );
-
-  setMediaMessages(media); // Cập nhật mediaMessages
-  setFileMessages(files);
-  setLinkMessages(links); // Lưu các tin nhắn dạng URL
-}, [messages]);
-
-const cleanFileName = (fileName) => {
-    // Loại bỏ các ký tự hoặc số không cần thiết ở đầu tên file
-    return fileName.replace(/^\d+_|^\d+-/, ""); // Loại bỏ số và dấu gạch dưới hoặc gạch ngang ở đầu
-  };
-
-// nghiem
-
-  const [isOpen, setIsOpen] = useState(false);
-
-  const openModal = () => setIsOpen(true);
-  const closeModal = () => setIsOpen(false);
-
-  const [message, setMessage] = useState(""); // input
-  const [messages, setMessages] = useState([]); // all hội thoại
-
-  //Popup Chuột phải
+  const imageInputRef = useRef(null);
   const messagesEndRef = useRef(null);
+  const { setAllMsg } = props;
+  const socketRef = props.socketRef;
+  const roomData = props.roomData;
+
+  const [showSidebar, setShowSidebar] = useState(true);
+  const [message, setMessage] = useState("");
+  const [messages, setMessages] = useState([]);
+  const [hasSelectedImages, setHasSelectedImages] = useState(false);
+
+  // Popup Chuột phải
   const [popupVisible, setPopupVisible] = useState(false);
   const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
   const [selectedMessage, setSelectedMessage] = useState(null);
 
-  const imageInputRef = useRef(null);
-  const [hasSelectedImages, setHasSelectedImages] = useState(false);
+
+  const conversations = props.conversations || [];
+
   const [previewImages, setPreviewImages] = useState([]);
   const [selectedFiles, setSelectedFiles] = useState([]);
+
   // ImageViewer
   const [selectedImage, setSelectedImage] = useState(null);
+
+  //Reaction
+  const [reactionPopupVisible, setReactionPopupVisible] = useState(null);
+  const [reactions, setReactions] = useState({});
+
+  //Object Ánh xạ Emoji
+  const emojiToTextMap = {
+    "👍": "Like",
+    "❤️": "Love",
+    "😂": "Haha",
+    "😮": "Wow",
+    "😢": "Sad",
+    "😡": "Angry",
+  };
+
+  const emojiToIconMap = {
+    "👍": <span className="zalo-icon zalo-icon-like"></span>,
+    "❤️": <span className="zalo-icon zalo-icon-heart"></span>,
+    "😂": <span className="zalo-icon zalo-icon-haha"></span>,
+    "😮": <span className="zalo-icon zalo-icon-wow"></span>,
+    "😢": <span className="zalo-icon zalo-icon-crying"></span>,
+    "😡": <span className="zalo-icon zalo-icon-angry"></span>,
+  };
+
+  const textToIconMap = {
+    "Like": <span className="zalo-icon zalo-icon-like"></span>,
+    "Love": <span className="zalo-icon zalo-icon-heart"></span>,
+    "Haha": <span className="zalo-icon zalo-icon-haha"></span>,
+    "Wow": <span className="zalo-icon zalo-icon-wow"></span>,
+    "Sad": <span className="zalo-icon zalo-icon-crying"></span>,
+    "Angry": <span className="zalo-icon zalo-icon-angry"></span>,
+  };
 
   useEffect(() => {
     if (props.allMsg) {
@@ -122,6 +108,83 @@ const cleanFileName = (fileName) => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  const sendMessage = async (msg, type) => {
+
+    // Nếu là chuỗi
+    if (typeof msg === "string") {
+      if (!msg.trim()) {
+        alert("Tin nhắn không được để trống!");
+        return;
+      }
+    }
+
+    // Kiểm tra nếu msg là mảng
+    if (Array.isArray(msg)) {
+      if (msg.length === 0) {
+        msg = JSON.stringify(msg);
+      }
+    }
+
+    props.handleSendMsg(msg, type);
+
+    // gửi cloud
+    if (roomData.receiver.type === 3) {
+      props.handleLoadMessages(receiver._id, receiver.type);
+    }
+
+    setMessage("");
+  };
+
+  const [sections] = useState([
+    { id: "media", title: "Ảnh/Video", icon: ImageIcon },
+    { id: "files", title: "File", icon: File },
+    { id: "links", title: "Link", icon: LinkIcon },
+  ]);
+
+  const [mediaMessages, setMediaMessages] = useState([]);
+  const [fileMessages, setFileMessages] = useState([]);
+  const [linkMessages, setLinkMessages] = useState([]);
+
+  const [showAllModal, setShowAllModal] = useState(false);
+  const [activeTab, setActiveTab] = useState("media"); // Default tab is "media"
+
+  useEffect(() => {
+    const media = messages.flatMap((msg) => {
+      if (msg.type === "image") {
+        // Nếu msg chứa nhiều URL, tách chúng thành mảng
+        return msg.msg.split(",").map((url) => ({
+          ...msg,
+          msg: url.trim(), // Loại bỏ khoảng trắng thừa
+        }));
+      }
+      if (msg.type === "video") {
+        return [msg]; // Giữ nguyên video
+      }
+      return [];
+    });
+
+    const files = messages.filter((msg) => msg.type === "file");
+    const links = messages.filter(
+      (msg) =>
+        msg.type === "text" && // Chỉ lấy tin nhắn có type là "text"
+        msg.msg.match(/https?:\/\/[^\s]+/g) // Kiểm tra xem msg có chứa URL
+    );
+
+    setMediaMessages(media); // Cập nhật mediaMessages
+    setFileMessages(files);
+    setLinkMessages(links); // Lưu các tin nhắn dạng URL
+  }, [messages]);
+
+  const cleanFileName = (fileName) => {
+    // Loại bỏ các ký tự hoặc số không cần thiết ở đầu tên file
+    return fileName.replace(/^\d+_|^\d+-/, ""); // Loại bỏ số và dấu gạch dưới hoặc gạch ngang ở đầu
+  };
+
+  const [isOpen, setIsOpen] = useState(false);
+
+  const openModal = () => setIsOpen(true);
+  const closeModal = () => setIsOpen(false);
 
   // Sự kiện nhấn chuột phải
   const handleShowPopup = (e, msg) => {
@@ -153,26 +216,6 @@ const cleanFileName = (fileName) => {
     setSelectedMessage(null);
   };
 
-  const sendMessage = async (msg, type) => {
-    // Nếu là chuỗi
-    if (typeof msg === "string") {
-      if (!msg.trim()) {
-        alert("Tin nhắn không được để trống!");
-        return;
-      }
-    }
-
-    // Kiểm tra nếu msg là mảng
-    if (Array.isArray(msg)) {
-      if (msg.length === 0) {
-        msg = JSON.stringify(msg);
-      }
-    }
-
-    props.handleSendMsg(msg, type);
-    setMessage("");
-  };
-
   // Xử lý upload file
   const handleFileChange = async (e) => {
     const selectedFile = e.target.files[0];
@@ -181,8 +224,8 @@ const cleanFileName = (fileName) => {
       return;
     }
 
-
     const formData = new FormData();
+    console.log(selectedFile);
     formData.append("avatar", selectedFile);
 
     try {
@@ -200,65 +243,11 @@ const cleanFileName = (fileName) => {
           type = "text";
         }
 
-        sendMessage(response.payload.DT, type);
-      } else {
-        console.log(response.payload.EM);
-        alert(response.payload.EM)
+        sendMessage(response.payload.DT, type); // link ảnh server trả về
       }
     } catch (error) {
       console.error("Upload error:", error);
       alert('err')
-    }
-  };
-
-  // Kích hoạt input file khi nhấn nút
-  const handleButtonClick = () => {
-    fileInputRef.current.click(); // Mở dialog chọn file
-  };
-
-  const convertTime = (time) => {
-    const date = new Date(time);
-    return date.toLocaleTimeString("vi-VN", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-      timeZone: "Asia/Ho_Chi_Minh",
-    });
-  };
-
-  const handleEmojiSelect = (emoji) => {
-    setMessage((prev) => prev + emoji);
-  };
-
-  //Xử lý khi người dùng nhấp ngoài popup chuột phải
-  useEffect(() => {
-    const handleClickOutside = () => {
-      if (popupVisible) {
-        handleClosePopup();
-      }
-    };
-
-    document.addEventListener("click", handleClickOutside);
-    return () => {
-      document.removeEventListener("click", handleClickOutside);
-    };
-  }, [popupVisible]);
-
-  // Xử lý recall for me
-  const handleDeleteMessageForMe = async (id) => {
-    try {
-      const response = await deleteMessageForMeService(id, user._id);
-      if (response.EC === 0) {
-        console.log("Tin nhắn đã được xóa chỉ ở phía tôi:", response.DT);
-
-        setMessages((prevMessages) =>
-          prevMessages.filter((msg) => msg._id !== id)
-        );
-      } else {
-        console.error("Xóa tin nhắn thất bại:", response.EM);
-      }
-    } catch (error) {
-      console.error("Lỗi khi xóa tin nhắn:", error);
     }
   };
 
@@ -295,6 +284,11 @@ const cleanFileName = (fileName) => {
     }
   };
 
+  // Kích hoạt input file khi nhấn nút
+  const handleButtonClick = () => {
+    fileInputRef.current.click(); // Mở dialog chọn file
+  };
+
   const handleButtonClickImage = () => {
     imageInputRef.current.click(); // Mở dialog chọn file
   };
@@ -308,7 +302,85 @@ const cleanFileName = (fileName) => {
     setSelectedImage(null);
   };
 
-  // xóa ảnh xem trước
+  const convertTime = (time) => {
+    const date = new Date(time);
+    return date.toLocaleTimeString("vi-VN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+      timeZone: "Asia/Ho_Chi_Minh",
+    });
+  };
+
+  const handleEmojiSelect = (emoji) => {
+    setMessage((prev) => prev + emoji);
+  };
+
+  //Xử lý khi người dùng nhấp ngoài popup chuột phải
+  useEffect(() => {
+    const handleClickOutside = () => {
+      if (popupVisible) {
+        handleClosePopup();
+      }
+    };
+
+    document.addEventListener("click", handleClickOutside);
+    return () => {
+      document.removeEventListener("click", handleClickOutside);
+    };
+  }, [popupVisible]);
+
+
+  // Xử lý recall msg
+  const handleRecallMessage = async (message) => {
+    try {
+      const response = await recallMessageService(message._id);
+      if (response.EC === 0) {
+        console.log("Tin nhắn đã được thu hồi:", response.DT);
+
+        props.socketRef.current.emit("RECALL", message);
+      } else {
+        console.error("Thu hồi tin nhắn thất bại:", response.EM);
+      }
+    } catch (error) {
+      console.error("Lỗi khi thu hồi tin nhắn:", error);
+    }
+  };
+
+  // Xử lý recall for me
+  const handleDeleteMessageForMe = async (id) => {
+    try {
+      const response = await deleteMessageForMeService(id, user);
+      if (response.EC === 0) {
+        console.log("Tin nhắn đã được xóa chỉ ở phía tôi:", response.DT);
+
+        setMessages((prevMessages) =>
+          prevMessages.filter((msg) => msg._id !== id)
+        );
+
+        const res = await dispatch(
+          reloadMessages({ sender: user._id, receiver: receiver._id, type: receiver.type })
+        );
+
+        if (res.payload.EC === 0) {
+          setAllMsg(res.payload.DT);
+        }
+      } else {
+        console.error("Xóa tin nhắn thất bại:", response.EM);
+      }
+    } catch (error) {
+      console.error("Lỗi khi xóa tin nhắn:", error);
+    }
+  };
+
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [selectedMessageShareModal, setSelectedMessageShareModal] = useState([]);
+
+  const handleOpenShareModal = (message) => {
+    setShowShareModal(true);
+    setSelectedMessageShareModal(message); // Lưu tin nhắn đã chọn để chia sẻ
+  };
+
   const handleRemovePreview = (index) => {
     const updatedPreviews = [...previewImages];
     updatedPreviews.splice(index, 1);
@@ -321,7 +393,13 @@ const cleanFileName = (fileName) => {
 
   const handleMessage = async (message) => {
     if (previewImages.length === 0) {
-      sendMessage(message, "text");
+      if (previewReply !== "") {
+        sendMessage(`${previewReply}\n\n\t${message}`, "text");
+        setHasSelectedImages(false);
+        setPreviewReply("")
+      } else {
+        sendMessage(message, "text");
+      }
     } else if (previewImages.length > 0) {
 
       const listUrlImage = [];
@@ -360,11 +438,129 @@ const cleanFileName = (fileName) => {
     setMessage("");
   }
 
+  // Nhấp phản ứng
+  const handleShowReactionPopup = async (messageId, event) => {
+    const rect = event.currentTarget.getBoundingClientRect(); // Lấy tọa độ phần tử
+    let x = rect.left;
+    let y = rect.bottom;
 
+    const chatContainer = document.querySelector(".chat-container");
+    const containerRect = chatContainer.getBoundingClientRect();
+
+    if (x > containerRect.right - 200) {
+      x = rect.left - containerRect.right - 50;
+    } else {
+      x = 0;
+    }
+
+    y = 0;
+
+    setReactionPopupVisible({
+      messageId,
+      position: { x, y },
+    });
+  };
+
+  const handleHideReactionPopup = (messageId) => {
+    if (reactionPopupVisible?.messageId === messageId) {
+      setReactionPopupVisible(null);
+    }
+  };
+
+  //Hàm phản ứng
+  const handleReactToMessage = (messageId, emoji) => {
+    const emojiText = emojiToTextMap[emoji];
+    if (!emojiText) return;
+
+    sendReactionService(messageId, user._id, emojiText)
+      .then((response) => {
+        if (response.EC === 0) {
+          console.log("Reaction sent successfully:", response.DT);
+
+          setReactions((prevReactions) => {
+            const currentReactions = prevReactions[messageId] || [];
+            const existingReactionIndex = currentReactions.findIndex(
+              (reaction) => reaction.emoji === emojiText && reaction.userId === user._id
+            );
+
+            if (existingReactionIndex !== -1) {
+              currentReactions.splice(existingReactionIndex, 1);
+            } else {
+              currentReactions.push({
+                emoji: emojiText,
+                userId: user._id,
+                count: 1,
+              });
+            }
+
+            return {
+              ...prevReactions,
+              [messageId]: [...currentReactions],
+            };
+          });
+        } else {
+          console.error("Failed to send reaction:", response.EM);
+        }
+      })
+      .catch((error) => {
+        console.error("Error sending reaction:", error);
+      });
+  };
+
+  // Lấy phản ứng từng message
+  const getReactions = async (messageId) => {
+    try {
+      const response = await getReactionMessageService(messageId);
+      if (response.EC === 0) {
+        return response.DT; // Trả về danh sách reaction
+      } else {
+        console.error("Failed to fetch reactions:", response.EM);
+        return [];
+      }
+    } catch (error) {
+      console.error("Error fetching reactions:", error);
+      return [];
+    }
+  };
+
+  //Lấy phản ứng của từng message khi thay đổi messages
+  useEffect(() => {
+    const fetchReactions = async () => {
+      const reactionsData = {};
+      for (const msg of messages) {
+        const reactionList = await getReactions(msg._id);
+        reactionsData[msg._id] = reactionList;
+      }
+      setReactions(reactionsData); // Cập nhật state reactions
+      console.log(reactions);
+    };
+
+    if (messages.length > 0) {
+      fetchReactions();
+    }
+  }, [messages]);
+
+  // Hàm làm sạch ảnh review
   const handleClearAllPreviews = () => {
     setPreviewImages([]); // Xóa toàn bộ ảnh xem trước
     setHasSelectedImages(false);
   };
+
+  // reply mess
+  let [previewReply, setPreviewReply] = useState("")
+  const handleReply = async (selectedMessage) => {
+    // Tách nội dung từ dòng 2 trở đi (nếu có \n)
+    const parts = selectedMessage.msg.split('\n\n');
+    const contentAfterFirstLine = parts.length > 1 ? parts.slice(1).join('\n') : selectedMessage.msg;
+
+    setPreviewReply(selectedMessage.sender.name + ": " + contentAfterFirstLine);
+    setHasSelectedImages(true)
+  }
+
+  const handleClearReply = async () => {
+    setPreviewReply("")
+    setHasSelectedImages(false);
+  }
 
   return (
     <div className="row g-0 h-100">
@@ -410,8 +606,8 @@ const cleanFileName = (fileName) => {
           className="chat-container p-3"
           style={{
             height: hasSelectedImages
-              ? "calc(100vh - 278px)" // Khi có ảnh được chọn
-              : "calc(100vh - 120px)", // Khi không có ảnh nào được chọn
+              ? "calc(100vh - 230px)" // Khi có ảnh được chọn
+              : "calc(100vh - 130px)", // Khi không có ảnh nào được chọn
             overflowY: "auto",
           }}
         >
@@ -424,10 +620,10 @@ const cleanFileName = (fileName) => {
                     }`}
                 >
                   <div
-                    className={`p-3 max-w-[70%] break-words rounded-3 wrap-container ${msg.type === "text" || msg.type === "file"
+                    className={`p-3 max-w-[70%] break-words rounded-3 wrap-container ${msg.type === "text" || msg.type === "file" || msg.type === "system"
                       ? msg.sender._id === user._id
                         ? "bg-primary text-white"
-                        : "bg-light text-dark"
+                        : "bg-white text-dark"
                       : "bg-transparent"
                       }`}
                     onContextMenu={(e) => handleShowPopup(e, msg)}
@@ -453,7 +649,7 @@ const cleanFileName = (fileName) => {
                       ) : (
                         // Nếu chỉ có một URL ảnh, hiển thị ảnh đó
                         <div className={`grid-container single-image`}>
-                          <div className="grid-item">
+                          <div key={index} className="grid-item">
                             <img
                               src={msg.msg}
                               alt="image"
@@ -480,85 +676,82 @@ const cleanFileName = (fileName) => {
                       >
                         🡇 {msg.msg.split("_").pop() || "Tệp đính kèm"}
                       </a>
+                    ) : msg.type === "system" ? (
+                      <span><i>{msg.msg || ""}</i></span>
                     ) : (
-                      <span>{msg.msg || ""}</span>
+                      <div style={{ whiteSpace: 'pre-line' }}>
+                        {msg.msg || ""}
+                      </div>
                     )}
 
-                    {/* Thời gian gửi */}
-                    <div
-                      className={`text-end text-xs mt-1 ${msg.sender._id === user._id
-                        ? msg.type === "image"
-                          ? "text-secondary" // Nếu là ảnh, đổi thành text-secondary
-                          : "text-white" // Nếu không, giữ text-white
-                        : "text-secondary"
-                        }`}
-                    >
-                      {convertTime(msg.createdAt)}
+                    {/* Phản ứng và thời gian */}
+                    <div className="reaction-time-container">
+                      <div
+                        className="reaction-container"
+                        onMouseEnter={(event) => handleShowReactionPopup(msg._id, event)}
+                        onMouseLeave={() => handleHideReactionPopup(msg._id)}
+                      >
+                        <span className="reaction-icon">
+                          <Smile size={20} />
+                        </span>
+                        {reactions[msg._id] && reactions[msg._id].length > 0 && (
+                          <div className="reaction-summary">
+                            {reactions[msg._id].map((reaction, index) => (
+                              <span key={index} className="reaction-item">
+                                {textToIconMap[reaction.emoji]}
+                                {reaction.count || 1}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        {reactionPopupVisible?.messageId === msg._id && (
+                          <div className="reaction-popup"
+                            style={{
+                              top: reactionPopupVisible.position.y,
+                              left: reactionPopupVisible.position.x,
+                            }}>
+                            {Object.keys(emojiToIconMap).map((emoji, index) => (
+                              <span
+                                key={index}
+                                className="reaction-emoji"
+                                onClick={() => handleReactToMessage(msg._id, emoji)}
+                              >
+                                {emojiToIconMap[emoji]}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <div
+                        className={`message-time ${msg.type === "video" || msg.type === "image"
+                          ? "text-secondary"
+                          : msg.sender._id === user._id
+                            ? "text-white"
+                            : "text-secondary"
+                          }`}
+                      >
+                        {convertTime(msg.createdAt)}
+                      </div>
                     </div>
-                  </div>
 
+                    {/* Nút chia sẻ */}
+                    {/* <button
+                      className={`share-button-1 `}
+                      onClick={() => handleOpenShareModal(msg)}
+                    >
+                      <Share2 size={16} className="text-muted" />
+                    </button> */}
+                  </div>
                 </div>
               ))}
+
             <div ref={messagesEndRef} />
           </div>
         </div>
 
         {/* Message Input */}
-        <div className="bg-white p-2 border-top">
-          <div className="d-flex align-items-center">
-            {/* Modal riêng */}
-            <IconModal onSelect={handleEmojiSelect} />
-            {/* Input file ẩn */}
-            <input
-              type="file"
-              multiple
-              accept=".doc,.docx,.xls,.xlsx,.pdf,.mp4"
-              onChange={handleFileChange}
-              ref={fileInputRef}
-              style={{ display: "none" }} // Ẩn input
-            />
-            <button className="btn btn-light me-2" onClick={handleButtonClick} >
-              <Paperclip size={20} />
-            </button>
-            <input
-              type="file"
-              multiple
-              accept="image/jpeg,image/png"
-              onChange={handleImageChange}
-              ref={imageInputRef}
-              style={{ display: "none" }} // Ẩn input
-            />
-            <button className="btn btn-light me-2" onClick={handleButtonClickImage}>
-              <Image size={20} />
-            </button>
-
-            {/* Input tin nhắn */}
-            <input
-              className="form-control flex-1 p-2 border rounded-lg outline-none"
-              type="text"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && sendMessage(message, "text")}
-              placeholder="Nhập tin nhắn..."
-            />
-            {/* Nút smile */}
-            <button
-              className="btn btn-light ms-2"
-              data-bs-toggle="modal"
-              data-bs-target="#iconModal"
-            >
-              <Smile size={20} />
-            </button>
-            <IconModal onSelect={handleEmojiSelect} />
-
-            {/* Nút gửi */}
-            <button
-              className="btn btn-primary ms-2"
-              onClick={() => handleMessage(message)}
-            >
-              <Send size={20} />
-            </button>
-          </div>
+        <div className="bg-white p-2 border-top" >
+          {/* Xem hình ảnh trước khi gửi */}
           <div className="preview-container d-flex flex-wrap gap-2 mt-2" >
             {previewImages.map((image, index) => (
               <div key={index} className="preview-item position-relative">
@@ -585,6 +778,87 @@ const cleanFileName = (fileName) => {
                 Xóa tất cả
               </button>
             )}
+          </div>
+
+          {/* Xem tin nhắn reply */}
+          {previewReply && (
+            <div className="">
+              <label className="form-label fw-bold">Trả lời tin nhắn:</label>
+              <div className="alert alert-secondary d-flex justify-content-between align-items-start">
+                <div>{previewReply}</div>
+                <button
+                  type="button"
+                  className="btn-close ms-3"
+                  aria-label="Bỏ"
+                  onClick={handleClearReply}
+                ></button>
+              </div>
+            </div>
+          )}
+
+          {/* Vùng nhập tin nhắn */}
+          <div className="d-flex align-items-center">
+            <input
+              type="file"
+              multiple
+              accept=".doc,.docx,.xls,.xlsx,.pdf,.mp4"
+              onChange={handleFileChange}
+              ref={fileInputRef}
+              style={{ display: "none" }} // Ẩn input
+            />
+            <button className="btn btn-light me-2" onClick={handleButtonClick}>
+              <Paperclip size={20} />
+            </button>
+
+            <input
+              type="file"
+              multiple
+              accept="image/jpeg,image/png"
+              onChange={handleImageChange}
+              ref={imageInputRef}
+              style={{ display: "none" }} // Ẩn input
+            />
+            <button className="btn btn-light me-2" onClick={handleButtonClickImage}>
+              <Image size={20} />
+            </button>
+
+            {/* Input tin nhắn */}
+            <input
+              className="form-control flex-1 p-2 border rounded-lg outline-none"
+              type="text"
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  if (previewReply !== "") {
+                    sendMessage(`${previewReply}\n\n${message}`, "text");
+                    setHasSelectedImages(false);
+                    setPreviewReply("")
+                  } else {
+                    sendMessage(message, "text");
+                  }
+                }
+              }}
+              placeholder="Nhập tin nhắn..."
+            />
+
+            {/* Nút smile */}
+            <button
+              className="btn btn-light ms-2"
+              data-bs-toggle="modal"
+              data-bs-target="#iconModal"
+            >
+              <Smile size={20} />
+            </button>
+            <IconModal onSelect={handleEmojiSelect} />
+
+            {/* Nút gửi */}
+            <button
+              className="btn btn-primary ms-2"
+              onClick={() => handleMessage(message)}
+            >
+              <Send size={20} />
+            </button>
           </div>
         </div>
       </div>
@@ -641,7 +915,7 @@ const cleanFileName = (fileName) => {
                       <>
                         <div className="media-list d-flex flex-wrap gap-2">
                           {mediaMessages.slice(0, 8).map((msg, index) => (
-                          // {mediaMessages.map((msg, index) => (
+                            // {mediaMessages.map((msg, index) => (
                             <div
                               key={index}
                               className="media-item"
@@ -680,54 +954,54 @@ const cleanFileName = (fileName) => {
                           ))}
                         </div>
                         {/* {mediaMessages.length > 8 && ( */}
-                          <button
-                            className="btn btn-link mt-2"
-                            onClick={() => {
-                              setActiveTab("media"); // Set default tab
-                              setShowAllModal(true); // Open modal
-                            }}
-                          >
-                            Xem tất cả
-                          </button>
+                        <button
+                          className="btn btn-link mt-2"
+                          onClick={() => {
+                            setActiveTab("media"); // Set default tab
+                            setShowAllModal(true); // Open modal
+                          }}
+                        >
+                          Xem tất cả
+                        </button>
                         {/* )} */}
                       </>
                     ) : id === "files" && fileMessages.length > 0 ? (
                       <>
-                      <div className="file-list">
-                        {fileMessages.slice(0, 4).map((msg, index) => (
-                          <div
-                            key={index}
-                            className="d-flex align-items-center mb-2"
-                            style={{
-                              borderBottom: "1px solid #ddd",
-                              paddingBottom: "5px",
-                            }}
-                          >
-                            {/* Icon loại file */}
-                            <File size={20} className="me-2 text-primary" />
-                            {/* Tên file */}
-                            <a
-                              href={msg.msg}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-truncate"
-                              style={{ maxWidth: "200px" }}
+                        <div className="file-list">
+                          {fileMessages.slice(0, 4).map((msg, index) => (
+                            <div
+                              key={index}
+                              className="d-flex align-items-center mb-2"
+                              style={{
+                                borderBottom: "1px solid #ddd",
+                                paddingBottom: "5px",
+                              }}
                             >
-                              {cleanFileName(msg.msg.split("/").pop()) || `File ${index + 1}`}
-                            </a>
-                          </div>
-                        ))}
-                      </div>
+                              {/* Icon loại file */}
+                              <File size={20} className="me-2 text-primary" />
+                              {/* Tên file */}
+                              <a
+                                href={msg.msg}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-truncate"
+                                style={{ maxWidth: "200px" }}
+                              >
+                                {cleanFileName(msg.msg.split("/").pop()) || `File ${index + 1}`}
+                              </a>
+                            </div>
+                          ))}
+                        </div>
                         {/* {fileMessages.length > 4 && ( */}
-                          <button
-                            className="btn btn-link mt-2"
-                            onClick={() => {
-                              setActiveTab("files"); // Set default tab
-                              setShowAllModal(true); // Open modal
-                            }}
-                          >
-                            Xem tất cả
-                          </button>
+                        <button
+                          className="btn btn-link mt-2"
+                          onClick={() => {
+                            setActiveTab("files"); // Set default tab
+                            setShowAllModal(true); // Open modal
+                          }}
+                        >
+                          Xem tất cả
+                        </button>
                         {/* )} */}
                       </>
 
@@ -751,19 +1025,19 @@ const cleanFileName = (fileName) => {
                         </div>
 
                         {/* {linkMessages.length > 4 && ( */}
-                          <button
-                            className="btn btn-link mt-2"
-                            onClick={() => {
-                              setActiveTab("links"); // Set default tab
-                              setShowAllModal(true); // Open modal
-                            }}
-                          >
-                            Xem tất cả
-                          </button>
+                        <button
+                          className="btn btn-link mt-2"
+                          onClick={() => {
+                            setActiveTab("links"); // Set default tab
+                            setShowAllModal(true); // Open modal
+                          }}
+                        >
+                          Xem tất cả
+                        </button>
                         {/* )} */}
 
 
-                          </>
+                      </>
 
 
                     ) : (
@@ -780,151 +1054,151 @@ const cleanFileName = (fileName) => {
             onHide={() => setShowAllModal(false)}
             centered
           >
-                <Modal.Header closeButton>
-                  <Modal.Title>Xem tất cả</Modal.Title>
-                </Modal.Header>
-                <Modal.Body
-                  style={{
-                    overflowY: "auto", // Thêm cuộn dọc nếu nội dung vượt quá chiều cao
-                    // height: "calc(100% - 56px)", // Trừ chiều cao của header
-                    height: "400px", // Giới hạn chiều cao của modal
-                    backgroundColor: "#dddada", // Màu gray mờ   
-                    
-                  }}
-                >
-                  <Tabs
-                    activeKey={activeTab}
-                    onSelect={(tab) => setActiveTab(tab)}
-                    className="mb-3"
+            <Modal.Header closeButton>
+              <Modal.Title>Xem tất cả</Modal.Title>
+            </Modal.Header>
+            <Modal.Body
+              style={{
+                overflowY: "auto", // Thêm cuộn dọc nếu nội dung vượt quá chiều cao
+                // height: "calc(100% - 56px)", // Trừ chiều cao của header
+                height: "400px", // Giới hạn chiều cao của modal
+                backgroundColor: "#dddada", // Màu gray mờ   
+
+              }}
+            >
+              <Tabs
+                activeKey={activeTab}
+                onSelect={(tab) => setActiveTab(tab)}
+                className="mb-3"
+              >
+                <Tab eventKey="media" title="Ảnh/Video">
+                  <div
+                    className="d-flex flex-wrap gap-2"
+                    style={{
+                      alignItems: "center",
+                      justifyContent: "center",
+                      backgroundColor: "#dddada", // Màu gray mờ   
+                      paddingTop: "10px",
+                      paddingBottom: "10px",
+                    }}
+
                   >
-                    <Tab eventKey="media" title="Ảnh/Video">
+                    {mediaMessages.map((msg, index) => (
                       <div
-                        className="d-flex flex-wrap gap-2"
+                        key={index}
+                        className="media-item"
                         style={{
-                          alignItems: "center",
-                          justifyContent: "center", 
-                          backgroundColor: "#dddada", // Màu gray mờ   
-                          paddingTop: "10px",
-                          paddingBottom: "10px",
+                          width: "calc(25% - 10px)",
+                          height: "100px",
+                          overflow: "hidden",
+                          borderRadius: "8px",
                         }}
-
                       >
-                        {mediaMessages.map((msg, index) => (
-                          <div
-                            key={index}
-                            className="media-item"
+                        {msg.type === "image" ? (
+                          <img
+                            src={msg.msg}
+                            alt={`Media ${index + 1}`}
                             style={{
-                              width: "calc(25% - 10px)",
-                              height: "100px",
-                              overflow: "hidden",
-                              borderRadius: "8px",
+                              width: "100%",
+                              height: "100%",
+                              objectFit: "cover",
+                              cursor: "pointer",
                             }}
-                          >
-                            {msg.type === "image" ? (
-                              <img
-                                src={msg.msg}
-                                alt={`Media ${index + 1}`}
-                                style={{
-                                  width: "100%",
-                                  height: "100%",
-                                  objectFit: "cover",
-                                  cursor: "pointer",
-                                }}
-                                onClick={() => {
-                                  handleImageClick(msg.msg); // Hiển thị ảnh
-                                  setShowAllModal(false); // Đóng modal
-                                }}
-                              />
-                            ) : (
-                              <video
-                                src={msg.msg}
-                                controls
-                                style={{
-                                  width: "100%",
-                                  height: "100%",
-                                  objectFit: "cover",
-                                  cursor: "pointer",
-                                }}
-                                // onClick={() => {
-                                //   setShowAllModal(false); // Đóng modal
-                                // }}
-                              />
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </Tab>
-                    <Tab eventKey="files" title="File">
-                      <div
-                        className="file-list"
-                        style={{
-                          alignItems: "center",
-                          justifyContent: "center", 
-                          backgroundColor: "#dddada", // Màu gray mờ   
-                          paddingTop: "10px",
-                          paddingBottom: "10px",
-
-                        }}
-                      >
-                        {fileMessages.map((msg, index) => (
-                          <div
-                            key={index}
-                            className="d-flex align-items-center mb-2"
+                            onClick={() => {
+                              handleImageClick(msg.msg); // Hiển thị ảnh
+                              setShowAllModal(false); // Đóng modal
+                            }}
+                          />
+                        ) : (
+                          <video
+                            src={msg.msg}
+                            controls
                             style={{
-                              borderBottom: "1px solid black",
-                              paddingBottom: "5px",
+                              width: "100%",
+                              height: "100%",
+                              objectFit: "cover",
+                              cursor: "pointer",
                             }}
-                          >
-                            <File size={20} className="me-2 text-primary" />
-                            <a
-                              href={msg.msg}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-truncate"
-                            >
-                              {cleanFileName(msg.msg.split("/").pop()) || `File ${index + 1}`}
-                            </a>
-                          </div>
-                        ))}
+                          // onClick={() => {
+                          //   setShowAllModal(false); // Đóng modal
+                          // }}
+                          />
+                        )}
                       </div>
-                    </Tab>
-                    <Tab eventKey="links" title="Link">
+                    ))}
+                  </div>
+                </Tab>
+                <Tab eventKey="files" title="File">
+                  <div
+                    className="file-list"
+                    style={{
+                      alignItems: "center",
+                      justifyContent: "center",
+                      backgroundColor: "#dddada", // Màu gray mờ   
+                      paddingTop: "10px",
+                      paddingBottom: "10px",
+
+                    }}
+                  >
+                    {fileMessages.map((msg, index) => (
                       <div
-                        className="link-list"
+                        key={index}
+                        className="d-flex align-items-center mb-2"
                         style={{
-                          alignItems: "center",
-                          justifyContent: "center", 
-                          backgroundColor: "#dddada", // Màu gray mờ   
-                          paddingTop: "10px",
-                          paddingBottom: "10px",
+                          borderBottom: "1px solid black",
+                          paddingBottom: "5px",
                         }}
                       >
-                        {linkMessages.map((msg, index) => (
-                          <div key={index} className="d-flex align-items-center mb-2"
+                        <File size={20} className="me-2 text-primary" />
+                        <a
+                          href={msg.msg}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-truncate"
+                        >
+                          {cleanFileName(msg.msg.split("/").pop()) || `File ${index + 1}`}
+                        </a>
+                      </div>
+                    ))}
+                  </div>
+                </Tab>
+                <Tab eventKey="links" title="Link">
+                  <div
+                    className="link-list"
+                    style={{
+                      alignItems: "center",
+                      justifyContent: "center",
+                      backgroundColor: "#dddada", // Màu gray mờ   
+                      paddingTop: "10px",
+                      paddingBottom: "10px",
+                    }}
+                  >
+                    {linkMessages.map((msg, index) => (
+                      <div key={index} className="d-flex align-items-center mb-2"
+                        style={{
+                          borderBottom: "1px solid black",
+                          paddingBottom: "5px",
+                        }}
+                      >
+                        <LinkIcon size={20} className="me-2 text-primary" />
+                        <a
+                          href={msg.msg}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-truncate"
                           style={{
-                            borderBottom: "1px solid black",
-                            paddingBottom: "5px",
+                            color: "black",
+                            textDecoration: "none",
                           }}
-                          >
-                            <LinkIcon size={20} className="me-2 text-primary" />
-                            <a
-                              href={msg.msg}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-truncate"
-                              style={{
-                                color: "black",
-                                textDecoration: "none",
-                              }}
-                            >
-                              {msg.msg}
-                            </a>
-                          </div>
-                        ))}
+                        >
+                          {msg.msg}
+                        </a>
                       </div>
-                    </Tab>
-                  </Tabs>
-                </Modal.Body>
+                    ))}
+                  </div>
+                </Tab>
+              </Tabs>
+            </Modal.Body>
           </Modal>
 
           {/* Security Settings */}
@@ -981,11 +1255,11 @@ const cleanFileName = (fileName) => {
             padding: "10px",
           }}
         >
-          <div className="popup-item d-flex align-items-center" onClick={() => console.log("Trả lời")}>
+          <div className="popup-item d-flex align-items-center" onClick={() => handleReply(selectedMessage)}>
             <Reply size={16} className="me-2" />
             <span>Trả lời</span>
           </div>
-          <div className="popup-item d-flex align-items-center" onClick={() => console.log("Chia sẻ")}>
+          <div className="popup-item d-flex align-items-center" onClick={() => handleOpenShareModal(selectedMessage)}>
             <Share size={16} className="me-2" />
             <span>Chia sẻ</span>
           </div>
@@ -1009,18 +1283,44 @@ const cleanFileName = (fileName) => {
             </div>
           )}
           <hr />
-
+          {selectedMessage?.sender?._id === user?._id &&
+            new Date() - new Date(selectedMessage.createdAt) < 3600000 && (
+              <div
+                className="popup-item d-flex align-items-center text-danger"
+                onClick={() => handleRecallMessage(selectedMessage)}>
+                <RotateCw size={16} className="me-2" />
+                <span>Thu hồi</span>
+              </div>
+            )}
           <div
             className="popup-item d-flex align-items-center text-danger"
             onClick={() => handleDeleteMessageForMe(selectedMessage._id)}>
             <Trash2 size={16} className="me-2" />
             <span>Xóa chỉ ở phía tôi</span>
           </div>
+
         </div>
+
       )}
+
+
       {selectedImage && (
         <ImageViewer imageUrl={selectedImage} onClose={handleCloseImageViewer} />
       )}
+
+
+      {/* Modal */}
+      <ShareMsgModal
+        show={showShareModal}
+        onHide={() => setShowShareModal(false)}
+        message={selectedMessageShareModal}
+        conversations={conversations}
+        onlineUsers={props.onlineUsers}
+        socketRef={props.socketRef}
+        setAllMsg={props.setAllMsg}
+        user={user}
+        selectedUser={props.selectedUser}
+      />
     </div>
   );
 }

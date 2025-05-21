@@ -108,48 +108,48 @@ export default function ChatGroup(props) {
     { id: "links", title: "Link", icon: LinkIcon },
   ]);
 
-  
+
   // nghiem
-const [mediaMessages, setMediaMessages] = useState([]);
-const [fileMessages, setFileMessages] = useState([]);
-const [linkMessages, setLinkMessages] = useState([]);
+  const [mediaMessages, setMediaMessages] = useState([]);
+  const [fileMessages, setFileMessages] = useState([]);
+  const [linkMessages, setLinkMessages] = useState([]);
 
-const [showAllModal, setShowAllModal] = useState(false);
-const [activeTab, setActiveTab] = useState("media"); // Default tab is "media"
+  const [showAllModal, setShowAllModal] = useState(false);
+  const [activeTab, setActiveTab] = useState("media"); // Default tab is "media"
 
-useEffect(() => {
-  const media = messages.flatMap((msg) => {
-    if (msg.type === "image") {
-      // Nếu msg chứa nhiều URL, tách chúng thành mảng
-      return msg.msg.split(",").map((url) => ({
-        ...msg,
-        msg: url.trim(), // Loại bỏ khoảng trắng thừa
-      }));
-    }
-    if (msg.type === "video") {
-      return [msg]; // Giữ nguyên video
-    }
-    return [];
-  });
+  useEffect(() => {
+    const media = messages.flatMap((msg) => {
+      if (msg.type === "image") {
+        // Nếu msg chứa nhiều URL, tách chúng thành mảng
+        return msg.msg.split(",").map((url) => ({
+          ...msg,
+          msg: url.trim(), // Loại bỏ khoảng trắng thừa
+        }));
+      }
+      if (msg.type === "video") {
+        return [msg]; // Giữ nguyên video
+      }
+      return [];
+    });
 
-  const files = messages.filter((msg) => msg.type === "file");
-  const links = messages.filter(
-    (msg) =>
-      msg.type === "text" && // Chỉ lấy tin nhắn có type là "text"
-      msg.msg.match(/https?:\/\/[^\s]+/g) // Kiểm tra xem msg có chứa URL
-  );
+    const files = messages.filter((msg) => msg.type === "file");
+    const links = messages.filter(
+      (msg) =>
+        msg.type === "text" && // Chỉ lấy tin nhắn có type là "text"
+        msg.msg.match(/https?:\/\/[^\s]+/g) // Kiểm tra xem msg có chứa URL
+    );
 
-  setMediaMessages(media); // Cập nhật mediaMessages
-  setFileMessages(files);
-  setLinkMessages(links); // Lưu các tin nhắn dạng URL
-}, [messages]);
+    setMediaMessages(media); // Cập nhật mediaMessages
+    setFileMessages(files);
+    setLinkMessages(links); // Lưu các tin nhắn dạng URL
+  }, [messages]);
 
-const cleanFileName = (fileName) => {
+  const cleanFileName = (fileName) => {
     // Loại bỏ các ký tự hoặc số không cần thiết ở đầu tên file
     return fileName.replace(/^\d+_|^\d+-/, ""); // Loại bỏ số và dấu gạch dưới hoặc gạch ngang ở đầu
   };
 
-// nghiem
+  // nghiem
 
   // nghiem
   const [showMemberModal, setShowMemberModal] = useState(false);
@@ -523,7 +523,13 @@ const cleanFileName = (fileName) => {
 
   const handleMessage = async (message) => {
     if (previewImages.length === 0) {
-      sendMessage(message, "text");
+      if (previewReply !== "") {
+        sendMessage(`${previewReply}\n\n\t${message}`, "text");
+        setHasSelectedImages(false);
+        setPreviewReply("")
+      } else {
+        sendMessage(message, "text");
+      }
     } else if (previewImages.length > 0) {
 
       const listUrlImage = [];
@@ -704,6 +710,22 @@ const cleanFileName = (fileName) => {
     }
   };
 
+  // reply mess
+  let [previewReply, setPreviewReply] = useState("")
+  const handleReply = async (selectedMessage) => {
+    // Tách nội dung từ dòng 2 trở đi (nếu có \n)
+    const parts = selectedMessage.msg.split('\n\n');
+    const contentAfterFirstLine = parts.length > 1 ? parts.slice(1).join('\n') : selectedMessage.msg;
+
+    setPreviewReply(selectedMessage.sender.name + ": " + contentAfterFirstLine);
+    setHasSelectedImages(true)
+  }
+
+  const handleClearReply = async () => {
+    setPreviewReply("")
+    setHasSelectedImages(false);
+  }
+
   // call
   const handleStartCall = props?.handleStartCall;
 
@@ -753,8 +775,8 @@ const cleanFileName = (fileName) => {
           className="chat-container p-3"
           style={{
             height: hasSelectedImages
-              ? "calc(100vh - 278px)" // Khi có ảnh được chọn
-              : "calc(100vh - 120px)", // Khi không có ảnh nào được chọn
+              ? "calc(100vh - 230px)" // Khi có ảnh được chọn
+              : "calc(100vh - 130px)", // Khi không có ảnh nào được chọn
             overflowY: "auto",
           }}
         >
@@ -770,7 +792,7 @@ const cleanFileName = (fileName) => {
                     className={`p-3 max-w-[70%] break-words rounded-3 wrap-container ${msg.type === "text" || msg.type === "file" || msg.type === "system"
                       ? msg.sender._id === user._id
                         ? "bg-primary text-white"
-                        : "bg-light text-dark"
+                        : "bg-white text-dark"
                       : "bg-transparent"
                       }`}
                     onContextMenu={(e) => handleShowPopup(e, msg)}
@@ -826,7 +848,9 @@ const cleanFileName = (fileName) => {
                     ) : msg.type === "system" ? (
                       <span><i>{msg.msg || ""}</i></span>
                     ) : (
-                      <span>{msg.msg || ""}</span>
+                      <div style={{ whiteSpace: 'pre-line' }}>
+                        {msg.msg || ""}
+                      </div>
                     )}
 
                     {/* Thời gian gửi */}
@@ -845,6 +869,51 @@ const cleanFileName = (fileName) => {
 
         {/* Message Input */}
         <div className="bg-white p-2 border-top" >
+          {/* Xem hình ảnh trước khi gửi */}
+          <div className="preview-container d-flex flex-wrap gap-2 mt-2" >
+            {previewImages.map((image, index) => (
+              <div key={index} className="preview-item position-relative">
+                <img
+                  src={image}
+                  alt={`Xem trước ${index + 1}`}
+                  className="rounded"
+                  style={{ width: "100px", height: "100px", objectFit: "cover" }}
+                />
+                <button
+                  className="btn btn-danger btn-sm position-absolute top-0 end-0 d-flex justify-content-center align-items-center"
+                  onClick={() => handleRemovePreview(index)}
+                  style={{ borderRadius: "50%" }}
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            ))}
+            {previewImages.length > 0 && (
+              <button
+                className="btn btn-link text-danger mt-2"
+                onClick={handleClearAllPreviews}
+              >
+                Xóa tất cả
+              </button>
+            )}
+          </div>
+
+          {/* Xem tin nhắn reply */}
+          {previewReply && (
+            <div className="">
+              <label className="form-label fw-bold">Trả lời tin nhắn:</label>
+              <div className="alert alert-secondary d-flex justify-content-between align-items-start">
+                <div>{previewReply}</div>
+                <button
+                  type="button"
+                  className="btn-close ms-3"
+                  aria-label="Bỏ"
+                  onClick={handleClearReply}
+                ></button>
+              </div>
+            </div>
+          )}
+
           {/* Vùng nhập tin nhắn */}
           {(receiver.permission.includes(3) || role === 'leader' || role === 'deputy') ? (<>
             <div className="d-flex align-items-center">
@@ -878,7 +947,17 @@ const cleanFileName = (fileName) => {
                 type="text"
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && sendMessage(message, "text")}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    if (previewReply !== "") {
+                      sendMessage(`${previewReply}\n\n${message}`, "text");
+                      setHasSelectedImages(false);
+                      setPreviewReply("")
+                    } else {
+                      sendMessage(message, "text");
+                    }
+                  }
+                }}
                 placeholder="Nhập tin nhắn..."
               />
 
@@ -899,33 +978,6 @@ const cleanFileName = (fileName) => {
               >
                 <Send size={20} />
               </button>
-            </div>
-            <div className="preview-container d-flex flex-wrap gap-2 mt-2" >
-              {previewImages.map((image, index) => (
-                <div key={index} className="preview-item position-relative">
-                  <img
-                    src={image}
-                    alt={`Xem trước ${index + 1}`}
-                    className="rounded"
-                    style={{ width: "100px", height: "100px", objectFit: "cover" }}
-                  />
-                  <button
-                    className="btn btn-danger btn-sm position-absolute top-0 end-0 d-flex justify-content-center align-items-center"
-                    onClick={() => handleRemovePreview(index)}
-                    style={{ borderRadius: "50%" }}
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              ))}
-              {previewImages.length > 0 && (
-                <button
-                  className="btn btn-link text-danger mt-2"
-                  onClick={handleClearAllPreviews}
-                >
-                  Xóa tất cả
-                </button>
-              )}
             </div>
           </>) : (<div className="d-flex flex-wrap align-items-center">Chỉ có trưởng nhóm/ phó nhóm mới được phép nhắn tin</div>)}
 
@@ -1042,309 +1094,309 @@ const cleanFileName = (fileName) => {
 
                   {/* Collapsible Sections */}
                   <div className="accordion accordion-flush" id="chatInfo">
-            {sections.map(({ id, title, icon: Icon }) => (
-              <div key={id} className="accordion-item">
-                <h2 className="accordion-header">
-                  <button
-                    className="accordion-button collapsed"
-                    data-bs-toggle="collapse"
-                    data-bs-target={`#${id}Collapse`}
-                  >
-                    <Icon size={20} className="me-2" />
-                    {title}
-                  </button>
-                </h2>
-                <div id={`${id}Collapse`} className="accordion-collapse collapse">
-                  <div className="accordion-body text-center text-muted">
-                    {id === "media" && mediaMessages.length > 0 ? (
-                      <>
-                        <div className="media-list d-flex flex-wrap gap-2">
-                          {mediaMessages.slice(0, 8).map((msg, index) => (
-                          // {mediaMessages.map((msg, index) => (
-                            <div
-                              key={index}
-                              className="media-item"
-                              style={{
-                                width: "calc(25% - 10px)", // 4 media mỗi hàng
-                                height: "60px",
-                                overflow: "hidden",
-                                borderRadius: "8px",
-                              }}
-                            >
-                              {msg.type === "image" ? (
-                                <img
-                                  src={msg.msg}
-                                  alt={`Media ${index + 1}`}
-                                  style={{
-                                    width: "100%",
-                                    height: "100%",
-                                    objectFit: "cover",
-                                    cursor: "pointer",
+                    {sections.map(({ id, title, icon: Icon }) => (
+                      <div key={id} className="accordion-item">
+                        <h2 className="accordion-header">
+                          <button
+                            className="accordion-button collapsed"
+                            data-bs-toggle="collapse"
+                            data-bs-target={`#${id}Collapse`}
+                          >
+                            <Icon size={20} className="me-2" />
+                            {title}
+                          </button>
+                        </h2>
+                        <div id={`${id}Collapse`} className="accordion-collapse collapse">
+                          <div className="accordion-body text-center text-muted">
+                            {id === "media" && mediaMessages.length > 0 ? (
+                              <>
+                                <div className="media-list d-flex flex-wrap gap-2">
+                                  {mediaMessages.slice(0, 8).map((msg, index) => (
+                                    // {mediaMessages.map((msg, index) => (
+                                    <div
+                                      key={index}
+                                      className="media-item"
+                                      style={{
+                                        width: "calc(25% - 10px)", // 4 media mỗi hàng
+                                        height: "60px",
+                                        overflow: "hidden",
+                                        borderRadius: "8px",
+                                      }}
+                                    >
+                                      {msg.type === "image" ? (
+                                        <img
+                                          src={msg.msg}
+                                          alt={`Media ${index + 1}`}
+                                          style={{
+                                            width: "100%",
+                                            height: "100%",
+                                            objectFit: "cover",
+                                            cursor: "pointer",
+                                          }}
+                                          onClick={() => handleImageClick(msg.msg)}
+                                        />
+                                      ) : (
+                                        <video
+                                          src={msg.msg}
+                                          controls
+                                          style={{
+                                            width: "100%",
+                                            height: "100%",
+                                            objectFit: "cover",
+                                            cursor: "pointer",
+                                          }}
+                                        />
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                                {/* {mediaMessages.length > 8 && ( */}
+                                <button
+                                  className="btn btn-link mt-2"
+                                  onClick={() => {
+                                    setActiveTab("media"); // Set default tab
+                                    setShowAllModal(true); // Open modal
                                   }}
-                                  onClick={() => handleImageClick(msg.msg)}
-                                />
-                              ) : (
-                                <video
-                                  src={msg.msg}
-                                  controls
-                                  style={{
-                                    width: "100%",
-                                    height: "100%",
-                                    objectFit: "cover",
-                                    cursor: "pointer",
+                                >
+                                  Xem tất cả
+                                </button>
+                                {/* )} */}
+                              </>
+                            ) : id === "files" && fileMessages.length > 0 ? (
+                              <>
+                                <div className="file-list">
+                                  {fileMessages.slice(0, 4).map((msg, index) => (
+                                    <div
+                                      key={index}
+                                      className="d-flex align-items-center mb-2"
+                                      style={{
+                                        borderBottom: "1px solid #ddd",
+                                        paddingBottom: "5px",
+                                      }}
+                                    >
+                                      {/* Icon loại file */}
+                                      <File size={20} className="me-2 text-primary" />
+                                      {/* Tên file */}
+                                      <a
+                                        href={msg.msg}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-truncate"
+                                        style={{ maxWidth: "200px" }}
+                                      >
+                                        {cleanFileName(msg.msg.split("/").pop()) || `File ${index + 1}`}
+                                      </a>
+                                    </div>
+                                  ))}
+                                </div>
+                                {/* {fileMessages.length > 4 && ( */}
+                                <button
+                                  className="btn btn-link mt-2"
+                                  onClick={() => {
+                                    setActiveTab("files"); // Set default tab
+                                    setShowAllModal(true); // Open modal
                                   }}
-                                />
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                        {/* {mediaMessages.length > 8 && ( */}
-                          <button
-                            className="btn btn-link mt-2"
-                            onClick={() => {
-                              setActiveTab("media"); // Set default tab
-                              setShowAllModal(true); // Open modal
-                            }}
-                          >
-                            Xem tất cả
-                          </button>
-                        {/* )} */}
-                      </>
-                    ) : id === "files" && fileMessages.length > 0 ? (
-                      <>
-                      <div className="file-list">
-                        {fileMessages.slice(0, 4).map((msg, index) => (
-                          <div
-                            key={index}
-                            className="d-flex align-items-center mb-2"
-                            style={{
-                              borderBottom: "1px solid #ddd",
-                              paddingBottom: "5px",
-                            }}
-                          >
-                            {/* Icon loại file */}
-                            <File size={20} className="me-2 text-primary" />
-                            {/* Tên file */}
-                            <a
-                              href={msg.msg}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-truncate"
-                              style={{ maxWidth: "200px" }}
-                            >
-                              {cleanFileName(msg.msg.split("/").pop()) || `File ${index + 1}`}
-                            </a>
-                          </div>
-                        ))}
-                      </div>
-                        {/* {fileMessages.length > 4 && ( */}
-                          <button
-                            className="btn btn-link mt-2"
-                            onClick={() => {
-                              setActiveTab("files"); // Set default tab
-                              setShowAllModal(true); // Open modal
-                            }}
-                          >
-                            Xem tất cả
-                          </button>
-                        {/* )} */}
-                      </>
+                                >
+                                  Xem tất cả
+                                </button>
+                                {/* )} */}
+                              </>
 
-                    ) : id === "links" && linkMessages.length > 0 ? (
-                      <>
-                        <div className="link-list">
-                          {linkMessages.slice(0, 4).map((msg, index) => (
-                            <div key={index} className="d-flex align-items-center mb-2">
-                              <LinkIcon size={20} className="me-2 text-primary" />
-                              <a
-                                href={msg.msg}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-truncate"
-                                style={{ maxWidth: "200px", color: "black", textDecoration: "none" }}
-                              >
-                                {msg.msg}
-                              </a>
-                            </div>
-                          ))}
-                        </div>
+                            ) : id === "links" && linkMessages.length > 0 ? (
+                              <>
+                                <div className="link-list">
+                                  {linkMessages.slice(0, 4).map((msg, index) => (
+                                    <div key={index} className="d-flex align-items-center mb-2">
+                                      <LinkIcon size={20} className="me-2 text-primary" />
+                                      <a
+                                        href={msg.msg}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-truncate"
+                                        style={{ maxWidth: "200px", color: "black", textDecoration: "none" }}
+                                      >
+                                        {msg.msg}
+                                      </a>
+                                    </div>
+                                  ))}
+                                </div>
 
-                        {/* {linkMessages.length > 4 && ( */}
-                          <button
-                            className="btn btn-link mt-2"
-                            onClick={() => {
-                              setActiveTab("links"); // Set default tab
-                              setShowAllModal(true); // Open modal
-                            }}
-                          >
-                            Xem tất cả
-                          </button>
-                        {/* )} */}
+                                {/* {linkMessages.length > 4 && ( */}
+                                <button
+                                  className="btn btn-link mt-2"
+                                  onClick={() => {
+                                    setActiveTab("links"); // Set default tab
+                                    setShowAllModal(true); // Open modal
+                                  }}
+                                >
+                                  Xem tất cả
+                                </button>
+                                {/* )} */}
 
 
-                          </>
+                              </>
 
 
-                    ) : (
-                      <small>{`Chưa có ${title} được chia sẻ trong hội thoại này`}</small>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <Modal
-            show={showAllModal}
-            onHide={() => setShowAllModal(false)}
-            centered
-          >
-                <Modal.Header closeButton>
-                  <Modal.Title>Xem tất cả</Modal.Title>
-                </Modal.Header>
-                <Modal.Body
-                  style={{
-                    overflowY: "auto", // Thêm cuộn dọc nếu nội dung vượt quá chiều cao
-                    // height: "calc(100% - 56px)", // Trừ chiều cao của header
-                    height: "400px", // Giới hạn chiều cao của modal
-                    backgroundColor: "#dddada", // Màu gray mờ   
-                    
-                  }}
-                >
-                  <Tabs
-                    activeKey={activeTab}
-                    onSelect={(tab) => setActiveTab(tab)}
-                    className="mb-3"
-                  >
-                    <Tab eventKey="media" title="Ảnh/Video">
-                      <div
-                        className="d-flex flex-wrap gap-2"
-                        style={{
-                          alignItems: "center",
-                          justifyContent: "center", 
-                          backgroundColor: "#dddada", // Màu gray mờ   
-                          paddingTop: "10px",
-                          paddingBottom: "10px",
-                        }}
-
-                      >
-                        {mediaMessages.map((msg, index) => (
-                          <div
-                            key={index}
-                            className="media-item"
-                            style={{
-                              width: "calc(25% - 10px)",
-                              height: "100px",
-                              overflow: "hidden",
-                              borderRadius: "8px",
-                            }}
-                          >
-                            {msg.type === "image" ? (
-                              <img
-                                src={msg.msg}
-                                alt={`Media ${index + 1}`}
-                                style={{
-                                  width: "100%",
-                                  height: "100%",
-                                  objectFit: "cover",
-                                  cursor: "pointer",
-                                }}
-                                onClick={() => {
-                                  handleImageClick(msg.msg); // Hiển thị ảnh
-                                  setShowAllModal(false); // Đóng modal
-                                }}
-                              />
                             ) : (
-                              <video
-                                src={msg.msg}
-                                controls
-                                style={{
-                                  width: "100%",
-                                  height: "100%",
-                                  objectFit: "cover",
-                                  cursor: "pointer",
-                                }}
-                                // onClick={() => {
-                                //   setShowAllModal(false); // Đóng modal
-                                // }}
-                              />
+                              <small>{`Chưa có ${title} được chia sẻ trong hội thoại này`}</small>
                             )}
                           </div>
-                        ))}
+                        </div>
                       </div>
-                    </Tab>
-                    <Tab eventKey="files" title="File">
-                      <div
-                        className="file-list"
-                        style={{
-                          alignItems: "center",
-                          justifyContent: "center", 
-                          backgroundColor: "#dddada", // Màu gray mờ   
-                          paddingTop: "10px",
-                          paddingBottom: "10px",
+                    ))}
+                  </div>
 
-                        }}
+                  <Modal
+                    show={showAllModal}
+                    onHide={() => setShowAllModal(false)}
+                    centered
+                  >
+                    <Modal.Header closeButton>
+                      <Modal.Title>Xem tất cả</Modal.Title>
+                    </Modal.Header>
+                    <Modal.Body
+                      style={{
+                        overflowY: "auto", // Thêm cuộn dọc nếu nội dung vượt quá chiều cao
+                        // height: "calc(100% - 56px)", // Trừ chiều cao của header
+                        height: "400px", // Giới hạn chiều cao của modal
+                        backgroundColor: "#dddada", // Màu gray mờ   
+
+                      }}
+                    >
+                      <Tabs
+                        activeKey={activeTab}
+                        onSelect={(tab) => setActiveTab(tab)}
+                        className="mb-3"
                       >
-                        {fileMessages.map((msg, index) => (
+                        <Tab eventKey="media" title="Ảnh/Video">
                           <div
-                            key={index}
-                            className="d-flex align-items-center mb-2"
+                            className="d-flex flex-wrap gap-2"
                             style={{
-                              borderBottom: "1px solid black",
-                              paddingBottom: "5px",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              backgroundColor: "#dddada", // Màu gray mờ   
+                              paddingTop: "10px",
+                              paddingBottom: "10px",
+                            }}
+
+                          >
+                            {mediaMessages.map((msg, index) => (
+                              <div
+                                key={index}
+                                className="media-item"
+                                style={{
+                                  width: "calc(25% - 10px)",
+                                  height: "100px",
+                                  overflow: "hidden",
+                                  borderRadius: "8px",
+                                }}
+                              >
+                                {msg.type === "image" ? (
+                                  <img
+                                    src={msg.msg}
+                                    alt={`Media ${index + 1}`}
+                                    style={{
+                                      width: "100%",
+                                      height: "100%",
+                                      objectFit: "cover",
+                                      cursor: "pointer",
+                                    }}
+                                    onClick={() => {
+                                      handleImageClick(msg.msg); // Hiển thị ảnh
+                                      setShowAllModal(false); // Đóng modal
+                                    }}
+                                  />
+                                ) : (
+                                  <video
+                                    src={msg.msg}
+                                    controls
+                                    style={{
+                                      width: "100%",
+                                      height: "100%",
+                                      objectFit: "cover",
+                                      cursor: "pointer",
+                                    }}
+                                  // onClick={() => {
+                                  //   setShowAllModal(false); // Đóng modal
+                                  // }}
+                                  />
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </Tab>
+                        <Tab eventKey="files" title="File">
+                          <div
+                            className="file-list"
+                            style={{
+                              alignItems: "center",
+                              justifyContent: "center",
+                              backgroundColor: "#dddada", // Màu gray mờ   
+                              paddingTop: "10px",
+                              paddingBottom: "10px",
+
                             }}
                           >
-                            <File size={20} className="me-2 text-primary" />
-                            <a
-                              href={msg.msg}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-truncate"
-                            >
-                              {cleanFileName(msg.msg.split("/").pop()) || `File ${index + 1}`}
-                            </a>
+                            {fileMessages.map((msg, index) => (
+                              <div
+                                key={index}
+                                className="d-flex align-items-center mb-2"
+                                style={{
+                                  borderBottom: "1px solid black",
+                                  paddingBottom: "5px",
+                                }}
+                              >
+                                <File size={20} className="me-2 text-primary" />
+                                <a
+                                  href={msg.msg}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-truncate"
+                                >
+                                  {cleanFileName(msg.msg.split("/").pop()) || `File ${index + 1}`}
+                                </a>
+                              </div>
+                            ))}
                           </div>
-                        ))}
-                      </div>
-                    </Tab>
-                    <Tab eventKey="links" title="Link">
-                      <div
-                        className="link-list"
-                        style={{
-                          alignItems: "center",
-                          justifyContent: "center", 
-                          backgroundColor: "#dddada", // Màu gray mờ   
-                          paddingTop: "10px",
-                          paddingBottom: "10px",
-                        }}
-                      >
-                        {linkMessages.map((msg, index) => (
-                          <div key={index} className="d-flex align-items-center mb-2"
-                          style={{
-                            borderBottom: "1px solid black",
-                            paddingBottom: "5px",
-                          }}
+                        </Tab>
+                        <Tab eventKey="links" title="Link">
+                          <div
+                            className="link-list"
+                            style={{
+                              alignItems: "center",
+                              justifyContent: "center",
+                              backgroundColor: "#dddada", // Màu gray mờ   
+                              paddingTop: "10px",
+                              paddingBottom: "10px",
+                            }}
                           >
-                            <LinkIcon size={20} className="me-2 text-primary" />
-                            <a
-                              href={msg.msg}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-truncate"
-                              style={{
-                                color: "black",
-                                textDecoration: "none",
-                              }}
-                            >
-                              {msg.msg}
-                            </a>
+                            {linkMessages.map((msg, index) => (
+                              <div key={index} className="d-flex align-items-center mb-2"
+                                style={{
+                                  borderBottom: "1px solid black",
+                                  paddingBottom: "5px",
+                                }}
+                              >
+                                <LinkIcon size={20} className="me-2 text-primary" />
+                                <a
+                                  href={msg.msg}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-truncate"
+                                  style={{
+                                    color: "black",
+                                    textDecoration: "none",
+                                  }}
+                                >
+                                  {msg.msg}
+                                </a>
+                              </div>
+                            ))}
                           </div>
-                        ))}
-                      </div>
-                    </Tab>
-                  </Tabs>
-                </Modal.Body>
-          </Modal>
+                        </Tab>
+                      </Tabs>
+                    </Modal.Body>
+                  </Modal>
 
 
                   {/* Thành viên */}
@@ -1566,7 +1618,7 @@ const cleanFileName = (fileName) => {
               padding: "10px",
             }}
           >
-            <div className="popup-item d-flex align-items-center" onClick={() => console.log("Trả lời")}>
+            <div className="popup-item d-flex align-items-center" onClick={() => handleReply(selectedMessage)}>
               <Reply size={16} className="me-2" />
               <span>Trả lời</span>
             </div>

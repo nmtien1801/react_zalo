@@ -5,6 +5,7 @@ import { Modal, Button, Form, Tab, Tabs, ListGroup, InputGroup } from "react-boo
 import { useDispatch, useSelector } from "react-redux";
 import io from "socket.io-client";
 import { getConversations } from "../redux/chatSlice";
+import ImageViewer from "../page/chat/ImageViewer";
 export default function ShareMsgModal({ show, onHide, message, conversations, onlineUsers, socketRef, setAllMsg, selectedUser }) {
 
 
@@ -20,6 +21,9 @@ export default function ShareMsgModal({ show, onHide, message, conversations, on
     useEffect(() => {
         setConversations1(conversations);
     }, [conversations]);
+
+    console.log("message", message);
+
 
 
 
@@ -40,6 +44,8 @@ export default function ShareMsgModal({ show, onHide, message, conversations, on
                     sender,
                     type: message?.type, // Kiểu tin nhắn (text, image, video, etc.)
                 };
+
+                console.log("data", data);
 
                 // Gửi tin nhắn qua socket
                 socketRef.current.emit("SEND_MSG", data);
@@ -126,19 +132,24 @@ export default function ShareMsgModal({ show, onHide, message, conversations, on
                     <strong>Chia sẻ tin nhắn</strong>
                     <div className="text-muted">
                         {message?.type === "text" && message?.msg}
-                        {message?.type === "image" && <img src={message?.msg} alt="img" style={{ width: "100px", height: "100px" }} />}
-                        {message?.type === "video" && <video src={message?.msg} alt="img" style={{ width: "100px", height: "100px" }} />}
-
+                        {message?.type === "image" && message?.msg.includes(",") ? (
+                            message.msg.split(",").map((url, idx) => (
+                                <img
+                                    key={idx}
+                                    src={url.trim()}
+                                    alt={`img-${idx}`}
+                                    style={{ width: "100px", height: "100px", marginRight: 8 }}
+                                />
+                            ))
+                        ) : message?.type === "image" ? (
+                            <img src={message?.msg} alt="img" style={{ width: "100px", height: "100px" }} />
+                        ) : null}
+                        {message?.type === "video" && (
+                            <video src={message?.msg} alt="img" style={{ width: "100px", height: "100px" }} />
+                        )}
                     </div>
                 </div>
 
-                {/* Nhập tin nhắn */}
-                {/* <Form.Control
-                    as="textarea"
-                    rows={2}
-                    placeholder="Nhập tin nhắn..."
-                    className="mb-3"
-                /> */}
             </Modal.Body>
             <Modal.Footer>
                 <Button variant="secondary" onClick={onHide}>

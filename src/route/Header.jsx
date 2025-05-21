@@ -101,7 +101,6 @@ const Header = (props) => {
 
     if (socketRef.current) {
       console.log("socketRef.current", socketRef.current);
-
       socketRef.current.on("RES_ADD_FRIEND", handleFriend);
       socketRef.current.on("RES_REJECT_FRIEND", handleFriend);
       socketRef.current.on("RES_ACCEPT_FRIEND", handleFriend);

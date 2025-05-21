@@ -22,6 +22,8 @@ const AddMemberModal = ({ show, onHide, roomId, socketRef, user, roomData }) => 
         const fetchFriendsAndMembers = async () => {
             try {
                 const friendsResponse = await getAllFriendsService();
+                console.log("friendsResponse", friendsResponse);
+
                 setFriends(friendsResponse.DT || []);
 
                 const membersResponse = await getRoomChatMembersService(roomData.receiver._id);
@@ -35,6 +37,9 @@ const AddMemberModal = ({ show, onHide, roomId, socketRef, user, roomData }) => 
             fetchFriendsAndMembers();
         }
     }, [show, roomId]);
+
+    console.log("friends", friends);
+
 
     // Xử lý tìm kiếm theo tên hoặc số điện thoại
     useEffect(() => {
@@ -79,10 +84,7 @@ const AddMemberModal = ({ show, onHide, roomId, socketRef, user, roomData }) => 
     const displayList =
         searchResults.length > 0
             ? searchResults
-            : [
-                ...selectedFriends,
-                ...friends.filter((friend) => !selectedFriends.some((selected) => selected._id === friend._id)),
-            ];
+            : friends;
 
     // Hàm xử lý khi đóng modal
     const handleClose = () => {
@@ -104,7 +106,7 @@ const AddMemberModal = ({ show, onHide, roomId, socketRef, user, roomData }) => 
         setIsSubmitting(true); // Bắt đầu trạng thái gửi yêu cầu
         try {
             const response = await addMembersToRoomChatService(roomData.receiver._id, selectedFriends);
-            console.log("response", response);
+            console.log("response 1", response);
 
             if (response.EC === 0) {
                 socketRef.current.emit("REQ_ADD_GROUP", response.DT);

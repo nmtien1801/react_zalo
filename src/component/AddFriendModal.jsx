@@ -4,6 +4,7 @@ import { getRoomChatByPhoneService } from "../service/roomChatService"; // Impor
 import { sendRequestFriendService } from '../service/friendRequestService';
 import AccountInfo from '../page/info/accountInfo';
 
+
 const AddFriendModal = ({ show, onHide, socketRef }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResult, setSearchResult] = useState({}); // Lưu kết quả tìm kiếm

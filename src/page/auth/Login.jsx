@@ -46,7 +46,7 @@ export default function LoginForm() {
         <div className="card-body p-4">
           {/* Logo and Title */}
           <div className="text-center mb-4">
-            <h1 className="display-6 text-primary fw-bold mb-3">Zalo</h1>
+            <h1 className="display-6 text-primary fw-bold mb-3">Zata</h1>
             <h2 className="fs-5 fw-medium text-dark">Đăng nhập với mật khẩu</h2>
           </div>
 

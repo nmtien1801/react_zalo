@@ -46,13 +46,13 @@ const SettingSecurity = ({ toggleModalSetting }) => {
 
                             {/* Khóa màn hình */}
                             <div className="mb-4">
-                                <h2 className="h4 mb-2 setting-section-label">Khóa màn hình Zalo</h2>
+                                <h2 className="h4 mb-2 setting-section-label">Khóa màn hình Zata</h2>
                                 <p className="text-muted small mb-2">
-                                    Khóa màn hình Zalo của bạn bằng Ctrl + L, khi bạn không sử dụng máy tính.
+                                    Khóa màn hình Zata của bạn bằng Ctrl + L, khi bạn không sử dụng máy tính.
                                 </p>
                                 <div className="card">
                                     <button className="btn btn-light w-100 d-flex justify-content-between align-items-center">
-                                        <span>Khóa màn hình Zalo</span>
+                                        <span>Khóa màn hình Zata</span>
                                         <div className="d-flex align-items-center">
                                             <span className="me-2 text-muted">Đã tắt</span>
                                             <ChevronRight className="h-5 w-5" />

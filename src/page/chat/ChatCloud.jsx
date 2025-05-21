@@ -617,7 +617,7 @@ const cleanFileName = (fileName) => {
             <h5 className="mb-3">Cloud của tôi</h5>
             <small className="text-muted">
               Lưu trữ và truy cập nhanh những nội dung quan trọng của bạn ngay
-              trên zalo
+              trên zata
             </small>
           </div>
 

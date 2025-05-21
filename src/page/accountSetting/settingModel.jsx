@@ -19,7 +19,7 @@ const settingModel = ({ toggleModalSetting }) => {
                   <div id="setting" className="setting flx" >
                      {/* left */}
                      <div className="setting-menu tg-slide-in-left-enter-done">
-                        <div className="setting-menu__header"><span target="p" className="setting-menu__title" data-translate-inner="STR_ZALO_SETTING">Cài đặt</span></div>
+                        <div className="setting-menu__header"><span target="p" className="setting-menu__title" data-translate-inner="STR_ZATA_SETTING">Cài đặt</span></div>
 
                         <div className={`setting-menu__item flx middle-flex clickable ${selected === "general" ? "selected" : ""
                            }`}

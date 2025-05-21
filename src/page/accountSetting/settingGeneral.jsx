@@ -25,7 +25,7 @@ const settingGeneral = ({ toggleModalSetting }) => {
             </div>
         </div>
         <div className="flx flx-al-c flx-sp-btw setting-section-content__item general last pt-12">
-            <span data-translate-inner="STR_SHOW_ACTIVE_CONTACT">Chỉ hiển thị bạn bè đang sử dụng Zalo</span>
+            <span data-translate-inner="STR_SHOW_ACTIVE_CONTACT">Chỉ hiển thị bạn bè đang sử dụng Zata</span>
             <div className="z-radio z-radio--active" title="">
                 <input type="radio" name="hidden_contacts" value="0" />
             </div>

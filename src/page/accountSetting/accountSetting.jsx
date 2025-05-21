@@ -175,7 +175,7 @@ const CustomModal = ({ socketRef }) => {
                                 Liên hệ
                             </div>
                             <div className="zmenu-item" onClick={() => handleItemClick('English')}>
-                                Gửi file log đến Zalo
+                                Gửi file log đến Zata
                             </div>
                             <div className="zmenu-separator"></div>
                             <div className="zmenu-item" onClick={() => handleItemClick('English')}>

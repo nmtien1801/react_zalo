@@ -650,6 +650,26 @@ export default function ChatGroup(props) {
       fetchMembers();
     })
 
+    socketRef.current.on("RES_ACCEPT_GROUP", (data) => {
+      const fetchMembers = async () => {
+        try {
+          if (receiver?._id) {
+            const response = await getRoomChatMembersService(receiver._id);
+            console.log("response ", response);
+
+            if (response.EC === 0) {
+              setMembers(response.DT); // Lưu danh sách thành viên vào state
+            } else {
+              console.error("Lỗi khi lấy danh sách thành viên:", response.EM);
+            }
+          }
+        } catch (error) {
+          console.error("Lỗi khi gọi API getRoomChatMembersService:", error);
+        }
+      };
+      fetchMembers();
+    })
+
     socketRef.current.on("RES_TRANS_LEADER", (data) => {
       const { newLeader, oldLeader } = data;
       let member = null;

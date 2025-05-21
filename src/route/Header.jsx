@@ -106,20 +106,9 @@ const Header = (props) => {
       socketRef.current.on("RES_CANCEL_FRIEND", handleFriend);
       socketRef.current.on("RES_ADD_GROUP", handleGroup);
       socketRef.current.on("RES_REJECT_FRIEND", handleGroup);
-      socketRef.current.on("RES_ACCEPT_FRIEND", handleGroup);
+      socketRef.current.on("RES_ACCEPT_GROUP", handleGroup);
     }
 
-    return () => {
-      if (socketRef.current) {
-        socketRef.current.off("RES_ADD_FRIEND", handleFriend);
-        socketRef.current.off("RES_REJECT_FRIEND", handleFriend);
-        socketRef.current.off("RES_ACCEPT_FRIEND", handleFriend);
-        socketRef.current.off("RES_CANCEL_FRIEND", handleFriend);
-        socketRef.current.off("RES_ADD_GROUP", handleGroup);
-        socketRef.current.off("RES_REJECT_FRIEND", handleGroup);
-        socketRef.current.off("RES_ACCEPT_FRIEND", handleGroup);
-      }
-    };
   }, [socketRef]);
 
   // reload page chat

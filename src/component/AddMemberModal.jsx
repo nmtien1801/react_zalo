@@ -24,8 +24,6 @@ const AddMemberModal = ({ show, onHide, roomId, socketRef, user, roomData }) => 
         const fetchFriendsAndMembers = async () => {
             try {
                 const friendsResponse = await getAllFriendsService();
-                console.log("friendsResponse", friendsResponse);
-
                 setFriends(friendsResponse.DT || []);
 
                 const membersResponse = await getRoomChatMembersService(roomData.receiver._id);
@@ -39,7 +37,7 @@ const AddMemberModal = ({ show, onHide, roomId, socketRef, user, roomData }) => 
             fetchFriendsAndMembers();
         }
     }, [show, roomId]);
-    
+
     // Xử lý tìm kiếm theo tên hoặc số tài khoản
     useEffect(() => {
         const search = async () => {
@@ -83,7 +81,10 @@ const AddMemberModal = ({ show, onHide, roomId, socketRef, user, roomData }) => 
     const displayList =
         searchResults.length > 0
             ? searchResults
-            : friends;
+            : [
+                ...selectedFriends,
+                ...friends.filter((friend) => !selectedFriends.some((selected) => selected._id === friend._id)),
+            ];
 
     // Hàm xử lý khi đóng modal
     const handleClose = () => {
@@ -105,10 +106,29 @@ const AddMemberModal = ({ show, onHide, roomId, socketRef, user, roomData }) => 
         setIsSubmitting(true); // Bắt đầu trạng thái gửi yêu cầu
         try {
             const response = await addMembersToRoomChatService(roomData.receiver._id, selectedFriends);
-            if (response.EC === 0) {
-                socketRef.current.emit("REQ_ADD_GROUP", response.DT);
-                alert("Thêm thành viên thành công!");
 
+            if (response.EC === 0) {
+                const allExistInFriends = response.DT.members.every(member =>
+                    friends.some(f => f._id === member)
+                );
+
+                if (!allExistInFriends) {
+                    // thêm nhóm k phải bạn
+                    let groupsMember = {
+                        members: [
+                            ...response.DT.members,
+                            ...selectedFriends.map(f => f._id)
+                        ]
+                    }
+
+                    socketRef.current.emit("REQ_ADD_GROUP", groupsMember);
+                    alert("Thêm thành viên thành công!");
+                } else {
+                    // thêm nhóm là bạn
+                    socketRef.current.emit("REQ_ADD_GROUP", response.DT);
+                    alert("Thêm thành viên thành công!");
+
+                }
                 // update permission
                 let res = await dispatch(updatePermission({ groupId: roomId, newPermission: roomData.receiver.permission }))
                 socketRef.current.emit("REQ_MEMBER_PERMISSION", res.payload.DT);

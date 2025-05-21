@@ -1,12 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import './GroupRequest.scss';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { acceptGroupJoinRequestService, getGroupJoinRequestsService } from '../../service/friendRequestService';
 import { rejectFriendRequestService } from '../../service/friendRequestService';
+import { getPermissionCurrent } from '../../redux/permissionSlice'
+import { updatePermission } from '../../redux/chatSlice'
 
 const GroupRequest = (props) => {
     const [groupRequests, setGroupRequests] = useState([]); // Danh sách lời mời vào nhóm
     const userInfo = useSelector((state) => state.auth.userInfo); // Lấy thông tin người dùng từ Redux Store
+    const dispatch = useDispatch();
 
     const socketRef = props.socketRef; // Lấy socketRef từ props
 
@@ -17,50 +20,53 @@ const GroupRequest = (props) => {
         } catch (error) {
             console.error('Error fetching group requests:', error);
         }
-        // Lắng nghe socket
-        if (socketRef && socketRef.current) {
-            socketRef.current.on("RES_ADD_GROUP", async () => {
-                try {
-                    const response = await getGroupJoinRequestsService();
-                    setGroupRequests(response.DT || []);
-                } catch (error) {
-                    console.error('Error fetching group requests:', error);
-                }
-            });
-            socketRef.current.on("RES_ACCEPT_FRIEND", async () => {
-                try {
-                    const response = await getGroupJoinRequestsService();
-                    setGroupRequests(response.DT || []);
-                } catch (error) {
-                    console.error('Error fetching group requests:', error);
-                }
-            });
-            
-            socketRef.current.on("RES_REJECT_FRIEND", async () => {
-                try {
-                    const response = await getGroupJoinRequestsService();
-                    setGroupRequests(response.DT || []);
-                } catch (error) {
-                    console.error('Error fetching group requests:', error);
-                }
-            });
-        }
     };
 
     useEffect(() => {
         fetchGroupRequests();
-        // Cleanup socket khi unmount
-        return () => {
-            if (socketRef && socketRef.current) {
+    }, []);
+
+    // action socket
+    useEffect(() => {
+        socketRef.current.on("RES_ADD_GROUP", async () => {
+            try {
+
+                const response = await getGroupJoinRequestsService();
+                setGroupRequests(response.DT || []);
+            } catch (error) {
+                console.error('Error fetching group requests:', error);
             }
-        };
+        });
+        socketRef.current.on("RES_ACCEPT_GROUP", async () => {
+            try {
+                const response = await getGroupJoinRequestsService();
+                setGroupRequests(response.DT || []);
+            } catch (error) {
+                console.error('Error fetching group requests:', error);
+            }
+        });
+
+        socketRef.current.on("RES_REJECT_FRIEND", async () => {
+            try {
+                const response = await getGroupJoinRequestsService();
+                setGroupRequests(response.DT || []);
+            } catch (error) {
+                console.error('Error fetching group requests:', error);
+            }
+        });
     }, [socketRef]);
 
     const handleAcceptRequest = async (requestId) => {
         try {
             const response = await acceptGroupJoinRequestService(requestId);
             if (response.EC === 0) {
-                socketRef.current.emit("REQ_ACCEPT_FRIEND", response.DT);
+                socketRef.current.emit("REQ_ACCEPT_GROUP", response.DT);
+
+                let permission = await dispatch(getPermissionCurrent(response.DT._id))
+
+                // update permission
+                let res = await dispatch(updatePermission({ groupId: response.DT._id, newPermission: permission.payload.DT.receiver.permission }))
+                socketRef.current.emit("REQ_MEMBER_PERMISSION", res.payload.DT);
             } // Gọi API để chấp nhận lời mời vào nhóm
             fetchGroupRequests(); // Cập nhật lại danh sách lời mời sau khi chấp nhận
         } catch (error) {

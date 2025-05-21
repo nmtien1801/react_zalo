@@ -93,6 +93,11 @@ export default function ChatInterface(props) {
       dispatch(getConversations(user._id));
     });
 
+    // accept group
+    socketRef.current.on("RES_ACCEPT_GROUP", async () => {
+      dispatch(getConversations(user._id));
+    });
+
     // delete friend
     socketRef.current.on("RES_DELETE_FRIEND", async () => {
       dispatch(getConversations(user._id));

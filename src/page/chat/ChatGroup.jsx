@@ -40,7 +40,7 @@ import { useSelector, useDispatch } from "react-redux";
 import CallScreen from "../../component/CallScreen.jsx";
 import { uploadAvatar } from '../../redux/profileSlice.js'
 import IconModal from '../../component/IconModal.jsx'
-import { deleteMessageForMeService, recallMessageService, dissolveGroupService } from "../../service/chatService.js";
+import { deleteMessageForMeService, recallMessageService, dissolveGroupService, sendReactionService, getReactionMessageService } from "../../service/chatService.js";
 import ImageViewer from "./ImageViewer.jsx";
 import ShareMsgModal from "../../component/ShareMsgModal.jsx";
 import ManageGroup from "../auth/ManageGroup.jsx"
@@ -74,7 +74,42 @@ export default function ChatGroup(props) {
   const closeModal = () => setIsOpen(false);
   const [isOpen, setIsOpen] = useState(false);
 
+  const [usersMap, setUsersMap] = useState({});
+
   const [showAddMemberModal, setShowAddMemberModal] = useState(false); // State quản lý modal
+
+  // Thêm state cho reaction (đặt cùng vị trí với các state khác)
+  const [reactionPopupVisible, setReactionPopupVisible] = useState(null);
+  const [reactions, setReactions] = useState({});
+  const [hideReactionTimeout, setHideReactionTimeout] = useState(null);
+
+  //Object Ánh xạ Emoji
+  const emojiToTextMap = {
+    "👍": "Like",
+    "❤️": "Love",
+    "😂": "Haha",
+    "😮": "Wow",
+    "😢": "Sad",
+    "😡": "Angry",
+  };
+
+  const emojiToIconMap = {
+    "👍": <span className="zalo-icon zalo-icon-like"></span>,
+    "❤️": <span className="zalo-icon zalo-icon-heart"></span>,
+    "😂": <span className="zalo-icon zalo-icon-haha"></span>,
+    "😮": <span className="zalo-icon zalo-icon-wow"></span>,
+    "😢": <span className="zalo-icon zalo-icon-crying"></span>,
+    "😡": <span className="zalo-icon zalo-icon-angry"></span>,
+  };
+
+  const textToIconMap = {
+    "Like": <span className="zalo-icon zalo-icon-like"></span>,
+    "Love": <span className="zalo-icon zalo-icon-heart"></span>,
+    "Haha": <span className="zalo-icon zalo-icon-haha"></span>,
+    "Wow": <span className="zalo-icon zalo-icon-wow"></span>,
+    "Sad": <span className="zalo-icon zalo-icon-crying"></span>,
+    "Angry": <span className="zalo-icon zalo-icon-angry"></span>,
+  };
 
   const handleOpenAddMemberModal = () => {
     setShowAddMemberModal(true); // Mở modal
@@ -117,6 +152,140 @@ export default function ChatGroup(props) {
   const [showAllModal, setShowAllModal] = useState(false);
   const [activeTab, setActiveTab] = useState("media"); // Default tab is "media"
 
+  // Nhấp phản ứng
+  const handleShowReactionPopup = async (messageId, event) => {
+    // Lấy vị trí của reaction-icon (phần tử gây sự kiện)
+    const iconRect = event.currentTarget.getBoundingClientRect();
+
+    // Lấy vị trí của chat-container
+    const chatContainer = document.querySelector(".chat-container");
+    const containerRect = chatContainer.getBoundingClientRect();
+
+    // Kích thước ước tính của popup
+    const popupWidth = 230;  // Chiều rộng ước lượng của popup
+    const popupHeight = 60;  // Chiều cao ước lượng của popup
+
+    // Hiển thị popup phía trên reaction-icon
+    let x = 0;  // Tọa độ x tương đối với reaction-container
+    let y = 0; // Đặt popup phía trên icon, giá trị âm để đi lên
+
+    // Đảm bảo popup không vượt quá biên phải của chat container
+    const iconOffsetLeft = iconRect.left - containerRect.left;
+    const popupRight = iconOffsetLeft + popupWidth;
+
+    if (popupRight > containerRect.width - 20) {
+      // Nếu popup vượt quá biên phải, điều chỉnh x để popup nằm trong container
+      x = containerRect.width - popupWidth - 20 - iconOffsetLeft;
+    }
+
+    // Đảm bảo popup không vượt quá biên trái
+    if (iconOffsetLeft + x < 10) {
+      x = 10 - iconOffsetLeft;
+    }
+
+    // Đặt popup ở vị trí đã tính
+    setReactionPopupVisible({
+      messageId,
+      position: { x, y },
+    });
+  };
+
+  const handleHideReactionPopup = (messageId) => {
+    // Clear any existing timeout
+    if (hideReactionTimeout) {
+      clearTimeout(hideReactionTimeout);
+    }
+
+    // Set a new timeout to hide the popup after a delay
+    const timeout = setTimeout(() => {
+      if (reactionPopupVisible?.messageId === messageId) {
+        setReactionPopupVisible(null);
+      }
+    }, 300); // 300ms delay
+
+    setHideReactionTimeout(timeout);
+  };
+
+  //Hàm phản ứng
+  const handleReactToMessage = (messageId, emoji) => {
+    const emojiText = emojiToTextMap[emoji];
+    if (!emojiText) return;
+
+    sendReactionService(messageId, user._id, emojiText)
+      .then((response) => {
+        if (response.EC === 0) {
+          console.log("Reaction sent successfully:", response.DT);
+
+          setReactions((prevReactions) => {
+            const currentReactions = prevReactions[messageId] || [];
+            const existingReactionIndex = currentReactions.findIndex(
+              (reaction) => reaction.emoji === emojiText && reaction.userId === user._id
+            );
+
+            if (existingReactionIndex !== -1) {
+              currentReactions.splice(existingReactionIndex, 1);
+            } else {
+              currentReactions.push({
+                emoji: emojiText,
+                userId: user._id,
+                count: 1,
+              });
+            }
+
+            return {
+              ...prevReactions,
+              [messageId]: [...currentReactions],
+            };
+          });
+        } else {
+          console.error("Failed to send reaction:", response.EM);
+        }
+      })
+      .catch((error) => {
+        console.error("Error sending reaction:", error);
+      });
+  };
+
+  // Lấy phản ứng từng message
+  const getReactions = async (messageId) => {
+    try {
+      const response = await getReactionMessageService(messageId);
+      if (response.EC === 0) {
+        return response.DT; // Trả về danh sách reaction
+      } else {
+        console.error("Failed to fetch reactions:", response.EM);
+        return [];
+      }
+    } catch (error) {
+      console.error("Error fetching reactions:", error);
+      return [];
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (hideReactionTimeout) {
+        clearTimeout(hideReactionTimeout);
+      }
+    };
+  }, [hideReactionTimeout]);
+
+  //Lấy phản ứng của từng message khi thay đổi messages
+  useEffect(() => {
+    const fetchReactions = async () => {
+      const reactionsData = {};
+      for (const msg of messages) {
+        const reactionList = await getReactions(msg._id);
+        reactionsData[msg._id] = reactionList;
+      }
+      setReactions(reactionsData); // Cập nhật state reactions
+    };
+
+    if (messages.length > 0) {
+      fetchReactions();
+    }
+  }, [messages]);
+
   useEffect(() => {
     const media = messages.flatMap((msg) => {
       if (msg.type === "image") {
@@ -154,6 +323,19 @@ export default function ChatGroup(props) {
   // nghiem
   const [showMemberModal, setShowMemberModal] = useState(false);
   const [members, setMembers] = useState([]); // State để lưu danh sách thành viên
+
+  useEffect(() => {
+    if (members.length > 0) {
+      const newUsersMap = {};
+      members.forEach(member => {
+        newUsersMap[member._id] = {
+          avatar: member.avatar || "https://i.imgur.com/l5HXBdTg.jpg",
+          name: member.username
+        };
+      });
+      setUsersMap(newUsersMap);
+    }
+  }, [members]);
 
   // Gọi API để lấy danh sách thành viên nhóm
   useEffect(() => {
@@ -802,87 +984,175 @@ export default function ChatGroup(props) {
         >
           <div className="flex flex-col justify-end">
             {messages &&
-              messages.map((msg, index) => (
-                <div
-                  key={index}
-                  className={`p-2 my-1 d-flex ${msg?.sender?._id === user._id ? "justify-content-end" : "justify-content-start"
-                    }`}
-                >
+              messages.map((msg, index) => {
+
+                // Kiểm tra nếu tin nhắn này và tin nhắn tiếp theo có cùng người gửi
+                const prevMsg = messages[index - 1];
+                const isSameSender = prevMsg && prevMsg.sender._id === msg.sender._id;
+
+                // Lấy avatar từ usersMap hoặc dùng giá trị mặc định
+                const senderAvatar = usersMap[msg.sender._id]?.avatar || msg.sender.avatar || "https://i.imgur.com/l5HXBdTg.jpg";
+                const senderName = usersMap[msg.sender._id]?.name || msg.sender.name;
+
+                return (
                   <div
-                    className={`p-3 max-w-[70%] break-words rounded-3 wrap-container ${msg.type === "text" || msg.type === "file" || msg.type === "system"
-                      ? msg.sender._id === user._id
-                        ? "bg-primary text-white"
-                        : "bg-white text-dark"
-                      : "bg-transparent"
-                      }`}
-                    onContextMenu={(e) => handleShowPopup(e, msg)}
+                    key={index}
+                    className={`p-1 my-1 d-flex chat-message ${msg.sender._id === user._id ? "justify-content-end" : "justify-content-start"}`}
                   >
-                    {/* Hiển thị nội dung tin nhắn */}
-                    {msg.type === "image" ? (
-                      msg.msg.includes(",") ? (
-                        <div
-                          className={`grid-container multiple-images`}
-                        >
-                          {msg.msg.split(",").map((url, index) => (
-                            <div key={index} className="grid-item">
-                              <img
-                                src={url.trim()}
-                                alt={`image-${index}`}
-                                className="image-square"
-                                onClick={() => handleImageClick(url.trim())}
-                                style={{ cursor: "pointer" }}
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        // Nếu chỉ có một URL ảnh, hiển thị ảnh đó
-                        <div className={`grid-container single-image`}>
-                          <div className="grid-item">
-                            <img
-                              src={msg.msg}
-                              alt="image"
-                              className="image-square"
-                              onClick={() => handleImageClick(msg.msg)}
-                              style={{ cursor: "pointer" }}
-                            />
-                          </div>
-                        </div>
-                      )
-                    ) : msg.type === "video" ? (
-                      <video
-                        src={msg.msg}
-                        controls
-                        className="rounded-lg"
-                        style={{ width: 250, height: 200, backgroundColor: "black" }}
-                      />
-                    ) : msg.type === "file" ? (
-                      <a
-                        href={msg.msg}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={`fw-semibold ${msg.sender._id === user._id ? "text-white" : "text-dark"}`}
-                      >
-                        🡇 {msg.msg.split("_").pop() || "Tệp đính kèm"}
-                      </a>
-                    ) : msg.type === "system" ? (
-                      <span><i>{msg.msg || ""}</i></span>
-                    ) : (
-                      <div style={{ whiteSpace: 'pre-line' }}>
-                        {msg.msg || ""}
+                    {/* Hiển thị avatar cho người khác (không phải mình) */}
+                    {msg.sender._id !== user._id && (
+                      <div className="me-2" style={{ minWidth: "36px", alignSelf: "flex-start", marginTop: "23px" }}>
+                        {(!isSameSender || index === 0) ? (
+                          <img
+                            src={senderAvatar}
+                            alt="avatar"
+                            className="rounded-circle message-avatar"
+                          />
+                        ) : (
+                          <div style={{ width: "32px", height: "32px" }}></div>
+                        )}
                       </div>
                     )}
 
-                    {/* Thời gian gửi */}
-                    <div
-                      className={`text-end text-xs mt-1 ${msg?.sender?._id === user._id ? "text-white" : "text-secondary"
-                        }`}
-                    >
-                      {convertTime(msg.createdAt)}
+                    <div className={`message-content ${isSameSender ? "message-group" : ""}`} style={{ maxWidth: "70%" }}>
+
+                      {/* Hiển thị tên người gửi nếu không phải mình và là tin nhắn đầu tiên trong chuỗi */}
+                      {msg.sender._id !== user._id && (!isSameSender || index === 0) && (
+                        <div className="sender-name">
+                          {senderName}
+                        </div>
+                      )}
+
+                      <div
+                        className={`message-bubble ${msg.sender._id === user._id ? "own" : "other"} ${msg.type !== "text" && msg.type !== "file" && msg.type !== "system" ? "bg-transparent" : ""
+                          }`}
+                        onContextMenu={(e) => handleShowPopup(e, msg)}
+                      >
+                        {/* Hiển thị nội dung tin nhắn */}
+                        {msg.type === "image" ? (
+                          msg.msg.includes(",") ? (
+                            <div
+                              className={`grid-container multiple-images`}
+                            >
+                              {msg.msg.split(",").map((url, index) => (
+                                <div key={index} className="grid-item">
+                                  <img
+                                    src={url.trim()}
+                                    alt={`image-${index}`}
+                                    className="image-square"
+                                    onClick={() => handleImageClick(url.trim())}
+                                    style={{ cursor: "pointer" }}
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            // Nếu chỉ có một URL ảnh, hiển thị ảnh đó
+                            <div className={`grid-container single-image`}>
+                              <div className="grid-item">
+                                <img
+                                  src={msg.msg}
+                                  alt="image"
+                                  className="image-square"
+                                  onClick={() => handleImageClick(msg.msg)}
+                                  style={{ cursor: "pointer" }}
+                                />
+                              </div>
+                            </div>
+                          )
+                        ) : msg.type === "video" ? (
+                          <video
+                            src={msg.msg}
+                            controls
+                            className="rounded-lg"
+                            style={{ width: 250, height: 200, backgroundColor: "black" }}
+                          />
+                        ) : msg.type === "file" ? (
+                          <a
+                            href={msg.msg}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`fw-semibold ${msg.sender._id === user._id ? "text-white" : "text-dark"}`}
+                          >
+                            🡇 {msg.msg.split("_").pop() || "Tệp đính kèm"}
+                          </a>
+                        ) : msg.type === "system" ? (
+                          <span><i>{msg.msg || ""}</i></span>
+                        ) : (
+                          <div style={{ whiteSpace: 'pre-line' }}>
+                            {msg.msg || ""}
+                          </div>
+                        )}
+
+                        {/* Phản ứng và thời gian */}
+                        <div className="reaction-time-container">
+                          <div
+                            className="reaction-container"
+                            onMouseEnter={(event) => handleShowReactionPopup(msg._id, event)}
+                            onMouseLeave={() => handleHideReactionPopup(msg._id)}
+                          >
+                            <span className="reaction-icon">
+                              <Smile size={20} />
+                            </span>
+                            {reactions[msg._id] && reactions[msg._id].length > 0 && (
+                              <div className="reaction-summary">
+                                {Object.entries(
+                                  reactions[msg._id].reduce((acc, reaction) => {
+                                    // Tạo object với key là emoji và value là số lượng
+                                    if (!acc[reaction.emoji]) {
+                                      acc[reaction.emoji] = 0;
+                                    }
+                                    acc[reaction.emoji] += reaction.count || 1;
+                                    return acc;
+                                  }, {})
+                                ).map(([emoji, count], index) => (
+                                  <span key={index} className="reaction-item" title={`${emoji}: ${count}`}>
+                                    {textToIconMap[emoji]}
+                                    <span className="reaction-count">{count}</span>
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                            {reactionPopupVisible?.messageId === msg._id && (
+                              <div className="reaction-popup"
+                                style={{
+                                  top: reactionPopupVisible.position.y,
+                                  left: reactionPopupVisible.position.x,
+                                }}
+                                onMouseEnter={() => {
+                                  if (hideReactionTimeout) {
+                                    clearTimeout(hideReactionTimeout);
+                                  }
+                                }}
+                                onMouseLeave={() => handleHideReactionPopup(msg._id)}
+                              >
+                                {Object.keys(emojiToIconMap).map((emoji, index) => (
+                                  <span
+                                    key={index}
+                                    className="reaction-emoji"
+                                    onClick={() => handleReactToMessage(msg._id, emoji)}
+                                  >
+                                    {emojiToIconMap[emoji]}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <div className={`message-time ${msg.type === "video" || msg.type === "image"
+                              ? "text-secondary"
+                              : msg.sender._id === user._id
+                                ? "text-white-50"
+                                : "text-muted"
+                            }`}>
+                            {convertTime(msg.createdAt)}
+                          </div>
+                        </div>
+                      </div>
                     </div>
+
                   </div>
-                </div>
-              ))}
+                )
+              })}
             <div ref={messagesEndRef} />
           </div>
         </div>

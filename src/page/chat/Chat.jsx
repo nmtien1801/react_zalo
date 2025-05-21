@@ -212,6 +212,7 @@ export default function ChatInterface(props) {
 
   const handleTypeChat = (type, receiver) => {
     let receiverOnline; // lấy socketId của người nhận từ danh sách onlineUsers
+
     if (type === 1) {
       setTypeChatRoom("single");
       handleLoadMessages(receiver._id, receiver.type);
@@ -553,7 +554,11 @@ export default function ChatInterface(props) {
 
                     >
                       <img
-                        src={chat.avatar || "/placeholder.svg"}
+                        src={
+                          chat.type === 3
+                            ? "/cloud.jpg"
+                            : chat.avatar || "/placeholder.svg"
+                        }
                         className="rounded-circle"
                         alt=""
                         style={{ width: "48px", height: "48px" }}
@@ -616,6 +621,8 @@ export default function ChatInterface(props) {
                   socketRef={socketRef}
                   conversations={conversations}
                   onlineUsers={onlineUsers}
+                  selectedUser={selectedUser}
+                  handleLoadMessages={handleLoadMessages}
                 />
               )}
             </>

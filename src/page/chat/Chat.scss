@@ -376,30 +376,55 @@
 
 .reaction-container {
   position: relative;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  z-index: 20;
+  transition: all 0.2s ease;
+}
+
+.reaction-count {
+  font-size: 10px;
+  margin-left: 2px;
+  font-weight: 500;
+  color: #666;
 }
 
 .reaction-popup {
   position: absolute;
-  display: flex;
-  gap: 8px;
-  background-color: white;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  padding: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   z-index: 1000;
+  background: white;
+  border-radius: 24px;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform-origin: center bottom;
+  animation: popup-scale 0.2s ease-out;
+  
 }
 
 /* Biểu tượng cảm xúc trong popup */
 .reaction-emoji {
-  font-size: 20px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
   cursor: pointer;
-  transition: transform 0.2s;
-}
-
-.reaction-emoji:hover {
-  transform: scale(1.2);
+  transition: transform 0.2s, background-color 0.2s;
+  position: relative;
+  
+  &:hover {
+    background-color: #f0f2f5;
+    transform: scale(1.2) translateY(-4px);
+  }
+  
+  .zalo-icon {
+    width: 22px;
+    height: 22px;
+  }
 }
 
 .message-time {
@@ -409,15 +434,32 @@
 
 .reaction-summary {
   display: flex;
-  gap: 8px;
-  margin-left: 8px;
+  align-items: center;
+  background: white;
+  border-radius: 16px;
+  padding: 3px 6px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  margin-right: 8px;
+  transition: transform 0.2s ease;
+  
+  &:hover {
+    transform: translateY(-2px);
+  }
 }
 
 .reaction-item {
   display: flex;
   align-items: center;
-  gap: 4px;
-  font-size: 14px;
+  margin-right: 2px;
+  font-size: 10px;
+  font-weight: bold;
+  color: #666;
+  
+  .zalo-icon {
+    margin-right: 1px;
+    width: 16px;
+    height: 16px;
+  }
 }
 
 .zalo-icon {
@@ -627,4 +669,33 @@
 
 .message-sending {
   animation: pulse 1s infinite;
+}
+
+// Định dạng cho phân cách thời gian
+.time-divider {
+  position: relative;
+  margin: 20px 0;
+  text-align: center;
+  
+  &::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background-color: #e9ecef;
+    z-index: 0;
+  }
+  
+  span {
+    position: relative;
+    z-index: 1;
+    font-size: 12px;
+    color: #6c757d;
+    background-color: #f8f9fa;
+    padding: 4px 12px;
+    border-radius: 16px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  }
 }

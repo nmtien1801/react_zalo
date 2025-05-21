@@ -82,6 +82,7 @@ export default function ChatPerson(props) {
   //Reaction
   const [reactionPopupVisible, setReactionPopupVisible] = useState(null);
   const [reactions, setReactions] = useState({});
+  const [hideReactionTimeout, setHideReactionTimeout] = useState(null);
 
   //Object Ánh xạ Emoji
   const emojiToTextMap = {
@@ -490,21 +491,41 @@ export default function ChatPerson(props) {
 
   // Nhấp phản ứng
   const handleShowReactionPopup = async (messageId, event) => {
-    const rect = event.currentTarget.getBoundingClientRect(); // Lấy tọa độ phần tử
-    let x = rect.left;
-    let y = rect.bottom;
 
+    // Lấy vị trí của reaction-icon (phần tử gây sự kiện)
+    const iconRect = event.currentTarget.getBoundingClientRect();
+    
+    // Lấy vị trí của chat-container
     const chatContainer = document.querySelector(".chat-container");
     const containerRect = chatContainer.getBoundingClientRect();
-
-    if (x > containerRect.right - 200) {
-      x = rect.left - containerRect.right - 50;
-    } else {
-      x = 0;
+    
+    // Kích thước ước tính của popup
+    const popupWidth = 230;  // Chiều rộng ước lượng của popup
+    const popupHeight = 60;  // Chiều cao ước lượng của popup
+    
+    // Tính toán vị trí tương đối với reaction-container
+    // Vì popup là absolute và container là relative
+    
+    // Hiển thị popup phía trên reaction-icon
+    let x = 0;  // Tọa độ x tương đối với reaction-container
+    let y = 0; // Đặt popup phía trên icon, giá trị âm để đi lên
+    
+    // Đảm bảo popup không vượt quá biên phải của chat container
+    // Tính toán vị trí phải của popup tương đối với container
+    const iconOffsetLeft = iconRect.left - containerRect.left;
+    const popupRight = iconOffsetLeft + popupWidth;
+    
+    if (popupRight > containerRect.width - 20) {
+      // Nếu popup vượt quá biên phải, điều chỉnh x để popup nằm trong container
+      x = containerRect.width - popupWidth - 20 - iconOffsetLeft;
     }
-
-    y = 0;
-
+    
+    // Đảm bảo popup không vượt quá biên trái
+    if (iconOffsetLeft + x < 10) {
+      x = 10 - iconOffsetLeft;
+    }
+    
+    // Đặt popup ở vị trí đã tính
     setReactionPopupVisible({
       messageId,
       position: { x, y },
@@ -512,9 +533,19 @@ export default function ChatPerson(props) {
   };
 
   const handleHideReactionPopup = (messageId) => {
-    if (reactionPopupVisible?.messageId === messageId) {
-      setReactionPopupVisible(null);
+    // Clear any existing timeout
+    if (hideReactionTimeout) {
+      clearTimeout(hideReactionTimeout);
     }
+    
+    // Set a new timeout to hide the popup after a delay
+    const timeout = setTimeout(() => {
+      if (reactionPopupVisible?.messageId === messageId) {
+        setReactionPopupVisible(null);
+      }
+    }, 300); // 300ms delay
+    
+    setHideReactionTimeout(timeout);
   };
 
   //Hàm phản ứng
@@ -572,6 +603,15 @@ export default function ChatPerson(props) {
       return [];
     }
   };
+
+  // Clean up timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (hideReactionTimeout) {
+        clearTimeout(hideReactionTimeout);
+      }
+    };
+  }, [hideReactionTimeout]);
 
   //Lấy phản ứng của từng message khi thay đổi messages
   useEffect(() => {
@@ -695,130 +735,152 @@ export default function ChatPerson(props) {
 
                 <div
                   key={index}
-                  className={`p-2 my-1 d-flex ${msg.sender._id === user._id ? "justify-content-end" : "justify-content-start"
-                    }`}
+                  className={`p-2 my-1 d-flex chat-message ${msg.sender._id === user._id ? "justify-content-end" : "justify-content-start"}`}
                 >
-                  <div
-                    className={`p-3 max-w-[70%] break-words rounded-3 wrap-container ${msg.type === "text" || msg.type === "file" || msg.type === "system"
-                      ? msg.sender._id === user._id
-                        ? "bg-primary text-white"
-                        : "bg-light text-dark"
-                      : "bg-transparent"
-                      }`}
-                    onContextMenu={(e) => handleShowPopup(e, msg)}
-                  >
-                    {/* Hiển thị nội dung tin nhắn */}
-                    {msg.type === "image" ? (
-                      msg.msg.includes(",") ? (
-                        <div
-                          className={`grid-container multiple-images`}
-                        >
-                          {msg.msg.split(",").map((url, index) => (
+
+                  {/* Hiển thị avatar cho người khác (không phải mình) */}
+                  {msg.sender._id !== user._id && (
+                    <div className="me-2" style={{ minWidth: "36px", alignSelf: "flex-start" }}>
+                      {showAvatar ? (
+                        <img
+                          src={receiver.avatar || "https://i.imgur.com/l5HXBdTg.jpg"}
+                          alt="avatar"
+                          className="message-avatar"
+                          style={{ width: "32px", height: "32px", borderRadius: "50%" }}
+                        />
+                      ) : (
+                        <div style={{ width: "32px", height: "32px" }}></div>
+                      )}
+                    </div>
+                  )}
+
+                  <div className={`message-content ${isSameSender ? "message-group" : ""}`} style={{ maxWidth: "70%" }}>
+                      <div
+                        className={`message-bubble ${msg.sender._id === user._id ? "own" : "other"} ${
+                          msg.type !== "text" && msg.type !== "file" && msg.type !== "system" ? "bg-transparent" : ""
+                        }`}
+                        onContextMenu={(e) => handleShowPopup(e, msg)}
+                      >
+                      {/* Hiển thị nội dung tin nhắn */}
+                      {msg.type === "image" ? (
+                        msg.msg.includes(",") ? (
+                          <div
+                            className={`grid-container multiple-images`}
+                          >
+                            {msg.msg.split(",").map((url, index) => (
+                              <div key={index} className="grid-item">
+                                <img
+                                  src={url.trim()}
+                                  alt={`image-${index}`}
+                                  className="image-square"
+                                  onClick={() => handleImageClick(url.trim())}
+                                  style={{ cursor: "pointer" }}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          // Nếu chỉ có một URL ảnh, hiển thị ảnh đó
+                          <div className={`grid-container single-image`}>
                             <div key={index} className="grid-item">
                               <img
-                                src={url.trim()}
-                                alt={`image-${index}`}
+                                src={msg.msg}
+                                alt="image"
                                 className="image-square"
-                                onClick={() => handleImageClick(url.trim())}
+                                onClick={() => handleImageClick(msg.msg)}
                                 style={{ cursor: "pointer" }}
                               />
                             </div>
-                          ))}
-                        </div>
+                          </div>
+                        )
+                      ) : msg.type === "video" ? (
+                        <video
+                          src={msg.msg}
+                          controls
+                          className="rounded-lg"
+                          style={{ width: 250, height: 200, backgroundColor: "black" }}
+                        />
+                      ) : msg.type === "file" ? (
+                        <a
+                          href={msg.msg}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`fw-semibold ${msg.sender._id === user._id ? "text-white" : "text-dark"}`}
+                        >
+                          🡇 {msg.msg.split("_").pop() || "Tệp đính kèm"}
+                        </a>
+                      ) : msg.type === "system" ? (
+                        <span><i>{msg.msg || ""}</i></span>
                       ) : (
-                        // Nếu chỉ có một URL ảnh, hiển thị ảnh đó
-                        <div className={`grid-container single-image`}>
-                          <div key={index} className="grid-item">
-                            <img
-                              src={msg.msg}
-                              alt="image"
-                              className="image-square"
-                              onClick={() => handleImageClick(msg.msg)}
-                              style={{ cursor: "pointer" }}
-                            />
-                          </div>
-                        </div>
-                      )
-                    ) : msg.type === "video" ? (
-                      <video
-                        src={msg.msg}
-                        controls
-                        className="rounded-lg"
-                        style={{ width: 250, height: 200, backgroundColor: "black" }}
-                      />
-                    ) : msg.type === "file" ? (
-                      <a
-                        href={msg.msg}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={`fw-semibold ${msg.sender._id === user._id ? "text-white" : "text-dark"}`}
-                      >
-                        🡇 {msg.msg.split("_").pop() || "Tệp đính kèm"}
-                      </a>
-                    ) : msg.type === "system" ? (
-                      <span><i>{msg.msg || ""}</i></span>
-                    ) : (
-                      <span>{msg.msg || ""}</span>
-                    )}
+                        <span>{msg.msg || ""}</span>
+                      )}
 
-                    {/* Phản ứng và thời gian */}
-                    <div className="reaction-time-container">
-                      <div
-                        className="reaction-container"
-                        onMouseEnter={(event) => handleShowReactionPopup(msg._id, event)}
-                        onMouseLeave={() => handleHideReactionPopup(msg._id)}
-                      >
-                        <span className="reaction-icon">
-                          <Smile size={20} />
-                        </span>
-                        {reactions[msg._id] && reactions[msg._id].length > 0 && (
-                          <div className="reaction-summary">
-                            {reactions[msg._id].map((reaction, index) => (
-                              <span key={index} className="reaction-item">
-                                {textToIconMap[reaction.emoji]}
-                                {reaction.count || 1}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                        {reactionPopupVisible?.messageId === msg._id && (
-                          <div className="reaction-popup"
-                            style={{
-                              top: reactionPopupVisible.position.y,
-                              left: reactionPopupVisible.position.x,
-                            }}>
-                            {Object.keys(emojiToIconMap).map((emoji, index) => (
-                              <span
-                                key={index}
-                                className="reaction-emoji"
-                                onClick={() => handleReactToMessage(msg._id, emoji)}
+                      {/* Phản ứng và thời gian */}
+                      <div className="reaction-time-container">
+                        <div
+                          className="reaction-container"
+                          onMouseEnter={(event) => handleShowReactionPopup(msg._id, event)}
+                          onMouseLeave={() => handleHideReactionPopup(msg._id)}
+                        >
+                          <span className="reaction-icon">
+                            <Smile size={20} />
+                          </span>
+                          {reactions[msg._id] && reactions[msg._id].length > 0 && (
+                            <div className="reaction-summary">
+                              {reactions[msg._id].map((reaction, index) => (
+                                <span key={index} className="reaction-item">
+                                  {textToIconMap[reaction.emoji]}
+                                  <span className="reaction-count">{reaction.count || 1}</span>
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                          {reactionPopupVisible?.messageId === msg._id && (
+                            <div className="reaction-popup"
+                              style={{
+                                top: reactionPopupVisible.position.y,
+                                left: reactionPopupVisible.position.x,
+                              }}
+                              onMouseEnter={() => {
+                                if (hideReactionTimeout) {
+                                  clearTimeout(hideReactionTimeout);
+                                }
+                              }}
+                              onMouseLeave={() => handleHideReactionPopup(msg._id)}
                               >
-                                {emojiToIconMap[emoji]}
-                              </span>
-                            ))}
-                          </div>
-                        )}
+                              {Object.keys(emojiToIconMap).map((emoji, index) => (
+                                <span
+                                  key={index}
+                                  className="reaction-emoji"
+                                  onClick={() => handleReactToMessage(msg._id, emoji)}
+                                >
+                                  {emojiToIconMap[emoji]}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        <div className={`message-time ${
+                          msg.type === "video" || msg.type === "image"
+                            ? "text-secondary"
+                            : msg.sender._id === user._id
+                              ? "text-white-50"
+                              : "text-muted"
+                        }`}>
+                          {convertTime(msg.createdAt)}
+                        </div>
                       </div>
-                      <div
-                        className={`message-time ${msg.type === "video" || msg.type === "image"
-                          ? "text-secondary"
-                          : msg.sender._id === user._id
-                            ? "text-white"
-                            : "text-secondary"
-                          }`}
-                      >
-                        {convertTime(msg.createdAt)}
-                      </div>
-                    </div>
 
-                    {/* Nút chia sẻ */}
-                    {/* <button
-                      className={`share-button-1 `}
-                      onClick={() => handleOpenShareModal(msg)}
-                    >
-                      <Share2 size={16} className="text-muted" />
-                    </button> */}
+                      {/* Nút chia sẻ */}
+                      {/* <button
+                        className={`share-button-1 `}
+                        onClick={() => handleOpenShareModal(msg)}
+                      >
+                        <Share2 size={16} className="text-muted" />
+                      </button> */}
+                    </div>
                   </div>
+
                 </div>
               </React.Fragment>)})}
 

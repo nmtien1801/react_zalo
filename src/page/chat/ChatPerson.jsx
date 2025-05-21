@@ -595,11 +595,6 @@ export default function ChatPerson(props) {
     setHasSelectedImages(false);
   };
 
-  const handleShare = (selectedMessage) => {
-    console.log('selectedMessage ', selectedMessage);
-
-  }
-
   // call
   const handleStartCall = props?.handleStartCall;
 

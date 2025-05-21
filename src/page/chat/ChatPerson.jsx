@@ -1,3 +1,4 @@
+import React from 'react';
 import { useState, useRef, useEffect } from "react";
 import { Modal, Tab, Tabs } from "react-bootstrap"; // Import Bootstrap components
 
@@ -654,7 +655,44 @@ export default function ChatPerson(props) {
         >
           <div className="flex flex-col justify-end">
             {messages &&
-              messages.map((msg, index) => (
+              messages.map((msg, index) => {
+
+                // Kiểm tra khoảng thời gian giữa tin nhắn hiện tại và tin nhắn trước
+                const prevMsg = index > 0 ? messages[index - 1] : null;
+                
+                // Kiểm tra nếu tin nhắn này và tin nhắn trước đó có cùng người gửi
+                const isSameSender = prevMsg && prevMsg.sender._id === msg.sender._id;
+                
+                // Kiểm tra khoảng thời gian giữa 2 tin nhắn (> 10 phút = 600000ms)
+                const timeDiff = prevMsg 
+                  ? new Date(msg.createdAt).getTime() - new Date(prevMsg.createdAt).getTime() 
+                  : 0;
+                const isLongTimeDiff = timeDiff > 600000; // 10 phút
+                
+                // Hiển thị avatar khi: tin nhắn đầu tiên, người gửi khác, hoặc khoảng cách > 10p
+                const showAvatar = !isSameSender || isLongTimeDiff || index === 0;
+                
+                // Hiển thị dấu thời gian khi khoảng cách > 10p
+                const showTimestamp = isLongTimeDiff || index === 0;
+
+                return (
+                <React.Fragment key={index}>
+
+                {/* Hiển thị timestamp khi thời gian > 10 phút */}
+                {showTimestamp && (
+                  <div className="time-divider text-center my-3">
+                    <span className="bg-light px-3 py-1 rounded-pill text-muted small">
+                      {new Date(msg.createdAt).toLocaleString('vi-VN', {
+                        hour: '2-digit', 
+                        minute: '2-digit',
+                        day: '2-digit', 
+                        month: '2-digit', 
+                        year: 'numeric'
+                      })}
+                    </span>
+                  </div>
+                )}
+
                 <div
                   key={index}
                   className={`p-2 my-1 d-flex ${msg.sender._id === user._id ? "justify-content-end" : "justify-content-start"
@@ -782,7 +820,7 @@ export default function ChatPerson(props) {
                     </button> */}
                   </div>
                 </div>
-              ))}
+              </React.Fragment>)})}
 
             <div ref={messagesEndRef} />
           </div>

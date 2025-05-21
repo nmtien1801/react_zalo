@@ -74,6 +74,8 @@ export default function ChatGroup(props) {
   const closeModal = () => setIsOpen(false);
   const [isOpen, setIsOpen] = useState(false);
 
+  const [usersMap, setUsersMap] = useState({});
+
   const [showAddMemberModal, setShowAddMemberModal] = useState(false); // State quản lý modal
 
   const handleOpenAddMemberModal = () => {
@@ -154,6 +156,19 @@ const cleanFileName = (fileName) => {
   // nghiem
   const [showMemberModal, setShowMemberModal] = useState(false);
   const [members, setMembers] = useState([]); // State để lưu danh sách thành viên
+
+  useEffect(() => {
+    if (members.length > 0) {
+      const newUsersMap = {};
+      members.forEach(member => {
+        newUsersMap[member._id] = {
+          avatar: member.avatar || "https://i.imgur.com/l5HXBdTg.jpg",
+          name: member.username
+        };
+      });
+      setUsersMap(newUsersMap);
+    }
+  }, [members]);
 
   // Gọi API để lấy danh sách thành viên nhóm
   useEffect(() => {
@@ -760,85 +775,114 @@ const cleanFileName = (fileName) => {
         >
           <div className="flex flex-col justify-end">
             {messages &&
-              messages.map((msg, index) => (
+              messages.map((msg, index) =>{ 
+
+                // Kiểm tra nếu tin nhắn này và tin nhắn tiếp theo có cùng người gửi
+                const prevMsg = messages[index - 1];
+                const isSameSender = prevMsg && prevMsg.sender._id === msg.sender._id;
+                
+                // Lấy avatar từ usersMap hoặc dùng giá trị mặc định
+                const senderAvatar = usersMap[msg.sender._id]?.avatar || msg.sender.avatar || "https://i.imgur.com/l5HXBdTg.jpg";
+                const senderName = usersMap[msg.sender._id]?.name || msg.sender.name;
+
+                return (
                 <div
                   key={index}
-                  className={`p-2 my-1 d-flex ${msg?.sender?._id === user._id ? "justify-content-end" : "justify-content-start"
-                    }`}
+                  className={`p-1 my-1 d-flex chat-message ${msg.sender._id === user._id ? "justify-content-end" : "justify-content-start"}`}
                 >
-                  <div
-                    className={`p-3 max-w-[70%] break-words rounded-3 wrap-container ${msg.type === "text" || msg.type === "file" || msg.type === "system"
-                      ? msg.sender._id === user._id
-                        ? "bg-primary text-white"
-                        : "bg-light text-dark"
-                      : "bg-transparent"
-                      }`}
-                    onContextMenu={(e) => handleShowPopup(e, msg)}
-                  >
-                    {/* Hiển thị nội dung tin nhắn */}
-                    {msg.type === "image" ? (
-                      msg.msg.includes(",") ? (
-                        <div
-                          className={`grid-container multiple-images`}
-                        >
-                          {msg.msg.split(",").map((url, index) => (
-                            <div key={index} className="grid-item">
+                  {/* Hiển thị avatar cho người khác (không phải mình) */}
+                  {msg.sender._id !== user._id && (
+                    <div className="me-2" style={{ minWidth: "36px", alignSelf: "flex-start", marginTop: "23px" }}>
+                      {(!isSameSender || index === 0) ? (
+                        <img
+                          src={senderAvatar}
+                          alt="avatar"
+                          className="rounded-circle message-avatar"
+                        />
+                      ) : (
+                        <div style={{ width: "32px", height: "32px" }}></div>
+                      )}
+                    </div>
+                  )}
+
+                  <div className={`message-content ${isSameSender ? "message-group" : ""}`} style={{ maxWidth: "70%" }}>
+
+                    {/* Hiển thị tên người gửi nếu không phải mình và là tin nhắn đầu tiên trong chuỗi */}
+                    {msg.sender._id !== user._id && (!isSameSender || index === 0) && (
+                      <div className="sender-name">
+                        {senderName}
+                      </div>
+                    )}
+
+                      <div
+                        className={`message-bubble ${msg.sender._id === user._id ? "own" : "other"} ${
+                          msg.type !== "text" && msg.type !== "file" && msg.type !== "system" ? "bg-transparent" : ""
+                        }`}
+                        onContextMenu={(e) => handleShowPopup(e, msg)}
+                      >
+                      {/* Hiển thị nội dung tin nhắn */}
+                      {msg.type === "image" ? (
+                        msg.msg.includes(",") ? (
+                          <div
+                            className={`grid-container multiple-images`}
+                          >
+                            {msg.msg.split(",").map((url, index) => (
+                              <div key={index} className="grid-item">
+                                <img
+                                  src={url.trim()}
+                                  alt={`image-${index}`}
+                                  className="image-square"
+                                  onClick={() => handleImageClick(url.trim())}
+                                  style={{ cursor: "pointer" }}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          // Nếu chỉ có một URL ảnh, hiển thị ảnh đó
+                          <div className={`grid-container single-image`}>
+                            <div className="grid-item">
                               <img
-                                src={url.trim()}
-                                alt={`image-${index}`}
+                                src={msg.msg}
+                                alt="image"
                                 className="image-square"
-                                onClick={() => handleImageClick(url.trim())}
+                                onClick={() => handleImageClick(msg.msg)}
                                 style={{ cursor: "pointer" }}
                               />
                             </div>
-                          ))}
-                        </div>
-                      ) : (
-                        // Nếu chỉ có một URL ảnh, hiển thị ảnh đó
-                        <div className={`grid-container single-image`}>
-                          <div className="grid-item">
-                            <img
-                              src={msg.msg}
-                              alt="image"
-                              className="image-square"
-                              onClick={() => handleImageClick(msg.msg)}
-                              style={{ cursor: "pointer" }}
-                            />
                           </div>
-                        </div>
-                      )
-                    ) : msg.type === "video" ? (
-                      <video
-                        src={msg.msg}
-                        controls
-                        className="rounded-lg"
-                        style={{ width: 250, height: 200, backgroundColor: "black" }}
-                      />
-                    ) : msg.type === "file" ? (
-                      <a
-                        href={msg.msg}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={`fw-semibold ${msg.sender._id === user._id ? "text-white" : "text-dark"}`}
-                      >
-                        🡇 {msg.msg.split("_").pop() || "Tệp đính kèm"}
-                      </a>
-                    ) : msg.type === "system" ? (
-                      <span><i>{msg.msg || ""}</i></span>
-                    ) : (
-                      <span>{msg.msg || ""}</span>
-                    )}
+                        )
+                      ) : msg.type === "video" ? (
+                        <video
+                          src={msg.msg}
+                          controls
+                          className="rounded-lg"
+                          style={{ width: 250, height: 200, backgroundColor: "black" }}
+                        />
+                      ) : msg.type === "file" ? (
+                        <a
+                          href={msg.msg}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`fw-semibold ${msg.sender._id === user._id ? "text-white" : "text-dark"}`}
+                        >
+                          🡇 {msg.msg.split("_").pop() || "Tệp đính kèm"}
+                        </a>
+                      ) : msg.type === "system" ? (
+                        <span><i>{msg.msg || ""}</i></span>
+                      ) : (
+                        <span>{msg.msg || ""}</span>
+                      )}
 
-                    {/* Thời gian gửi */}
-                    <div
-                      className={`text-end text-xs mt-1 ${msg?.sender?._id === user._id ? "text-white" : "text-secondary"
-                        }`}
-                    >
-                      {convertTime(msg.createdAt)}
+                      {/* Thời gian gửi */}
+                      <div className="message-time">
+                        {convertTime(msg.createdAt)}
+                      </div>
                     </div>
                   </div>
+
                 </div>
-              ))}
+              ) })}
             <div ref={messagesEndRef} />
           </div>
         </div>

@@ -572,11 +572,11 @@ export default function ChatGroup(props) {
       if (response.payload.EC === 0) {
         console.log('res S3 avatar', response.payload.DT);
         let res = await dispatch(uploadAvatarGroup({ groupId: props.roomData.receiver._id, avatar: response.payload.DT }))
+        setAvatarUrl(response.payload.DT);
         if (res.payload.EC === 0) {
           socketRef.current.emit("REQ_UPDATE_AVATAR", receiver);
         }
 
-        setAvatarUrl(response.payload.DT);
       } else {
         console.log('err upload ', response.payload.EM);
       }
@@ -891,6 +891,14 @@ export default function ChatGroup(props) {
       };
       fetchMembers();
     })
+
+    // update avatar
+    socketRef.current.on("RES_UPDATE_AVATAR", (data) => {
+      setReceiver({
+        ...receiver,
+        avatar: avatarUrl,
+      })
+    });
   }, [])
 
   // Handle dissolve group
@@ -1139,10 +1147,10 @@ export default function ChatGroup(props) {
                             )}
                           </div>
                           <div className={`message-time ${msg.type === "video" || msg.type === "image"
-                              ? "text-secondary"
-                              : msg.sender._id === user._id
-                                ? "text-white-50"
-                                : "text-muted"
+                            ? "text-secondary"
+                            : msg.sender._id === user._id
+                              ? "text-white-50"
+                              : "text-muted"
                             }`}>
                             {convertTime(msg.createdAt)}
                           </div>

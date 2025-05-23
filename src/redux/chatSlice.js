@@ -3,6 +3,7 @@ import {
   loadMessagesService,
   getConversationsService,
   updatePermissionService,
+  chatGPTService,
 } from "../service/chatService";
 import axios from "axios";
 
@@ -51,8 +52,18 @@ export const reloadMessages = createAsyncThunk(
       const response = await loadMessagesService(sender, receiver, type);
       return response;
     } catch (error) {
-      return thunkAPI.rejectWithValue(error.response?.data || "Lỗi không xác định");
+      return thunkAPI.rejectWithValue(
+        error.response?.data || "Lỗi không xác định"
+      );
     }
+  }
+);
+
+export const chatGPT = createAsyncThunk(
+  "chat/chatGPT",
+  async (message, thunkAPI) => {
+    let response = await chatGPTService(message);
+    return response;
   }
 );
 
@@ -130,6 +141,12 @@ const chatSlice = createSlice({
       .addCase(reloadMessages.rejected, (state, action) => {
         console.error("Lỗi khi tải lại messages:", action.payload);
       });
+
+    // chatGPT
+    builder
+      .addCase(chatGPT.pending, (state) => {})
+      .addCase(chatGPT.fulfilled, (state, action) => {})
+      .addCase(chatGPT.rejected, (state, action) => {});
   },
 });
 

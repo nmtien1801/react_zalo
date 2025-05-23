@@ -59,6 +59,12 @@ const dissolveGroupService = async (groupId) => {
   return customizeAxios.delete(`/api/group/${groupId}/dissolve`);
 };
 
+const chatGPTService = async (message) => {
+  return customizeAxios.post(`/api/chatGPT`, {
+    message,
+  });
+};
+
 export {
   removeMemberFromGroupService,
   loadMessagesService,
@@ -69,5 +75,6 @@ export {
   sendReactionService,
   getReactionMessageService,
   updatePermissionService,
-  dissolveGroupService
+  dissolveGroupService,
+  chatGPTService,
 };

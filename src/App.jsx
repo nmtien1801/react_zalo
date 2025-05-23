@@ -21,6 +21,7 @@ import ChatInfoPanel from "./page/danhBa/DanhBa";
 import ResetPassword from "./page/auth/ResetPassword";
 import io from "socket.io-client";
 import VideoCallModal from "../src/component/VideoCallModal.jsx"
+import ChatBot from "./page/chat/ChatBot";
 
 function App() {
   const dispatch = useDispatch();
@@ -136,6 +137,7 @@ function App() {
                 )
               }
             />
+             <Route path="/chatBot" element={isLoggedIn && <ChatBot socketRef={socketRef}/>} />
           </Routes>
         </div>
       </div>

@@ -11,6 +11,7 @@ import {
   Calendar,
   Briefcase,
   Settings,
+  Bot
 } from "lucide-react";
 
 import AccountSetting from "../page/accountSetting/accountSetting";
@@ -135,7 +136,7 @@ const Header = (props) => {
             alt="Profile"
             className="rounded-circle border border-2 border-white"
             style={{ width: "40px", height: "40px", objectFit: "cover" }}
-            // onClick={toggleDropdown}
+          // onClick={toggleDropdown}
           />
           {/* {showDropdown && (
             <div className="dropdown-menu-custom">
@@ -169,8 +170,8 @@ const Header = (props) => {
             )}
           </Nav.Link>
 
-          <Nav.Link as={NavLink} to="/to-do/call/room1" className="fw-normal">
-            <CheckSquare size={24} />
+          <Nav.Link as={NavLink} to="/chatBot" className="fw-normal">
+            <Bot size={24} />
           </Nav.Link>
         </Nav>
       </Container>

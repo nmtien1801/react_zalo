@@ -143,6 +143,9 @@ export default function ChatGroup(props) {
     { id: "links", title: "Link", icon: LinkIcon },
   ]);
 
+  //Typing
+  const [typingUsers, setTypingUsers] = useState({});
+  const typingTimeout = useRef(null);
 
   // nghiem
   const [mediaMessages, setMediaMessages] = useState([]);
@@ -190,6 +193,111 @@ export default function ChatGroup(props) {
     });
   };
 
+  // Thêm hàm xử lý typing
+  const handleInputChange = (e) => {
+    const text = e.target.value;
+    setMessage(text);
+    
+    // Xóa timeout hiện có để reset
+    if (typingTimeout.current) {
+      clearTimeout(typingTimeout.current);
+    }
+    
+    // Gửi sự kiện TYPING nếu đang nhập
+    if (text.trim() !== "") {
+      if (socketRef.current) {
+        socketRef.current.emit("TYPING", {
+          userId: user._id,
+          username: user.username,
+          receiver: receiver // Trong ChatGroup, biến là receiver
+        });
+
+        console.log("Gửi typing", {
+          userId: user._id,
+          username: user.username,
+          receiver: receiver
+        });
+      }
+
+      // Set timeout để dừng typing sau 1.5 giây không nhập
+      typingTimeout.current = setTimeout(() => {
+        if (socketRef.current) {
+          socketRef.current.emit("STOP_TYPING", {
+            userId: user._id,
+            receiver: receiver
+          });
+          
+          console.log("Dừng typing", {
+            userId: user._id,
+            receiver: receiver
+          });
+        }
+      }, 1500);
+    } else {
+      // Nếu input rỗng, gửi sự kiện dừng typing ngay lập tức
+      if (socketRef.current) {
+        socketRef.current.emit("STOP_TYPING", {
+          userId: user._id,
+          receiver: receiver
+        });
+
+        console.log("Dừng typing", {
+          userId: user._id,
+          receiver: receiver
+        });
+      }
+    }
+  };
+
+  // useEffect để lắng nghe sự kiện typing từ server
+  useEffect(() => {
+    if (socketRef.current) {
+      // Lắng nghe khi có người đang typing
+      socketRef.current.on("USER_TYPING", (data) => {
+        const { userId, username, conversationId } = data;
+        
+        // Kiểm tra đúng cuộc trò chuyện hiện tại
+        if (conversationId === receiver._id) {
+          setTypingUsers(prev => ({
+            ...prev,
+            [userId]: username
+          }));
+        }
+      });
+      
+      // Lắng nghe khi có người dừng typing
+      socketRef.current.on("USER_STOP_TYPING", (data) => {
+        const { userId, conversationId } = data;
+        
+        if (conversationId === receiver._id) {
+          setTypingUsers(prev => {
+            const newState = { ...prev };
+            delete newState[userId];
+            return newState;
+          });
+        }
+      });
+      
+      // Cleanup khi component unmount
+      return () => {
+        socketRef.current.off("USER_TYPING");
+        socketRef.current.off("USER_STOP_TYPING");
+        
+        // Dừng typing khi unmount
+        if (socketRef.current) {
+          socketRef.current.emit("STOP_TYPING", {
+            userId: user._id,
+            receiver: receiver
+          });
+        }
+        
+        if (typingTimeout.current) {
+          clearTimeout(typingTimeout.current);
+        }
+      };
+    }
+  }, [receiver]);
+
   const handleHideReactionPopup = (messageId) => {
     // Clear any existing timeout
     if (hideReactionTimeout) {
@@ -223,7 +331,7 @@ export default function ChatGroup(props) {
     if (socketRef.current) {
       socketRef.current.emit("REACTION", reactionData);
     }
-    
+
   };
 
   // Lấy phản ứng từng message
@@ -1270,21 +1378,26 @@ export default function ChatGroup(props) {
                 <Image size={20} />
               </button>
 
+              {Object.values(typingUsers).length > 0 && (
+                <div className="typing-indicator">
+                  <small className="text-muted">
+                    {Object.values(typingUsers).length === 1
+                      ? `${Object.values(typingUsers)[0]} đang nhập...`
+                      : `${Object.values(typingUsers).length} người đang nhập...`}
+                  </small>
+                </div>
+              )}
+
               {/* Input tin nhắn */}
               <input
                 className="form-control flex-1 p-2 border rounded-lg outline-none"
                 type="text"
                 value={message}
-                onChange={(e) => setMessage(e.target.value)}
+                onChange={handleInputChange}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    if (previewReply !== "") {
-                      sendMessage(`${previewReply}\n\n${message}`, "text");
-                      setHasSelectedImages(false);
-                      setPreviewReply("")
-                    } else {
-                      sendMessage(message, "text");
-                    }
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleMessage(message);
                   }
                 }}
                 placeholder="Nhập tin nhắn..."

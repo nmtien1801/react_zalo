@@ -699,3 +699,57 @@
     box-shadow: 0 1px 2px rgba(0,0,0,0.05);
   }
 }
+
+.typing-indicator {
+  position: absolute;
+  left: 10px;
+  padding: 5px 12px;
+  background-color: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  max-width: 80%;
+  animation: fadeIn 0.3s ease-in;
+  border: 1px solid #f0f0f0;
+  transition: bottom 0.3s ease;
+}
+
+.typing-indicator.normal {
+  bottom: 90px;
+}
+
+.typing-indicator.with-preview {
+  bottom: 150px;
+}
+
+.typing-dots::after {
+  content: "";
+  display: inline-block;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background-color: #666;
+  margin-left: 4px;
+  animation: typingDot 1.5s infinite;
+}
+
+.typing-dots::before {
+  content: "";
+  display: inline-block;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background-color: #666;
+  margin-left: 6px;
+  animation: typingDot 1.5s infinite 0.3s;
+}
+
+@keyframes typingDot {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 1; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateX(-10px); }
+  to { opacity: 1; transform: translateX(0); }
+}

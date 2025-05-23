@@ -211,39 +211,19 @@ export default function ChatGroup(props) {
     const emojiText = emojiToTextMap[emoji];
     if (!emojiText) return;
 
-    sendReactionService(messageId, user._id, emojiText)
-      .then((response) => {
-        if (response.EC === 0) {
-          console.log("Reaction sent successfully:", response.DT);
-
-          setReactions((prevReactions) => {
-            const currentReactions = prevReactions[messageId] || [];
-            const existingReactionIndex = currentReactions.findIndex(
-              (reaction) => reaction.emoji === emojiText && reaction.userId === user._id
-            );
-
-            if (existingReactionIndex !== -1) {
-              currentReactions.splice(existingReactionIndex, 1);
-            } else {
-              currentReactions.push({
-                emoji: emojiText,
-                userId: user._id,
-                count: 1,
-              });
-            }
-
-            return {
-              ...prevReactions,
-              [messageId]: [...currentReactions],
-            };
-          });
-        } else {
-          console.error("Failed to send reaction:", response.EM);
-        }
-      })
-      .catch((error) => {
-        console.error("Error sending reaction:", error);
-      });
+    const reactionData = {
+      messageId,
+      userId: user._id,
+      username: user.username,
+      emoji: emojiText,
+      receiver: receiver // Trong ChatGroup, biến là receiver thay vì props.roomData.receiver
+    };
+  
+    // Gửi reaction qua socket
+    if (socketRef.current) {
+      socketRef.current.emit("REACTION", reactionData);
+    }
+    
   };
 
   // Lấy phản ứng từng message
@@ -285,6 +265,57 @@ export default function ChatGroup(props) {
       fetchReactions();
     }
   }, [messages]);
+
+  useEffect(() => {
+    if (socketRef.current) {
+      // Các listeners hiện có
+      
+      // Thêm listener cho RECEIVED_REACTION
+      socketRef.current.on("RECEIVED_REACTION", (data) => {
+        console.log("Received reaction:", data);
+        const { messageId, userId, emoji } = data;
+        
+        setReactions(prevReactions => {
+          const currentReactions = prevReactions[messageId] || [];
+          const existingReactionIndex = currentReactions.findIndex(
+            reaction => String(reaction.userId) === String(userId) && reaction.emoji === emoji
+          );
+          
+          let updatedReactions;
+          if (existingReactionIndex !== -1) {
+            updatedReactions = currentReactions.filter((_, index) => 
+              index !== existingReactionIndex
+            );
+          } else {
+            updatedReactions = [
+              ...currentReactions,
+              {
+                userId: userId,
+                emoji: emoji,
+                count: 1
+              }
+            ];
+          }
+          
+          return {
+            ...prevReactions,
+            [messageId]: updatedReactions
+          };
+        });
+      });
+      
+      socketRef.current.on("REACTION_ERROR", (data) => {
+        console.error("Reaction error:", data.error);
+      });
+      
+      // Clean up
+      return () => {
+        // Giữ nguyên cleanup code hiện có
+        socketRef.current.off("RECEIVED_REACTION");
+        socketRef.current.off("REACTION_ERROR");
+      };
+    }
+  }, [receiver]);
 
   useEffect(() => {
     const media = messages.flatMap((msg) => {

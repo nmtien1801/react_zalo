@@ -559,39 +559,19 @@ export default function ChatPerson(props) {
     const emojiText = emojiToTextMap[emoji];
     if (!emojiText) return;
 
-    sendReactionService(messageId, user._id, emojiText)
-      .then((response) => {
-        if (response.EC === 0) {
-          console.log("Reaction sent successfully:", response.DT);
+    const reactionData = {
+      messageId,
+      userId: user._id,
+      username: user.username,
+      emoji: emojiText,
+      receiver: props.roomData.receiver
+    };
 
-          setReactions((prevReactions) => {
-            const currentReactions = prevReactions[messageId] || [];
-            const existingReactionIndex = currentReactions.findIndex(
-              (reaction) => reaction.emoji === emojiText && reaction.userId === user._id
-            );
+    // Gửi reaction qua socket thay vì gọi API trực tiếp
+    if (socketRef.current) {
+      socketRef.current.emit("REACTION", reactionData);
+    }
 
-            if (existingReactionIndex !== -1) {
-              currentReactions.splice(existingReactionIndex, 1);
-            } else {
-              currentReactions.push({
-                emoji: emojiText,
-                userId: user._id,
-                count: 1,
-              });
-            }
-
-            return {
-              ...prevReactions,
-              [messageId]: [...currentReactions],
-            };
-          });
-        } else {
-          console.error("Failed to send reaction:", response.EM);
-        }
-      })
-      .catch((error) => {
-        console.error("Error sending reaction:", error);
-      });
   };
 
   // Lấy phản ứng từng message
@@ -635,6 +615,62 @@ export default function ChatPerson(props) {
       fetchReactions();
     }
   }, [messages]);
+
+  useEffect(() => {
+    if (props.socketRef.current) {
+      // Giữ nguyên các listeners hiện có
+      
+      // Thêm listener cho RECEIVED_REACTION
+      props.socketRef.current.on("RECEIVED_REACTION", (data) => {
+        console.log("Received reaction:", data);
+        const { messageId, userId, emoji } = data;
+        
+        setReactions(prevReactions => {
+          const currentReactions = prevReactions[messageId] || [];
+          
+          // Tìm reaction hiện có
+          const existingReactionIndex = currentReactions.findIndex(
+            reaction => String(reaction.userId) === String(userId) && reaction.emoji === emoji
+          );
+          
+          let updatedReactions;
+          if (existingReactionIndex !== -1) {
+            // Nếu đã tồn tại -> xóa (toggle)
+            updatedReactions = currentReactions.filter((_, index) => 
+              index !== existingReactionIndex
+            );
+          } else {
+            // Nếu chưa tồn tại -> thêm mới
+            updatedReactions = [
+              ...currentReactions,
+              {
+                userId: userId,
+                emoji: emoji,
+                count: 1
+              }
+            ];
+          }
+          
+          return {
+            ...prevReactions,
+            [messageId]: updatedReactions
+          };
+        });
+      });
+      
+      // Bắt lỗi reaction nếu có
+      props.socketRef.current.on("REACTION_ERROR", (data) => {
+        console.error("Reaction error:", data.error);
+      });
+      
+      // Clean up function
+      return () => {
+        // Giữ nguyên cleanup code hiện có
+        props.socketRef.current.off("RECEIVED_REACTION");
+        props.socketRef.current.off("REACTION_ERROR");
+      };
+    }
+  }, [props.roomData.receiver]);
 
   // Hàm làm sạch ảnh review
   const handleClearAllPreviews = () => {

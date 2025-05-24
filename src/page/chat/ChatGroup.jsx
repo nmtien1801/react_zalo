@@ -224,12 +224,12 @@ export default function ChatGroup(props) {
   const handleInputChange = (e) => {
     const text = e.target.value;
     setMessage(text);
-
+    
     // Xóa timeout hiện có để reset
     if (typingTimeout.current) {
       clearTimeout(typingTimeout.current);
     }
-
+    
     // Gửi sự kiện TYPING nếu đang nhập
     if (text.trim() !== "") {
       if (socketRef.current) {
@@ -253,7 +253,7 @@ export default function ChatGroup(props) {
             userId: user._id,
             receiver: receiver
           });
-
+          
           console.log("Dừng typing", {
             userId: user._id,
             receiver: receiver
@@ -282,7 +282,7 @@ export default function ChatGroup(props) {
       // Lắng nghe khi có người đang typing
       socketRef.current.on("USER_TYPING", (data) => {
         const { userId, username, conversationId } = data;
-
+        
         // Kiểm tra đúng cuộc trò chuyện hiện tại
         if (conversationId === receiver._id) {
           setTypingUsers(prev => ({
@@ -291,11 +291,11 @@ export default function ChatGroup(props) {
           }));
         }
       });
-
+      
       // Lắng nghe khi có người dừng typing
       socketRef.current.on("USER_STOP_TYPING", (data) => {
         const { userId, conversationId } = data;
-
+        
         if (conversationId === receiver._id) {
           setTypingUsers(prev => {
             const newState = { ...prev };
@@ -304,12 +304,12 @@ export default function ChatGroup(props) {
           });
         }
       });
-
+      
       // Cleanup khi component unmount
       return () => {
         socketRef.current.off("USER_TYPING");
         socketRef.current.off("USER_STOP_TYPING");
-
+        
         // Dừng typing khi unmount
         if (socketRef.current) {
           socketRef.current.emit("STOP_TYPING", {
@@ -317,7 +317,7 @@ export default function ChatGroup(props) {
             receiver: receiver
           });
         }
-
+        
         if (typingTimeout.current) {
           clearTimeout(typingTimeout.current);
         }
@@ -353,7 +353,7 @@ export default function ChatGroup(props) {
       emoji: emojiText,
       receiver: receiver // Trong ChatGroup, biến là receiver thay vì props.roomData.receiver
     };
-
+  
     // Gửi reaction qua socket
     if (socketRef.current) {
       socketRef.current.emit("REACTION", reactionData);
@@ -404,21 +404,21 @@ export default function ChatGroup(props) {
   useEffect(() => {
     if (socketRef.current) {
       // Các listeners hiện có
-
+      
       // Thêm listener cho RECEIVED_REACTION
       socketRef.current.on("RECEIVED_REACTION", (data) => {
         console.log("Received reaction:", data);
         const { messageId, userId, emoji } = data;
-
+        
         setReactions(prevReactions => {
           const currentReactions = prevReactions[messageId] || [];
           const existingReactionIndex = currentReactions.findIndex(
             reaction => String(reaction.userId) === String(userId) && reaction.emoji === emoji
           );
-
+          
           let updatedReactions;
           if (existingReactionIndex !== -1) {
-            updatedReactions = currentReactions.filter((_, index) =>
+            updatedReactions = currentReactions.filter((_, index) => 
               index !== existingReactionIndex
             );
           } else {
@@ -431,18 +431,18 @@ export default function ChatGroup(props) {
               }
             ];
           }
-
+          
           return {
             ...prevReactions,
             [messageId]: updatedReactions
           };
         });
       });
-
+      
       socketRef.current.on("REACTION_ERROR", (data) => {
         console.error("Reaction error:", data.error);
       });
-
+      
       // Clean up
       return () => {
         // Giữ nguyên cleanup code hiện có
@@ -1333,18 +1333,7 @@ export default function ChatGroup(props) {
         </div>
 
         {/* Message Input */}
-        <div className="bg-white p-1 border-top position-absolute bottom-0">
-          {/* Typing Indicator */}
-          {Object.values(typingUsers).length > 0 && (
-            <div className="typing-indicator">
-              <small className="text-muted">
-                {Object.values(typingUsers).length === 1
-                  ? `${Object.values(typingUsers)[0]} đang nhập...`
-                  : `${Object.values(typingUsers).length} người đang nhập...`}
-              </small>
-            </div>
-          )}
-
+        <div className="bg-white p-2 border-top" >
           {/* Xem hình ảnh trước khi gửi */}
           <div className="preview-container d-flex flex-wrap gap-2 mt-2" >
             {previewImages.map((image, index) => (
@@ -1417,6 +1406,16 @@ export default function ChatGroup(props) {
                 <Image size={20} />
               </button>
 
+              {Object.values(typingUsers).length > 0 && (
+                <div className="typing-indicator">
+                  <small className="text-muted">
+                    {Object.values(typingUsers).length === 1
+                      ? `${Object.values(typingUsers)[0]} đang nhập...`
+                      : `${Object.values(typingUsers).length} người đang nhập...`}
+                  </small>
+                </div>
+              )}
+
               {/* Input tin nhắn */}
               <input
                 className="form-control flex-1 p-2 border rounded-lg outline-none"
@@ -1470,7 +1469,7 @@ export default function ChatGroup(props) {
         showSidebar &&
         <div
           className="col-auto bg-white border-start"
-          style={{ width: "290px", height: "100vh", overflowY: "auto" }}
+          style={{ width: "300px", height: "100vh", overflowY: "auto" }}
         >
           {
             showManageGroup ?

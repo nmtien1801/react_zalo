@@ -701,15 +701,17 @@
 }
 
 .typing-indicator {
+  position: absolute;
+  left: 10px;
   padding: 5px 12px;
   background-color: rgba(255, 255, 255, 0.95);
   border-radius: 12px;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
-  z-index: 10;
-  max-width: 40%;
+  z-index: 1000;
+  max-width: 80%;
   animation: fadeIn 0.3s ease-in;
   border: 1px solid #f0f0f0;
-  display: inline-block;
+  transition: bottom 0.3s ease;
 }
 
 .typing-indicator.normal {

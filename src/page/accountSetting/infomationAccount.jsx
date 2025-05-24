@@ -4,8 +4,7 @@ import { uploadAvatar, uploadProfile } from '../../redux/profileSlice.js'
 import { uploadAvatarProfile } from '../../redux/authSlice.js'
 import { useNavigate } from "react-router-dom";
 
-const infomationAccount = ({ toggleModalInfomation, socketRef }) => {
-    const user = useSelector((state) => state.auth.userInfo);
+const infomationAccount = ({ toggleModalInfomation, socketRef, user }) => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
 

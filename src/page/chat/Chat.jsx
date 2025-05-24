@@ -446,8 +446,8 @@ export default function ChatInterface(props) {
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
 
     if (seconds < 60) return "Vừa xong";
-    if (minutes < 60) return `${minutes} phút trước`;
-    if (hours < 24) return `${hours} giờ trước`;
+    if (minutes < 60) return `${minutes} phút`;
+    if (hours < 24) return `${hours} giờ`;
     if (days === 1) return "Hôm qua";
 
     const date = new Date(past);
@@ -492,7 +492,7 @@ export default function ChatInterface(props) {
                   className="btn btn-light rounded-circle mb-1"
                   onClick={handleCloseSearch}
                 >
-                  Đóng
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M19 6.41L17.59 5L12 10.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L12 13.41L17.59 19L19 17.59L13.41 12z"/></svg>
                 </button>) : (
                 <>
                   <button className="btn btn-light rounded-circle mb-1"
@@ -551,7 +551,9 @@ export default function ChatInterface(props) {
                   conversations.map((chat) => (
                     <div
                       key={chat._id}
-                      className="d-flex align-items-center p-2 border-bottom hover-bg-light cursor-pointer"
+                      className={`d-flex align-items-center p-2 border-bottom hover-bg-light cursor-pointer ${
+                        selectedUser && selectedUser._id === chat._id ? 'active-chat' : ''
+                      }`}
                       onClick={() => {
                         handleTypeChat(chat.type, chat);
                         setSelectedUser(chat);

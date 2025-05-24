@@ -8,8 +8,6 @@ import './settingModel.css';
 const settingModel = ({ toggleModalSetting }) => {
    const [selected, setSelected] = useState("general");
 
-
-
    return (
       <div className="zl-modal animated fadeIn">
          <div className="zl-modal__container flx-1 flx flx-center flx-al-c ovf-hidden">

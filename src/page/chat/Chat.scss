@@ -751,3 +751,174 @@
   from { opacity: 0; transform: translateX(-10px); }
   to { opacity: 1; transform: translateX(0); }
 }
+
+/* Cải tiến cho Left Sidebar */
+.col-3.border-end.bg-white {
+  transition: all 0.3s ease;
+  box-shadow: 1px 0 5px rgba(0, 0, 0, 0.05);
+  
+  /* Search section */
+  .p-2.border-bottom {
+    padding: 12px 10px !important;
+    background: linear-gradient(to right, #f9f9f9, #ffffff);
+
+    .d-flex.align-items-center.pb-3 {
+      gap: 8px;
+    }
+    
+    .input-group {
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
+      
+      input {
+        border-radius: 20px 0 0 20px !important;
+        border: 1px solid #eaeaea;
+        padding-left: 15px;
+        transition: all 0.2s ease;
+        
+        &:focus {
+          box-shadow: none;
+          border-color: #0d6efd50;
+        }
+      }
+      
+      .btn {
+        border-radius: 0 20px 20px 0 !important;
+        background-color: #f8f9fa;
+        border: 1px solid #eaeaea;
+        border-left: none;
+        
+        &:hover {
+          background-color: #e9ecef;
+        }
+      }
+    }
+    
+    .btn.rounded-circle {
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+      transition: all 0.2s ease;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+    }
+  }
+  
+  /* Conversation list */
+  .overflow-auto {
+    padding-top: 8px;
+    background: white;
+    
+    /* Filter tabs */
+    .d-flex.align-items-center.justify-content-between {
+      padding: 0 16px 8px;
+      margin-bottom: 8px;
+      
+      span {
+        font-weight: 500;
+        transition: all 0.2s ease;
+        padding-bottom: 4px;
+        
+        &:hover {
+          color: #0d6efd;
+        }
+      }
+    }
+    
+    /* Chat item */
+    .d-flex.align-items-center.p-2.border-bottom {
+      transition: all 0.2s ease;
+      border-radius: 6px;
+      margin: 0 8px 4px;
+      border: none !important;
+      position: relative;
+      background-color: transparent;
+      
+      &::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 16px;
+        right: 16px;
+        height: 1px;
+        background-color: #f0f0f0;
+      }
+      
+      &:last-child::after {
+        display: none;
+      }
+      
+      &:hover {
+        background-color: #f5f7fa;
+      }
+      
+      img.rounded-circle {
+        background: white;
+        border: 2px solid #fff;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s ease;
+      }
+      
+      .fw-medium {
+        font-weight: 600 !important;
+        margin-bottom: 2px;
+      }
+      
+      small.text-muted {
+        color: #081b3a;
+        font-weight: 500 !important;
+        font-size: .75rem;
+        opacity: 0.7;
+        line-height: 21px;
+      }
+      
+      &:hover img.rounded-circle {
+        transform: scale(1.05);
+      }
+    }
+
+    .active-chat {
+      background: #bcd5ff !important;
+      position: relative;
+      z-index: 1;
+
+      &::after {
+        display: none;
+      }
+
+      .fw-medium {
+        color: #0d3c80; /* Màu đậm hơn cho tên người dùng khi active */
+      }
+      
+      small.text-muted {
+        color: #0d4694 !important; /* Đảm bảo màu chữ phù hợp với nền */
+      }
+
+    }
+  }
+}
+
+/* Modernize scrollbar */
+.overflow-auto::-webkit-scrollbar {
+  width: 6px;
+}
+
+.overflow-auto::-webkit-scrollbar-track {
+  background: #f9f9f9;
+}
+
+.overflow-auto::-webkit-scrollbar-thumb {
+  background: #d8d8d8;
+  border-radius: 10px;
+  
+  &:hover {
+    background: #bdbdbd;
+  }
+}

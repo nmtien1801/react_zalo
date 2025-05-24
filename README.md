@@ -1,13 +1,29 @@
-# Ứng dụng Zata 
+<div align="center">
+
+  <img src="https://seeklogo.com/images/Z/zalo-logo-181F4988DA-seeklogo.com.png" width="100" alt="Zalo Logo"/>
+
+  <h1>Ứng dụng Zata</h1>
+
+  <p><em>Ứng dụng ngắn tin số 1 Việt Nam!</em></p>
+
+</div>
+
+## I. Screenshorts của các chức năng trong ứng dụng.
+
+### 1. Chức nằng đăng ký.
+- Hình ảnh:
+  
+![image](https://github.com/user-attachments/assets/34d5f5be-a8da-444e-bd2e-7a1060f3bb66)
+- Chức năng đăng ký đơn giản nhưng có xác thực người dùng giúp: 
+  + Xác minh danh tính người dùng thật.
+  + Bảo mật tài khoản người dùng.
+  + Hỗ trợ khôi phục mật khẩu.
+  + Giao tiếp với người dùng.
+### 2. Chức năng đăng nhập.
 
 
 
-## I. Screen short các chức năng của ứng dụng.
 
-In the project directory, you can run:
-
-
-### `npm start`
 
 Runs the app in the development mode.\
 Open [http://localhost:3000](http://localhost:3000) to view it in your browser.

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Search, UserPlus, Users } from "lucide-react";
+import { ImageIcon, Search, UserPlus, Users } from "lucide-react";
 import "./Chat.scss";
 import ChatPerson from "./ChatPerson";
 import ChatGroup from "./ChatGroup";
@@ -16,6 +16,7 @@ import { getUserByPhoneService } from "../../service/userService";
 import { createConversationGroupService } from "../../service/chatService";
 import { getFriendListService } from "../../service/friendShipService";
 import { uploadAvatar } from "../../redux/profileSlice";
+import WelcomePage from "./WelcomePage";
 
 export default function ChatInterface(props) {
   const dispatch = useDispatch();
@@ -432,6 +433,7 @@ export default function ChatInterface(props) {
       });
 
       setConversations(_conversations);
+
     }
   }, [conversationRedux]);
 
@@ -548,7 +550,9 @@ export default function ChatInterface(props) {
                   <div className="cursor-pointer hover-bg-light p-1">Phân loại</div>
                 </div>
                 {conversations &&
-                  conversations.map((chat) => (
+                  conversations.map((chat) => {
+                    console.log(chat);
+                    return (
                     <div
                       key={chat._id}
                       className={`d-flex align-items-center p-2 border-bottom hover-bg-light cursor-pointer ${
@@ -576,16 +580,32 @@ export default function ChatInterface(props) {
                         </div>
                         <div
                           className="text-truncate small text-muted"
-                          style={{ maxWidth: "200px", whiteSpace: "nowrap" }}
+                          style={{ maxWidth: "200px", whiteSpace: "nowrap", alignItems: "center", display: "flex" }}
                         >
-                          {chat.message}
+                          {(() => {
+                            // Regex kiểm tra link ảnh (jpg, jpeg, png, gif, webp)
+                            const imageRegex = /(https?:\/\/[^\s,]+?\.(jpg|jpeg|png|gif|webp))/gi;
+                            // Nếu là nhiều link ảnh, phân tách bởi dấu phẩy hoặc khoảng trắng
+                            const isImage =
+                              typeof chat.message === "string" &&
+                              chat.message.split(/,|\s/).some((url) => imageRegex.test(url));
+                            if (isImage) {
+                              return (
+                                <>
+                                  <ImageIcon size={16} className="me-1" />
+                                  Hình ảnh
+                                </>
+                              );
+                            }
+                            return chat.message;
+                          })()}
                         </div>
                       </div>
                       <small className="text-muted ms-auto">
                         {convertTime(chat.time)}
                       </small>
                     </div>
-                  ))}
+                  )})}
               </>)}
           </div>
         </div>
@@ -635,7 +655,7 @@ export default function ChatInterface(props) {
               )}
             </>
           ) : (
-            <>Chào mừng bạn đến với chúng tôi</>
+            <WelcomePage/>
           )}
         </div>
       </div>

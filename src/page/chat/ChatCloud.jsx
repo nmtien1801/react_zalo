@@ -71,6 +71,9 @@ export default function ChatPerson(props) {
   const [emojiButtonPosition, setEmojiButtonPosition] = useState({ top: 0, left: 0, right: 0 });
   const emojiButtonRef = useRef(null);
 
+  // Ref cho input msg
+  const messageInputRef = useRef(null);
+
   //Object Ánh xạ Emoji
   const emojiToTextMap = {
     "👍": "Like",
@@ -182,6 +185,20 @@ export default function ChatPerson(props) {
     setLinkMessages(links); // Lưu các tin nhắn dạng URL
   }, [messages]);
 
+  useEffect(() => {
+    const inputElement = messageInputRef.current;
+    
+    if (inputElement) {
+      inputElement.addEventListener('paste', handlePaste);
+    }
+    
+    return () => {
+      if (inputElement) {
+        inputElement.removeEventListener('paste', handlePaste);
+      }
+    };
+  }, []);
+
   const cleanFileName = (fileName) => {
     // Loại bỏ các ký tự hoặc số không cần thiết ở đầu tên file
     return fileName.replace(/^\d+_|^\d+-/, ""); // Loại bỏ số và dấu gạch dưới hoặc gạch ngang ở đầu
@@ -191,6 +208,40 @@ export default function ChatPerson(props) {
 
   const openModal = () => setIsOpen(true);
   const closeModal = () => setIsOpen(false);
+
+  const handlePaste = (e) => {
+    const items = e.clipboardData.items;
+    
+    // Duyệt qua tất cả các items trong clipboard
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') !== -1) {
+        // Ngăn chặn paste mặc định
+        e.preventDefault();
+        
+        // Lấy file từ clipboard
+        const file = items[i].getAsFile();
+        
+        // Kiểm tra file
+        if (!file) return;
+        
+        // Thêm file vào danh sách đã chọn
+        const files = [file];
+        setSelectedFiles((prev) => [...prev, ...files]);
+        
+        // Tạo URL xem trước
+        const reader = new FileReader();
+        reader.onload = () => {
+          const imageUrl = reader.result;
+          setPreviewImages((prev) => [...prev, imageUrl]);
+          setHasSelectedImages(true);
+        };
+        reader.readAsDataURL(file);
+        
+        // Chỉ xử lý file hình ảnh đầu tiên tìm thấy
+        break;
+      }
+    }
+  };
 
   //Show popup emoji
   const handleShowEmojiPopup = () => {
@@ -401,9 +452,15 @@ export default function ChatPerson(props) {
   };
 
   const handleRemovePreview = (index) => {
+
     const updatedPreviews = [...previewImages];
+    const updatedFiles = [...selectedFiles];
+
     updatedPreviews.splice(index, 1);
+    updatedFiles.splice(index, 1);
+
     setPreviewImages(updatedPreviews);
+    setSelectedFiles(updatedFiles);
 
     if (updatedPreviews.length === 0) {
       setHasSelectedImages(false);
@@ -751,12 +808,7 @@ export default function ChatPerson(props) {
                         )}
                       </div>
                       <div
-                        className={`message-time ${msg.type === "video" || msg.type === "image"
-                          ? "text-secondary"
-                          : msg.sender._id === user._id
-                            ? "text-white"
-                            : "text-secondary"
-                          }`}
+                        className={`message-time`}
                       >
                         {convertTime(msg.createdAt)}
                       </div>
@@ -868,6 +920,7 @@ export default function ChatPerson(props) {
                 }
               }}
               placeholder="Nhập tin nhắn..."
+              ref={messageInputRef}
             />
 
             {/* Nút smile */}

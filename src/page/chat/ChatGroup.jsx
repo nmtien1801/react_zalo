@@ -84,6 +84,9 @@ export default function ChatGroup(props) {
   const [reactions, setReactions] = useState({});
   const [hideReactionTimeout, setHideReactionTimeout] = useState(null);
 
+  // Ref cho input msg
+  const messageInputRef = useRef(null);
+
   //Object Ánh xạ Emoji
   const emojiToTextMap = {
     "👍": "Like",
@@ -179,6 +182,40 @@ export default function ChatGroup(props) {
         containerWidth: chatContainerRect?.width || window.innerWidth
       });
       setShowEmojiPopup(true);
+    }
+  };
+
+  const handlePaste = (e) => {
+    const items = e.clipboardData.items;
+    
+    // Duyệt qua tất cả các items trong clipboard
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') !== -1) {
+        // Ngăn chặn paste mặc định
+        e.preventDefault();
+        
+        // Lấy file từ clipboard
+        const file = items[i].getAsFile();
+        
+        // Kiểm tra file
+        if (!file) return;
+        
+        // Thêm file vào danh sách đã chọn
+        const files = [file];
+        setSelectedFiles((prev) => [...prev, ...files]);
+        
+        // Tạo URL xem trước
+        const reader = new FileReader();
+        reader.onload = () => {
+          const imageUrl = reader.result;
+          setPreviewImages((prev) => [...prev, imageUrl]);
+          setHasSelectedImages(true);
+        };
+        reader.readAsDataURL(file);
+        
+        // Chỉ xử lý file hình ảnh đầu tiên tìm thấy
+        break;
+      }
     }
   };
 
@@ -479,6 +516,20 @@ export default function ChatGroup(props) {
     setLinkMessages(links); // Lưu các tin nhắn dạng URL
   }, [messages]);
 
+  useEffect(() => {
+    const inputElement = messageInputRef.current;
+    
+    if (inputElement) {
+      inputElement.addEventListener('paste', handlePaste);
+    }
+    
+    return () => {
+      if (inputElement) {
+        inputElement.removeEventListener('paste', handlePaste);
+      }
+    };
+  }, []);
+
   const cleanFileName = (fileName) => {
     // Loại bỏ các ký tự hoặc số không cần thiết ở đầu tên file
     return fileName.replace(/^\d+_|^\d+-/, ""); // Loại bỏ số và dấu gạch dưới hoặc gạch ngang ở đầu
@@ -558,6 +609,28 @@ export default function ChatGroup(props) {
   };
 
   useEffect(() => {
+    if (props.allMsg && props.allMsg.length > 0) {
+      setMessages(prev => {
+        return prev.map(msg => {
+          // Tìm tin nhắn trong props.allMsg có cùng nội dung và người gửi
+          const matchingNewMsg = props.allMsg.find(
+            newMsg => 
+              newMsg.sender._id === msg.sender._id && 
+              newMsg.msg === msg.msg &&
+              Math.abs(new Date(newMsg.createdAt).getTime() - new Date(msg.createdAt).getTime()) < 30000 // Thời gian tạo gần nhau (30 giây)
+          );
+          
+          if (matchingNewMsg && (msg.status === "pending" || msg.status === "fail")) {
+            // Cập nhật tin nhắn tạm thời với dữ liệu chính thức từ server
+            return { ...matchingNewMsg, status: "sent" };
+          }
+          return msg;
+        });
+      });
+    }
+  }, [props.allMsg]);
+
+  useEffect(() => {
     if (props.allMsg) {
       const filteredMessages = props.allMsg.filter(
         (msg) => !msg.memberDel?.includes(user._id)
@@ -593,8 +666,45 @@ export default function ChatGroup(props) {
       }
     }
 
+    // Tạo ID tạm thời
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+    // Thêm tin nhắn vào state với trạng thái "pending"
+    const tempMessage = {
+      _id: tempId,
+      msg: msg,
+      type: type,
+      sender: user,
+      receiver: receiver,
+      createdAt: new Date().toISOString(),
+      status: "pending",
+      tempId: tempId
+    };
+    setMessages(prev => [...prev, tempMessage]);
+
+    // Gửi tin nhắn như thường
     props.handleSendMsg(msg, type);
     setMessage("");
+
+    // Thiết lập timeout để kiểm tra sau 10 giây
+    setTimeout(() => {
+      setMessages(prev => 
+        prev.map(m => 
+          (m._id === tempId && m.status === "pending") 
+            ? { ...m, status: "fail" } 
+            : m
+        )
+      );
+    }, 10000); // 10 giây
+  };
+
+  // Hàm gửi lại tin nhắn
+  const handleResendMessage = (msg) => {
+    // Xóa tin nhắn cũ
+    setMessages(prev => prev.filter(m => m._id !== msg._id));
+    
+    // Gửi lại tin nhắn
+    sendMessage(msg.msg, msg.type);
   };
 
   // Sự kiện nhấn chuột phải
@@ -852,9 +962,15 @@ export default function ChatGroup(props) {
   };
 
   const handleRemovePreview = (index) => {
+
     const updatedPreviews = [...previewImages];
+    const updatedFiles = [...selectedFiles];
+
     updatedPreviews.splice(index, 1);
+    updatedFiles.splice(index, 1);
+
     setPreviewImages(updatedPreviews);
+    setSelectedFiles(updatedFiles);
 
     if (updatedPreviews.length === 0) {
       setHasSelectedImages(false);
@@ -1313,16 +1429,33 @@ export default function ChatGroup(props) {
                               </div>
                             )}
                           </div>
-                          <div className={`message-time ${msg.type === "video" || msg.type === "image"
-                            ? "text-secondary"
-                            : msg.sender._id === user._id
-                              ? "text-white-50"
-                              : "text-muted"
-                            }`}>
+                          <div className={`message-time`}>
                             {convertTime(msg.createdAt)}
                           </div>
                         </div>
                       </div>
+
+                      {msg.status === "pending" && (
+                        <span className="small text-warning">• Đang gửi</span>
+                      )}
+                      {msg.status === "sent" && (
+                        <span className="small text-success">• Đã gửi</span>
+                      )}
+                      {msg.status === "fail" && (
+                        <div className="d-flex align-items-center">
+                          <span className="small text-danger me-2">• Gửi thất bại</span>
+                          <button 
+                            className="btn btn-sm p-0 text-danger" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleResendMessage(msg);
+                            }}
+                          >
+                            <RotateCw size={14} /> Gửi lại
+                          </button>
+                        </div>
+                      )}
+
                     </div>
 
                   </div>
@@ -1429,6 +1562,7 @@ export default function ChatGroup(props) {
                   }
                 }}
                 placeholder="Nhập tin nhắn..."
+                ref={messageInputRef}
               />
 
               {/* Nút smile */}

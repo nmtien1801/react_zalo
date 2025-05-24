@@ -211,12 +211,12 @@ export default function ChatPerson(props) {
   const handleInputChange = (e) => {
     const text = e.target.value;
     setMessage(text);
-    
+
     // Xóa timeout hiện có để reset
     if (typingTimeout.current) {
       clearTimeout(typingTimeout.current);
     }
-    
+
     // Gửi sự kiện TYPING nếu đang nhập
     if (text.trim() !== "") {
       if (props.socketRef.current) {
@@ -231,7 +231,7 @@ export default function ChatPerson(props) {
 
         props.socketRef.current.emit("TYPING", typingData);
       }
-      
+
       // Set timeout để dừng typing sau 1.5 giây không nhập
       typingTimeout.current = setTimeout(() => {
         if (props.socketRef.current) {
@@ -268,7 +268,7 @@ export default function ChatPerson(props) {
       // Lắng nghe khi có người đang typing
       props.socketRef.current.on("USER_TYPING", (data) => {
         const { userId, username, conversationId } = data;
-        
+
         // Kiểm tra đúng cuộc trò chuyện hiện tại
         if (userId === props.roomData.receiver._id) {
           setTypingUsers(prev => ({
@@ -278,11 +278,11 @@ export default function ChatPerson(props) {
           console.log("Updated typing users:", userId, username);
         }
       });
-      
+
       // Lắng nghe khi có người dừng typing
       props.socketRef.current.on("USER_STOP_TYPING", (data) => {
         const { userId, conversationId } = data;
-        
+
         if (userId === props.roomData.receiver._id) {
           setTypingUsers(prev => {
             const newState = { ...prev };
@@ -291,12 +291,12 @@ export default function ChatPerson(props) {
           });
         }
       });
-      
+
       // Cleanup khi component unmount
       return () => {
         props.socketRef.current.off("USER_TYPING");
         props.socketRef.current.off("USER_STOP_TYPING");
-        
+
         // Dừng typing khi unmount
         if (props.socketRef.current) {
           props.socketRef.current.emit("STOP_TYPING", {
@@ -304,7 +304,7 @@ export default function ChatPerson(props) {
             receiver: props.roomData.receiver
           });
         }
-        
+
         if (typingTimeout.current) {
           clearTimeout(typingTimeout.current);
         }
@@ -728,24 +728,24 @@ export default function ChatPerson(props) {
   useEffect(() => {
     if (props.socketRef.current) {
       // Giữ nguyên các listeners hiện có
-      
+
       // Thêm listener cho RECEIVED_REACTION
       props.socketRef.current.on("RECEIVED_REACTION", (data) => {
         console.log("Received reaction:", data);
         const { messageId, userId, emoji } = data;
-        
+
         setReactions(prevReactions => {
           const currentReactions = prevReactions[messageId] || [];
-          
+
           // Tìm reaction hiện có
           const existingReactionIndex = currentReactions.findIndex(
             reaction => String(reaction.userId) === String(userId) && reaction.emoji === emoji
           );
-          
+
           let updatedReactions;
           if (existingReactionIndex !== -1) {
             // Nếu đã tồn tại -> xóa (toggle)
-            updatedReactions = currentReactions.filter((_, index) => 
+            updatedReactions = currentReactions.filter((_, index) =>
               index !== existingReactionIndex
             );
           } else {
@@ -759,19 +759,19 @@ export default function ChatPerson(props) {
               }
             ];
           }
-          
+
           return {
             ...prevReactions,
             [messageId]: updatedReactions
           };
         });
       });
-      
+
       // Bắt lỗi reaction nếu có
       props.socketRef.current.on("REACTION_ERROR", (data) => {
         console.error("Reaction error:", data.error);
       });
-      
+
       // Clean up function
       return () => {
         // Giữ nguyên cleanup code hiện có
@@ -1035,10 +1035,10 @@ export default function ChatPerson(props) {
                               )}
                             </div>
                             <div className={`message-time ${msg.type === "video" || msg.type === "image"
-                                ? "text-secondary"
-                                : msg.sender._id === user._id
-                                  ? "text-white-50"
-                                  : "text-muted"
+                              ? "text-secondary"
+                              : msg.sender._id === user._id
+                                ? "text-white-50"
+                                : "text-muted"
                               }`}>
                               {convertTime(msg.createdAt)}
                             </div>
@@ -1064,7 +1064,18 @@ export default function ChatPerson(props) {
         </div>
 
         {/* Message Input */}
-        <div className="bg-white p-2 border-top" >
+        <div className="bg-white p-1 border-top position-absolute bottom-0">
+          {/* Typing Indicator */}
+          {Object.values(typingUsers).length > 0 && (
+            <div className="typing-indicator">
+              <small className="text-muted">
+                {Object.values(typingUsers).length === 1
+                  ? `${Object.values(typingUsers)[0]} đang nhập...`
+                  : `${Object.values(typingUsers).length} người đang nhập...`}
+              </small>
+            </div>
+          )}
+
           {/* Xem hình ảnh trước khi gửi */}
           <div className="preview-container d-flex flex-wrap gap-2 mt-2" >
             {previewImages.map((image, index) => (
@@ -1169,20 +1180,6 @@ export default function ChatPerson(props) {
               <Send size={20} />
             </button>
           </div>
-
-          {Object.values(typingUsers).length > 0 && (
-            <div className={`typing-indicator ${previewImages.length > 0 ? 'with-preview' : 'normal'}`}>
-              <small className="text-muted d-flex align-items-center">
-                <span>
-                  {Object.values(typingUsers).length === 1
-                    ? `${Object.values(typingUsers)[0]} đang nhập...`
-                    : `${Object.values(typingUsers).length} người đang nhập...`}
-                </span>
-                <span className="typing-dots"></span>
-              </small>
-            </div>
-          )}
-
         </div>
       </div>
 
@@ -1203,7 +1200,7 @@ export default function ChatPerson(props) {
 
       {/* Right Sidebar */}
       {showSidebar && (
-        <div className="col-auto bg-white border-start" style={{ width: "300px", height: "100vh", overflowY: "auto" }}>
+        <div className="col-auto bg-white border-start" style={{ width: "290px", height: "100vh", overflowY: "auto" }}>
           <div className="border-bottom header-right-sidebar">
             <h6 className="text-center">Thông tin hội thoại</h6>
           </div>

@@ -1,10 +1,11 @@
-# Getting Started with Create React App
+# Ứng dụng Zata 
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
-## Available Scripts
+
+## I. Screen short các chức năng của ứng dụng.
 
 In the project directory, you can run:
+
 
 ### `npm start`
 

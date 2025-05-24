@@ -116,7 +116,7 @@ const EmojiPopup = ({ isOpen, position, showSidebar, onClose, onSelect }) => {
     
     // Kiểm tra nếu popup sẽ vượt quá đỉnh màn hình
     if (top < 10) {
-      top = triggerPos.top + 40; // Hiển thị dưới nút thay vì trên
+      top = triggerPos.top + 30; // Hiển thị dưới nút thay vì trên
     }
     
     // Sử dụng right trực tiếp thay vì tính toán left

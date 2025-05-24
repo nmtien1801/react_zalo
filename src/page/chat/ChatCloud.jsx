@@ -30,6 +30,7 @@ import ImageViewer from "./ImageViewer.jsx";
 import ShareMsgModal from "../../component/ShareMsgModal.jsx";
 import AccountInfo from "../info/accountInfo.jsx";
 import { reloadMessages } from "../../redux/chatSlice.js";
+import EmojiPopup from "../../component/EmojiPopup.jsx";
 
 export default function ChatPerson(props) {
   const dispatch = useDispatch();
@@ -64,6 +65,11 @@ export default function ChatPerson(props) {
   //Reaction
   const [reactionPopupVisible, setReactionPopupVisible] = useState(null);
   const [reactions, setReactions] = useState({});
+
+  // Emoji Popup
+  const [showEmojiPopup, setShowEmojiPopup] = useState(false);
+  const [emojiButtonPosition, setEmojiButtonPosition] = useState({ top: 0, left: 0, right: 0 });
+  const emojiButtonRef = useRef(null);
 
   //Object Ánh xạ Emoji
   const emojiToTextMap = {
@@ -185,6 +191,27 @@ export default function ChatPerson(props) {
 
   const openModal = () => setIsOpen(true);
   const closeModal = () => setIsOpen(false);
+
+  //Show popup emoji
+  const handleShowEmojiPopup = () => {
+    if (emojiButtonRef.current) {
+      const rect = emojiButtonRef.current.getBoundingClientRect();
+
+      const chatContainer = document.querySelector('.chat-container');
+      const chatContainerRect = chatContainer?.getBoundingClientRect();
+
+      setEmojiButtonPosition({
+        top: rect.top,
+        left: rect.left,
+        right: rect.right,
+        // Add these properties to help with positioning
+        containerLeft: chatContainerRect?.left || 0,
+        containerRight: chatContainerRect?.right || window.innerWidth,
+        containerWidth: chatContainerRect?.width || window.innerWidth
+      });
+      setShowEmojiPopup(true);
+    }
+  };
 
   // Sự kiện nhấn chuột phải
   const handleShowPopup = (e, msg) => {
@@ -846,12 +873,22 @@ export default function ChatPerson(props) {
             {/* Nút smile */}
             <button
               className="btn btn-light ms-2"
-              data-bs-toggle="modal"
-              data-bs-target="#iconModal"
+              // data-bs-toggle="modal"
+              // data-bs-target="#iconModal"
+              onClick={handleShowEmojiPopup}
+              ref={emojiButtonRef}
             >
               <Smile size={20} />
             </button>
-            <IconModal onSelect={handleEmojiSelect} />
+            {/* <IconModal onSelect={handleEmojiSelect} /> */}
+
+            <EmojiPopup
+              isOpen={showEmojiPopup}
+              position={emojiButtonPosition}
+              showSidebar={showSidebar}
+              onClose={() => setShowEmojiPopup(false)}
+              onSelect={handleEmojiSelect}
+            />
 
             {/* Nút gửi */}
             <button

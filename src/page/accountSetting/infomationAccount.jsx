@@ -4,6 +4,9 @@ import { uploadAvatar, uploadProfile } from '../../redux/profileSlice.js'
 import { uploadAvatarProfile } from '../../redux/authSlice.js'
 import { useNavigate } from "react-router-dom";
 
+import "./modernStyles.css";
+import { toast } from "react-toastify";
+
 const infomationAccount = ({ toggleModalInfomation, socketRef, user }) => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
@@ -27,25 +30,53 @@ const infomationAccount = ({ toggleModalInfomation, socketRef, user }) => {
     // Xử lý upload file
     const handleFileChange = async (e) => {
         const selectedFile = e.target.files[0];
-        if (!selectedFile) {
-            alert('k co file')
+
+        // Validate file size and type
+        if (selectedFile.size > 5 * 1024 * 1024) {
+            toast.error("Vui lòng chọn ảnh nhỏ hơn 5MB");
             return;
         }
 
+        const allowedTypes = ["image/jpeg", "image/png", "image/jpg"];
+        if (!allowedTypes.includes(selectedFile.type)) {
+            toast.error("Vui lòng chọn ảnh JPG hoặc PNG");
+            return;
+        }
 
         const formData = new FormData();
         formData.append("avatar", selectedFile);
+
+        //Show loading toast
+        const toastId = toast.loading("Đang tải lên, vui lòng đợi trong giây lát...");
 
         try {
             const response = await dispatch(uploadAvatar({ formData }));
             const { EM, EC, DT } = response.payload;
 
             if (EC === 0) {
-                setAvatarUrl(DT); // link ảnh server trả về
+                setAvatarUrl(DT);
+                toast.update(toastId, { 
+                    render: "Ảnh đại diện đã được cập nhật thành công", 
+                    type: "success", 
+                    isLoading: false,
+                    autoClose: 3000
+                });
+            } else {
+                toast.update(toastId, { 
+                    render: "Có lỗi xảy ra, vui lòng thử lại", 
+                    type: "error", 
+                    isLoading: false,
+                    autoClose: 3000
+                });
             }
         } catch (error) {
             console.error("Upload error:", error);
-            alert('err')
+            toast.update(toastId, { 
+                render: "Có lỗi xảy ra, vui lòng thử lại", 
+                type: "error", 
+                isLoading: false,
+                autoClose: 3000
+            });
         }
     };
 
@@ -56,20 +87,103 @@ const infomationAccount = ({ toggleModalInfomation, socketRef, user }) => {
 
     // sửa profile
     const handleChange = (field) => (e) => {
-        setUserUpdate((prev) => ({ ...prev, [field]: e.target.value }));
+        let value = e.target.value;
+        
+        // Nếu là trường dob, chuyển đổi từ yyyy-MM-dd sang dd/MM/yyyy
+        if (field === "dob") {
+            value = formatDateForStorage(value);
+        }
+        
+        setUserUpdate(prev => ({ ...prev, [field]: value }));
     };
 
     const handleUpdateInfo = async () => {
-        let data = {
-            ...userUpdate,
-            avatar: avatarUrl,
-        };
 
-        let res = await dispatch(uploadProfile(data));
-        if (res.payload.EC === 0) {
-            socketRef.current.emit("REQ_UPDATE_AVATAR");
-            toggleModalInfomation()
+        if (!userUpdate.username.trim()) {
+            toast.warning("Tên người dùng không được để trống");
+            return;
         }
+
+        const toastId = toast.loading("Đang cập nhật, vui lòng đợi trong giây lát...");
+
+        try {
+
+            let data = {
+                ...userUpdate,
+                avatar: avatarUrl,
+            };
+
+            let res = await dispatch(uploadProfile(data));
+
+            if (res.payload.EC === 0) {
+                socketRef.current.emit("REQ_UPDATE_AVATAR");
+                toast.update(toastId, { 
+                    render: "Thông tin tài khoản đã được cập nhật thành công", 
+                    type: "success", 
+                    isLoading: false,
+                    autoClose: 3000
+                });
+                setTimeout(() => {
+                    toggleModalInfomation();
+                }, 1500);
+            }else {
+                toast.update(toastId, { 
+                    render: res.payload.EM || "Có lỗi xảy ra, vui lòng thử lại", 
+                    type: "error", 
+                    isLoading: false,
+                    autoClose: 3000
+                });
+            }
+
+        } catch (error) {
+            toast.update(toastId, { 
+                render: "Có lỗi xảy ra, vui lòng thử lại", 
+                type: "error", 
+                isLoading: false,
+                autoClose: 3000
+            });
+            console.error("Update error:", error);
+        }
+
+    };
+
+    const formatDateForInput = (dateString) => {
+        if (!dateString) return '';
+        
+        // Kiểm tra xem dateString có định dạng dd/MM/yyyy không
+        const dateParts = dateString.split('/');
+        if (dateParts.length === 3) {
+            // Chuyển từ dd/MM/yyyy sang yyyy-MM-dd cho input type="date"
+            const day = dateParts[0];
+            const month = dateParts[1];
+            const year = dateParts[2];
+            return `${year}-${month}-${day}`;
+        }
+        
+        // Nếu là định dạng khác, thử dùng Date object
+        try {
+            const date = new Date(dateString);
+            if (!isNaN(date.getTime())) {
+                return date.toISOString().split('T')[0];
+            }
+        } catch (error) {
+            console.error("Không thể chuyển đổi ngày:", error);
+        }
+        
+        return '';
+    };
+
+    const formatDateForStorage = (dateString) => {
+        if (!dateString) return '';
+        
+        const date = new Date(dateString);
+        if (!isNaN(date.getTime())) {
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+            return `${day}/${month}/${year}`;
+        }
+        return dateString;
     };
 
     const convertTime = (time) => {
@@ -83,131 +197,125 @@ const infomationAccount = ({ toggleModalInfomation, socketRef, user }) => {
     };
 
     return (
-        <div className="zl-modal animated fadeIn">
-            <div className="zl-modal__container flx-1 flx flx-center flx-al-c ovf-hidden">
-                <div className="zl-modal__dialog flx flx-col animated zoomIn no-border zl-infomation-account">
-
-                    <div className="zl-modal__dialog__header flx flx-sp-btw ">
-                        <div className="flx flx-al-c flx-1 z-flex truncate">
-                            <div className="truncate">
-                                <span className="zl-modal__dialog__header__title-text v0 truncate black" title="Thông tin tài khoản">Thông tin tài khoản</span>
-                            </div>
-                            <div icon="close f16" className="z--btn--v2 k-close btn-tertiary-neutral medium modal-header-icon --full-rounded icon-only modal-header-icon" data-disabled="" title="" onClick={toggleModalInfomation}><i className="fa fa-close f16 pre"></i></div>
+        <div className="modern-modal-overlay" onClick={(e) => {
+            if (e.target === e.currentTarget) toggleModalInfomation();
+        }}>
+            <div className="modern-modal">
+                <div className="modern-modal-header">
+                    <h5 className="modern-modal-title">Thông tin tài khoản</h5>
+                    <button className="modern-modal-close" onClick={toggleModalInfomation}>&times;</button>
+                </div>
+                
+                <div className="modern-modal-body">
+                    {/* Cover photo */}
+                    <div className="account-cover">
+                        <img 
+                            src="https://i.imgur.com/F3LORSG.jpeg" 
+                            alt="Cover" 
+                        />
+                        <div className="account-cover-edit">
+                            <i className="fa fa-camera"></i>
                         </div>
                     </div>
-
-                    <div id="zl-modal__dialog-body" className="zl-modal__dialog-body no-padding free-height ">
-                        <div className="k-flex">
-                            <div className="stack-navigation k-body-info" >
-                                <div className="stack-page">
-                                    <div className="k-body-container">
-                                        <div className="k-body-main">
-                                            <div className="pi-info-layout">
-                                                <div className="pi-info-cover clickable rel">
-                                                    <img src="https://cover-talk.zadn.vn/8/4/5/f/12/0e029b40ab888036e163cd19734fe529.jpg" crossOrigin="Anonymous" /></div>
-                                                <div className="pi-info-layout__primary-info-container pi-info-layout__primary-info-container_has-cover">
-                                                    <div className="pi-info-layout__mini-info-container">
-                                                        <div className="pi-mini-info-section">
-                                                            <div className="rel zavatar-container pi-mini-info-section__avatar">
-                                                                <div className="zavatar zavatar-xxll zavatar-single flx flx-al-c flx-center rel disableDrag clickable">
-                                                                    <img draggable="false"
-                                                                        src={avatarUrl ? avatarUrl : "https://s120-ava-talk.zadn.vn/2/2/d/9/20/120/0e029b40ab888036e163cd19734fe529.jpg"}
-                                                                        className="a-child" /></div>
-                                                                <div icon="Camera_24_Line" className="z--btn--v2 btn-neutral medium pi-mini-info-section__ava-icon --full-rounded icon-only pi-mini-info-section__ava-icon" title="Cập nhật ảnh đại diện">
-                                                                    {/* Input file ẩn */}
-                                                                    <input
-                                                                        type="file"
-                                                                        accept="image/jpeg,image/png"
-                                                                        onChange={handleFileChange}
-                                                                        ref={fileInputRef}
-                                                                        style={{ display: "none" }} // Ẩn input
-                                                                    />
-
-                                                                    {/* Nút tùy chỉnh */}
-                                                                    <i className="fa fa-camera pre" onClick={handleButtonClick} ></i></div>
-                                                            </div>
-                                                            <div className="pi-mini-info-section__info">
-                                                                <div className="pi-mini-info-section__name" >
-                                                                    <div className="k-flx rel k-flx-row">
-                                                                        <div className="truncate black">{user.username}</div>
-                                                                        <div icon="Edit_1_24_Line" className="z--btn--v2 btn-tertiary-neutral small ml-8 f16 --full-rounded icon-only ml-8 f16" data-disabled="" data-translate-title="Chỉnh sửa" title="Chỉnh sửa"><i className="fa fa-edit pre"></i></div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="pi-mini-info-section__label"></div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div className="pi-info-layout__extra-info-container">
-                                                    <div className="pi-info-card">
-                                                        <span className="pi-info-card__title pi-info-card__title_emphasized" data-translate-inner="STR_PERSONAL_INFO" data-translate-text-arguments="[&quot;&quot;]">Thông tin cá nhân</span>
-                                                        <div className="pi-info-section">
-                                                            <div className="pi-info-section__info-list">
-
-                                                                <div className="pi-info-item pi-info-item_horizontal">
-                                                                    <div className="pi-info-item__content">
-                                                                        <span className="pi-info-item__title" data-translate-inner="STR_PROFILE_LABEL_GENDER">Tên người dùng</span>
-                                                                        <span className="content-copiable">
-                                                                            <input className="pi-info-item__desc black" type="text" value={userUpdate.username} onChange={handleChange("username")} />
-                                                                        </span>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="pi-info-item pi-info-item_horizontal">
-                                                                    <div className="pi-info-item__content">
-                                                                        <span className="pi-info-item__title" data-translate-inner="STR_PROFILE_LABEL_GENDER">Email</span>
-                                                                        <span className="content-copiable">
-                                                                            <p className="pi-info-item__desc black">{user.email}</p>
-                                                                        </span>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="pi-info-item pi-info-item_horizontal">
-                                                                    <div className="pi-info-item__content">
-                                                                        <span className="pi-info-item__title" data-translate-inner="STR_PROFILE_PHONENUMBER">Điện thoại</span>
-                                                                        <span className="content-copiable">
-                                                                            <p className="pi-info-item__desc black">{user.phone}</p>
-                                                                        </span>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="pi-info-item pi-info-item_horizontal">
-                                                                    <div className="pi-info-item__content">
-                                                                        <span className="pi-info-item__title" data-translate-inner="STR_PROFILE_LABEL_BIRTHDAY">Ngày sinh</span>
-                                                                        <span className="content-copiable">
-                                                                            <input className="pi-info-item__desc black" type="text" value={userUpdate.dob} onChange={handleChange("dob")} />
-                                                                        </span>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="pi-info-item pi-info-item_horizontal">
-                                                                    <div className="pi-info-item__content">
-                                                                        <span className="pi-info-item__title" data-translate-inner="STR_PROFILE_LABEL_GENDER">Giới tính</span>
-                                                                        <span className="content-copiable">
-                                                                            <input className="pi-info-item__desc black" type="text" value={userUpdate.gender} onChange={handleChange("gender")} />
-                                                                        </span>
-                                                                    </div>
-                                                                    <p className="pi-info-item__subtitle ">Chỉ bạn bè có lưu số của bạn trong danh bạ máy xem được số này</p>
-                                                                </div>
-                                                            </div>
-                                                            <div className="pi-info-section__cta">
-                                                                <div className="seperator"></div>
-                                                                <div className="z--btn--v2 btn-tertiary-neutral medium  --full-width" data-disabled="" title="" onClick={() => handleUpdateInfo()}><i className="fa fa-pencil-alt mr-4"></i><span data-translate-inner="STR_UPDATE">Cập nhật</span></div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div >
-                                            <div ></div>
-                                        </div>
-                                        <div id="scroll-vertical" >
-                                            <div ></div>
-                                        </div>
+                    
+                    {/* Profile section */}
+                    <div className="account-profile">
+                        <div className="account-avatar-container">
+                            <img 
+                                src={avatarUrl || "https://i.imgur.com/cIRFqAL.png"} 
+                                alt="Avatar" 
+                                className="account-avatar" 
+                            />
+                            <div className="avatar-edit" onClick={handleButtonClick}>
+                                <i className="fa fa-camera"></i>
+                            </div>
+                            <input
+                                type="file"
+                                ref={fileInputRef}
+                                style={{ display: "none" }}
+                                accept="image/jpeg,image/png"
+                                onChange={handleFileChange}
+                            />
+                        </div>
+                        
+                        <div className="account-name-container">
+                            <h3 className="account-name">
+                                {user?.username}
+                                <i className="fa fa-edit edit-icon"></i>
+                            </h3>
+                        </div>
+                    </div>
+                    
+                    {/* Info card */}
+                    <div className="account-info">
+                        <div className="info-card">
+                            <h5 className="info-title">Thông tin cá nhân</h5>
+                            
+                            <div className="info-form">
+                                <div className="form-group">
+                                    <label className="form-label">Tên người dùng</label>
+                                    <input 
+                                        type="text" 
+                                        className="form-control" 
+                                        value={userUpdate.username}
+                                        onChange={handleChange("username")}
+                                    />
+                                </div>
+                                
+                                <div className="form-group">
+                                    <label className="form-label">Email</label>
+                                    <input 
+                                        type="email" 
+                                        className="form-control" 
+                                        value={userUpdate.email}
+                                        disabled
+                                    />
+                                </div>
+                                
+                                <div className="form-group">
+                                    <label className="form-label">Điện thoại</label>
+                                    <input 
+                                        type="text" 
+                                        className="form-control" 
+                                        value={userUpdate.phone}
+                                        disabled
+                                    />
+                                    <span className="form-hint">Chỉ bạn bè có lưu số của bạn trong danh bạ máy xem được số này</span>
+                                </div>
+                                
+                                <div className="form-group-row gap-3">
+                                    <div className="form-group" style={{flex: 1}}>
+                                        <label className="form-label">Ngày sinh</label>
+                                        <input 
+                                            type="date" 
+                                            className="form-control" 
+                                            value={formatDateForInput(userUpdate.dob)}
+                                            onChange={handleChange("dob")}
+                                        />
+                                    </div>
+                                    
+                                    <div className="form-group" style={{flex: 1}}>
+                                        <label className="form-label">Giới tính</label>
+                                        <select 
+                                            className="info-select"
+                                            value={userUpdate.gender}
+                                            onChange={handleChange("gender")}
+                                        >
+                                            <option value="">Chọn giới tính</option>
+                                            <option value="male">Nam</option>
+                                            <option value="female">Nữ</option>
+                                            <option value="other">Khác</option>
+                                        </select>
                                     </div>
                                 </div>
+                                
+                                <button className="update-button" onClick={handleUpdateInfo}>
+                                    <i className="fa fa-save"></i>
+                                    Cập nhật thông tin
+                                </button>
                             </div>
                         </div>
                     </div>
-                    <div className="zl-mini-notification mn-modal"></div>
-
                 </div>
             </div>
         </div>

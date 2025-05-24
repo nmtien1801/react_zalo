@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useRef } from "react";
+
 import Modal from 'react-bootstrap/Modal';
 import Button from 'react-bootstrap/Button';
 import { Dropdown } from 'react-bootstrap';
 
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../../redux/authSlice";
 
 import './accountSetting.css';
@@ -23,6 +24,7 @@ const CustomModal = ({ socketRef }) => {
 
     const dispatch = useDispatch();
     const dropdownRef = useRef(null);
+    const user = useSelector((state) => state.auth.userInfo);
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -108,6 +110,7 @@ const CustomModal = ({ socketRef }) => {
     }
 
     return (
+        <>
         <div className="custom-dropdown" ref={dropdownRef}>
             <button className="leftbar-tab" onClick={toggleDropdown}>
                 <div className="mmi-icon-wr">
@@ -196,16 +199,27 @@ const CustomModal = ({ socketRef }) => {
 
             )}
 
-
-            {isOpenModelSetting && (
-                <SettingModel toggleModalSetting={toggleModalSetting} />
-            )}
-
-            {isOpenModelInfomationAccount && (
-                <InfomationAccount toggleModalInfomation={toggleModalInfomation} socketRef={socketRef} />
-            )}
-
         </div>
+
+
+        {/* Đưa modals ra khỏi dropdown để chúng không bị ảnh hưởng khi dropdown đóng */}
+        {isOpenModelSetting && (
+            <div className="modal-container">
+                <SettingModel toggleModalSetting={toggleModalSetting} />
+            </div>
+        )}
+
+        {isOpenModelInfomationAccount && (
+            <div className="modal-container">
+                <InfomationAccount 
+                    toggleModalInfomation={toggleModalInfomation}
+                    socketRef={socketRef}
+                    user={user} 
+                 />
+            </div>
+        )}
+
+        </>
     );
 };
 

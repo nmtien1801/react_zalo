@@ -1,0 +1,378 @@
+/* ========== COMMON MODAL STYLES ========== */
+.custom-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.custom-modal-container {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  position: relative;
+  overflow: hidden;
+  max-height: 90vh;
+  animation: modalFadeIn 0.2s;
+}
+
+.custom-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+.custom-modal-title {
+  font-size: 1.125rem;
+  font-weight: 500;
+  margin: 0;
+  color: #081b3a;
+}
+
+.custom-modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #5a6981;
+}
+
+.custom-modal-body {
+  overflow-y: auto;
+}
+
+.custom-modal-footer {
+  border-top: 1px solid rgba(0, 0, 0, 0.15);
+  padding: 12px 16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ========== DROPDOWN MENU STYLES ========== */
+.custom-dropdown {
+  position: relative;
+}
+
+.leftbar-tab {
+  height: 56px;
+  color: #fff;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  background: transparent;
+  border: none;
+}
+
+.mmi-icon-wr {
+  display: flex;
+  justify-content: center;
+  height: calc(100% - 8px);
+  align-items: center;
+  border-radius: 6px;
+}
+
+.z-noti-badge-container {
+  display: flex;
+  position: relative;
+}
+
+.internal-icon {
+  font-size: 1.75rem;
+  line-height: 0;
+}
+
+.zmenu-body {
+  position: absolute;
+  background-color: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 8px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+  z-index: 9999;
+  margin-top: 5px;
+  width: 200px;
+  max-width: 270px;
+  min-width: 140px;
+  opacity: 1;
+  left: 8px;
+  bottom: 67.8px;
+}
+
+.zmenu-item {
+  height: 36px;
+  min-width: 112px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  color: #081b3a;
+  position: relative;
+  margin: 0 -8px;
+  background-color: #fff;
+}
+
+.zmenu-item:hover {
+  background-color: #f1f1f1;
+}
+
+.menu-icon {
+  font-size: 1.25rem;
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.menu-icon.left {
+  margin-right: 12px;
+}
+
+.trailing-icon {
+  margin-left: auto;
+}
+
+.zmenu-separator {
+  height: 1px;
+  background-color: #ddd;
+  margin: 5px 0;
+}
+
+.zmenu-sub {
+  padding: 8px;
+  position: absolute;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+  z-index: 9999;
+  transform: translate(calc(100% + 40px), calc(50% - 130px));
+  display: block;
+  width: 157px;
+}
+
+.logout {
+  color: #c31818;
+}
+
+/* ========== SETTINGS MODAL STYLES ========== */
+.settings-modal {
+  width: 800px;
+  height: 600px;
+  max-width: 90vw;
+  max-height: 90vh;
+}
+
+.settings-container {
+  display: flex;
+  height: 600px;
+  max-height: calc(90vh - 57px);
+}
+
+.settings-sidebar {
+  width: 228px;
+  flex: none;
+  border-right: 1px solid rgba(0, 0, 0, 0.15);
+  background-color: #fff;
+  overflow-y: auto;
+}
+
+.settings-content {
+  flex: 1;
+  overflow-y: auto;
+  background-color: #ebecf0;
+}
+
+.setting-menu-item {
+  height: 40px;
+  padding: 0 16px;
+  color: #081b3a;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  transition: background-color 0.2s;
+}
+
+.setting-menu-item.active {
+  background-color: #dbebff;
+}
+
+.setting-menu-icon {
+  font-size: 1.125rem;
+  width: 1.125rem;
+  height: 1.125rem;
+  margin-right: 10px;
+}
+
+/* ========== INFO ACCOUNT MODAL STYLES ========== */
+.info-account-modal {
+  width: 400px;
+  max-width: 90vw;
+}
+
+.profile-cover {
+  width: 100%;
+  height: 171px;
+  overflow: hidden;
+}
+
+.profile-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-info-container {
+  background: #fff;
+  padding: 16px;
+  margin-bottom: 6px;
+}
+
+.profile-user-section {
+  display: flex;
+  align-items: center;
+  margin-top: -16px;
+}
+
+.profile-avatar-container {
+  margin-right: 16px;
+  position: relative;
+}
+
+.profile-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(0, 0, 0, 0.15);
+}
+
+.camera-icon-btn {
+  background-color: #fff;
+  color: #081b3a;
+  position: absolute;
+  z-index: 1;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  bottom: 0;
+  right: 0;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+}
+
+.profile-name-section {
+  padding-top: 20px;
+}
+
+.profile-name {
+  font-size: 1.125rem;
+  font-weight: 500;
+  color: #1c1c1c;
+  display: flex;
+  align-items: center;
+}
+
+.profile-name-edit {
+  margin-left: 8px;
+  cursor: pointer;
+}
+
+.info-card {
+  background-color: #fff;
+  padding: 12px 0;
+}
+
+.info-card-title {
+  font-size: 1rem;
+  font-weight: 500;
+  padding: 0 16px;
+  margin: 12px 0;
+  color: #1c1c1c;
+}
+
+.info-section {
+  padding: 0 16px;
+  margin-top: 12px;
+}
+
+.info-item {
+  margin-bottom: 12px;
+  display: flex;
+}
+
+.info-item-label {
+  width: 100px;
+  flex: 0 0 100px;
+  color: #5a6981;
+  font-size: 0.875rem;
+}
+
+.info-item-value {
+  flex: 1;
+  color: #1c1c1c;
+}
+
+.info-item-value input {
+  border: none;
+  border-bottom: 1px solid #e0e0e0;
+  padding: 4px 0;
+  width: 100%;
+  font-size: 0.875rem;
+}
+
+.info-item-value input:focus {
+  outline: none;
+  border-bottom: 1px solid #0d6efd;
+}
+
+.info-subtitle {
+  color: #5a6981;
+  font-size: 0.8125rem;
+  margin-top: 4px;
+}
+
+.update-btn {
+  background-color: transparent;
+  color: #081b3a;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin-top: 16px;
+}
+
+.update-btn:hover {
+  background-color: #f1f1f1;
+}
+
+.update-btn i {
+  margin-right: 4px;
+}

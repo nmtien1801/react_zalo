@@ -523,14 +523,6 @@ export default function ChatPerson(props) {
         setMessages((prevMessages) =>
           prevMessages.filter((msg) => msg._id !== id)
         );
-
-        const res = await dispatch(
-          reloadMessages({ sender: user._id, receiver: receiver._id, type: receiver.type })
-        );
-
-        if (res.payload.EC === 0) {
-          setAllMsg(res.payload.DT);
-        }
       } else {
         console.error("Xóa tin nhắn thất bại:", response.EM);
       }
@@ -811,6 +803,15 @@ export default function ChatPerson(props) {
   // call
   const handleStartCall = props?.handleStartCall;
 
+  // lọc xóa tin nhắn phía tôi
+  const filteredMessages = messages.filter((item) =>
+    !(
+      (item.isDeletedBySender && item.sender._id === user._id) ||
+      (item.isDeletedByReceiver && item.receiver._id === user._id) ||
+      (Array.isArray(item.memberDel) && item.memberDel.includes(user._id))
+    )
+  );
+
   return (
     <div className="row g-0 h-100">
       {/* Main Chat Area */}
@@ -867,11 +868,11 @@ export default function ChatPerson(props) {
           }}
         >
           <div className="flex flex-col justify-end">
-            {messages &&
-              messages.map((msg, index) => {
+            {filteredMessages &&
+              filteredMessages.map((msg, index) => {
 
                 // Kiểm tra khoảng thời gian giữa tin nhắn hiện tại và tin nhắn trước
-                const prevMsg = index > 0 ? messages[index - 1] : null;
+                const prevMsg = index > 0 ? filteredMessages[index - 1] : null;
 
                 // Kiểm tra nếu tin nhắn này và tin nhắn trước đó có cùng người gửi
                 const isSameSender = prevMsg && prevMsg.sender._id === msg.sender._id;

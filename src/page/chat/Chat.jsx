@@ -622,6 +622,7 @@ export default function ChatInterface(props) {
                   roomData={roomData}
                   handleSendMsg={handleSendMsg}
                   allMsg={allMsg}
+                  setAllMsg={setAllMsg}
                   user={user}
                   socketRef={socketRef}
                   conversations={conversations}

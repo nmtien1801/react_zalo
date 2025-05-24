@@ -357,14 +357,6 @@ export default function ChatPerson(props) {
         setMessages((prevMessages) =>
           prevMessages.filter((msg) => msg._id !== id)
         );
-
-        const res = await dispatch(
-          reloadMessages({ sender: user._id, receiver: receiver._id, type: receiver.type })
-        );
-
-        if (res.payload.EC === 0) {
-          setAllMsg(res.payload.DT);
-        }
       } else {
         console.error("Xóa tin nhắn thất bại:", response.EM);
       }
@@ -562,6 +554,15 @@ export default function ChatPerson(props) {
     setHasSelectedImages(false);
   }
 
+  // lọc xóa tin nhắn phía tôi
+  const filteredMessages = messages.filter((item) =>
+    !(
+      (item.isDeletedBySender && item.sender._id === user._id) ||
+      (item.isDeletedByReceiver && item.receiver._id === user._id) ||
+      (Array.isArray(item.memberDel) && item.memberDel.includes(user._id))
+    )
+  );
+
   return (
     <div className="row g-0 h-100">
       {/* Main Chat Area */}
@@ -612,8 +613,8 @@ export default function ChatPerson(props) {
           }}
         >
           <div className="flex flex-col justify-end">
-            {messages &&
-              messages.map((msg, index) => (
+            {filteredMessages &&
+              filteredMessages.map((msg, index) => (
                 <div
                   key={index}
                   className={`p-2 my-1 d-flex ${msg.sender._id === user._id ? "justify-content-end" : "justify-content-start"

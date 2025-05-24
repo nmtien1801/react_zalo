@@ -143,6 +143,9 @@ export default function ChatGroup(props) {
     { id: "links", title: "Link", icon: LinkIcon },
   ]);
 
+  //Typing
+  const [typingUsers, setTypingUsers] = useState({});
+  const typingTimeout = useRef(null);
 
   // nghiem
   const [mediaMessages, setMediaMessages] = useState([]);
@@ -190,6 +193,111 @@ export default function ChatGroup(props) {
     });
   };
 
+  // Thêm hàm xử lý typing
+  const handleInputChange = (e) => {
+    const text = e.target.value;
+    setMessage(text);
+    
+    // Xóa timeout hiện có để reset
+    if (typingTimeout.current) {
+      clearTimeout(typingTimeout.current);
+    }
+    
+    // Gửi sự kiện TYPING nếu đang nhập
+    if (text.trim() !== "") {
+      if (socketRef.current) {
+        socketRef.current.emit("TYPING", {
+          userId: user._id,
+          username: user.username,
+          receiver: receiver // Trong ChatGroup, biến là receiver
+        });
+
+        console.log("Gửi typing", {
+          userId: user._id,
+          username: user.username,
+          receiver: receiver
+        });
+      }
+
+      // Set timeout để dừng typing sau 1.5 giây không nhập
+      typingTimeout.current = setTimeout(() => {
+        if (socketRef.current) {
+          socketRef.current.emit("STOP_TYPING", {
+            userId: user._id,
+            receiver: receiver
+          });
+          
+          console.log("Dừng typing", {
+            userId: user._id,
+            receiver: receiver
+          });
+        }
+      }, 1500);
+    } else {
+      // Nếu input rỗng, gửi sự kiện dừng typing ngay lập tức
+      if (socketRef.current) {
+        socketRef.current.emit("STOP_TYPING", {
+          userId: user._id,
+          receiver: receiver
+        });
+
+        console.log("Dừng typing", {
+          userId: user._id,
+          receiver: receiver
+        });
+      }
+    }
+  };
+
+  // useEffect để lắng nghe sự kiện typing từ server
+  useEffect(() => {
+    if (socketRef.current) {
+      // Lắng nghe khi có người đang typing
+      socketRef.current.on("USER_TYPING", (data) => {
+        const { userId, username, conversationId } = data;
+        
+        // Kiểm tra đúng cuộc trò chuyện hiện tại
+        if (conversationId === receiver._id) {
+          setTypingUsers(prev => ({
+            ...prev,
+            [userId]: username
+          }));
+        }
+      });
+      
+      // Lắng nghe khi có người dừng typing
+      socketRef.current.on("USER_STOP_TYPING", (data) => {
+        const { userId, conversationId } = data;
+        
+        if (conversationId === receiver._id) {
+          setTypingUsers(prev => {
+            const newState = { ...prev };
+            delete newState[userId];
+            return newState;
+          });
+        }
+      });
+      
+      // Cleanup khi component unmount
+      return () => {
+        socketRef.current.off("USER_TYPING");
+        socketRef.current.off("USER_STOP_TYPING");
+        
+        // Dừng typing khi unmount
+        if (socketRef.current) {
+          socketRef.current.emit("STOP_TYPING", {
+            userId: user._id,
+            receiver: receiver
+          });
+        }
+        
+        if (typingTimeout.current) {
+          clearTimeout(typingTimeout.current);
+        }
+      };
+    }
+  }, [receiver]);
+
   const handleHideReactionPopup = (messageId) => {
     // Clear any existing timeout
     if (hideReactionTimeout) {
@@ -211,39 +319,19 @@ export default function ChatGroup(props) {
     const emojiText = emojiToTextMap[emoji];
     if (!emojiText) return;
 
-    sendReactionService(messageId, user._id, emojiText)
-      .then((response) => {
-        if (response.EC === 0) {
-          console.log("Reaction sent successfully:", response.DT);
+    const reactionData = {
+      messageId,
+      userId: user._id,
+      username: user.username,
+      emoji: emojiText,
+      receiver: receiver // Trong ChatGroup, biến là receiver thay vì props.roomData.receiver
+    };
+  
+    // Gửi reaction qua socket
+    if (socketRef.current) {
+      socketRef.current.emit("REACTION", reactionData);
+    }
 
-          setReactions((prevReactions) => {
-            const currentReactions = prevReactions[messageId] || [];
-            const existingReactionIndex = currentReactions.findIndex(
-              (reaction) => reaction.emoji === emojiText && reaction.userId === user._id
-            );
-
-            if (existingReactionIndex !== -1) {
-              currentReactions.splice(existingReactionIndex, 1);
-            } else {
-              currentReactions.push({
-                emoji: emojiText,
-                userId: user._id,
-                count: 1,
-              });
-            }
-
-            return {
-              ...prevReactions,
-              [messageId]: [...currentReactions],
-            };
-          });
-        } else {
-          console.error("Failed to send reaction:", response.EM);
-        }
-      })
-      .catch((error) => {
-        console.error("Error sending reaction:", error);
-      });
   };
 
   // Lấy phản ứng từng message
@@ -285,6 +373,57 @@ export default function ChatGroup(props) {
       fetchReactions();
     }
   }, [messages]);
+
+  useEffect(() => {
+    if (socketRef.current) {
+      // Các listeners hiện có
+      
+      // Thêm listener cho RECEIVED_REACTION
+      socketRef.current.on("RECEIVED_REACTION", (data) => {
+        console.log("Received reaction:", data);
+        const { messageId, userId, emoji } = data;
+        
+        setReactions(prevReactions => {
+          const currentReactions = prevReactions[messageId] || [];
+          const existingReactionIndex = currentReactions.findIndex(
+            reaction => String(reaction.userId) === String(userId) && reaction.emoji === emoji
+          );
+          
+          let updatedReactions;
+          if (existingReactionIndex !== -1) {
+            updatedReactions = currentReactions.filter((_, index) => 
+              index !== existingReactionIndex
+            );
+          } else {
+            updatedReactions = [
+              ...currentReactions,
+              {
+                userId: userId,
+                emoji: emoji,
+                count: 1
+              }
+            ];
+          }
+          
+          return {
+            ...prevReactions,
+            [messageId]: updatedReactions
+          };
+        });
+      });
+      
+      socketRef.current.on("REACTION_ERROR", (data) => {
+        console.error("Reaction error:", data.error);
+      });
+      
+      // Clean up
+      return () => {
+        // Giữ nguyên cleanup code hiện có
+        socketRef.current.off("RECEIVED_REACTION");
+        socketRef.current.off("REACTION_ERROR");
+      };
+    }
+  }, [receiver]);
 
   useEffect(() => {
     const media = messages.flatMap((msg) => {
@@ -1239,21 +1378,26 @@ export default function ChatGroup(props) {
                 <Image size={20} />
               </button>
 
+              {Object.values(typingUsers).length > 0 && (
+                <div className="typing-indicator">
+                  <small className="text-muted">
+                    {Object.values(typingUsers).length === 1
+                      ? `${Object.values(typingUsers)[0]} đang nhập...`
+                      : `${Object.values(typingUsers).length} người đang nhập...`}
+                  </small>
+                </div>
+              )}
+
               {/* Input tin nhắn */}
               <input
                 className="form-control flex-1 p-2 border rounded-lg outline-none"
                 type="text"
                 value={message}
-                onChange={(e) => setMessage(e.target.value)}
+                onChange={handleInputChange}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    if (previewReply !== "") {
-                      sendMessage(`${previewReply}\n\n${message}`, "text");
-                      setHasSelectedImages(false);
-                      setPreviewReply("")
-                    } else {
-                      sendMessage(message, "text");
-                    }
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleMessage(message);
                   }
                 }}
                 placeholder="Nhập tin nhắn..."

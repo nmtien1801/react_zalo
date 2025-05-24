@@ -84,6 +84,10 @@ export default function ChatPerson(props) {
   const [reactions, setReactions] = useState({});
   const [hideReactionTimeout, setHideReactionTimeout] = useState(null);
 
+  // Thêm state để theo dõi typing
+  const [typingUsers, setTypingUsers] = useState({});
+  const typingTimeout = useRef(null);
+
   //Object Ánh xạ Emoji
   const emojiToTextMap = {
     "👍": "Like",
@@ -202,6 +206,111 @@ export default function ChatPerson(props) {
 
   const openModal = () => setIsOpen(true);
   const closeModal = () => setIsOpen(false);
+
+  // Thêm hàm xử lý typing khi người dùng nhập
+  const handleInputChange = (e) => {
+    const text = e.target.value;
+    setMessage(text);
+    
+    // Xóa timeout hiện có để reset
+    if (typingTimeout.current) {
+      clearTimeout(typingTimeout.current);
+    }
+    
+    // Gửi sự kiện TYPING nếu đang nhập
+    if (text.trim() !== "") {
+      if (props.socketRef.current) {
+        const typingData = {
+          userId: user._id,
+          username: user.username,
+          receiver: props.roomData.receiver,
+          conversationId: props.roomData.receiver._id
+        };
+
+        console.log("Sending typing data:", typingData);
+
+        props.socketRef.current.emit("TYPING", typingData);
+      }
+      
+      // Set timeout để dừng typing sau 1.5 giây không nhập
+      typingTimeout.current = setTimeout(() => {
+        if (props.socketRef.current) {
+          const typingData = {
+            userId: user._id,
+            receiver: props.roomData.receiver,
+            conversationId: props.roomData.receiver._id
+          };
+
+          console.log("Typing stop", typingData);
+
+          props.socketRef.current.emit("STOP_TYPING", typingData);
+        }
+      }, 1500);
+    } else {
+      // Nếu input rỗng, gửi sự kiện dừng typing ngay lập tức
+      if (props.socketRef.current) {
+        const typingData = {
+          userId: user._id,
+          receiver: props.roomData.receiver,
+          conversationId: props.roomData.receiver._id
+        };
+
+        console.log("Typing stop", typingData);
+
+        props.socketRef.current.emit("STOP_TYPING", typingData);
+      }
+    }
+  };
+
+  // useEffect để lắng nghe sự kiện typing từ server
+  useEffect(() => {
+    if (props.socketRef.current) {
+      // Lắng nghe khi có người đang typing
+      props.socketRef.current.on("USER_TYPING", (data) => {
+        const { userId, username, conversationId } = data;
+        
+        // Kiểm tra đúng cuộc trò chuyện hiện tại
+        if (userId === props.roomData.receiver._id) {
+          setTypingUsers(prev => ({
+            ...prev,
+            [userId]: username
+          }));
+          console.log("Updated typing users:", userId, username);
+        }
+      });
+      
+      // Lắng nghe khi có người dừng typing
+      props.socketRef.current.on("USER_STOP_TYPING", (data) => {
+        const { userId, conversationId } = data;
+        
+        if (userId === props.roomData.receiver._id) {
+          setTypingUsers(prev => {
+            const newState = { ...prev };
+            delete newState[userId];
+            return newState;
+          });
+        }
+      });
+      
+      // Cleanup khi component unmount
+      return () => {
+        props.socketRef.current.off("USER_TYPING");
+        props.socketRef.current.off("USER_STOP_TYPING");
+        
+        // Dừng typing khi unmount
+        if (props.socketRef.current) {
+          props.socketRef.current.emit("STOP_TYPING", {
+            userId: user._id,
+            receiver: props.roomData.receiver
+          });
+        }
+        
+        if (typingTimeout.current) {
+          clearTimeout(typingTimeout.current);
+        }
+      };
+    }
+  }, [props.roomData.receiver]);
 
   // Sự kiện nhấn chuột phải
   const handleShowPopup = (e, msg) => {
@@ -559,39 +668,19 @@ export default function ChatPerson(props) {
     const emojiText = emojiToTextMap[emoji];
     if (!emojiText) return;
 
-    sendReactionService(messageId, user._id, emojiText)
-      .then((response) => {
-        if (response.EC === 0) {
-          console.log("Reaction sent successfully:", response.DT);
+    const reactionData = {
+      messageId,
+      userId: user._id,
+      username: user.username,
+      emoji: emojiText,
+      receiver: props.roomData.receiver
+    };
 
-          setReactions((prevReactions) => {
-            const currentReactions = prevReactions[messageId] || [];
-            const existingReactionIndex = currentReactions.findIndex(
-              (reaction) => reaction.emoji === emojiText && reaction.userId === user._id
-            );
+    // Gửi reaction qua socket thay vì gọi API trực tiếp
+    if (socketRef.current) {
+      socketRef.current.emit("REACTION", reactionData);
+    }
 
-            if (existingReactionIndex !== -1) {
-              currentReactions.splice(existingReactionIndex, 1);
-            } else {
-              currentReactions.push({
-                emoji: emojiText,
-                userId: user._id,
-                count: 1,
-              });
-            }
-
-            return {
-              ...prevReactions,
-              [messageId]: [...currentReactions],
-            };
-          });
-        } else {
-          console.error("Failed to send reaction:", response.EM);
-        }
-      })
-      .catch((error) => {
-        console.error("Error sending reaction:", error);
-      });
   };
 
   // Lấy phản ứng từng message
@@ -636,6 +725,62 @@ export default function ChatPerson(props) {
     }
   }, [messages]);
 
+  useEffect(() => {
+    if (props.socketRef.current) {
+      // Giữ nguyên các listeners hiện có
+      
+      // Thêm listener cho RECEIVED_REACTION
+      props.socketRef.current.on("RECEIVED_REACTION", (data) => {
+        console.log("Received reaction:", data);
+        const { messageId, userId, emoji } = data;
+        
+        setReactions(prevReactions => {
+          const currentReactions = prevReactions[messageId] || [];
+          
+          // Tìm reaction hiện có
+          const existingReactionIndex = currentReactions.findIndex(
+            reaction => String(reaction.userId) === String(userId) && reaction.emoji === emoji
+          );
+          
+          let updatedReactions;
+          if (existingReactionIndex !== -1) {
+            // Nếu đã tồn tại -> xóa (toggle)
+            updatedReactions = currentReactions.filter((_, index) => 
+              index !== existingReactionIndex
+            );
+          } else {
+            // Nếu chưa tồn tại -> thêm mới
+            updatedReactions = [
+              ...currentReactions,
+              {
+                userId: userId,
+                emoji: emoji,
+                count: 1
+              }
+            ];
+          }
+          
+          return {
+            ...prevReactions,
+            [messageId]: updatedReactions
+          };
+        });
+      });
+      
+      // Bắt lỗi reaction nếu có
+      props.socketRef.current.on("REACTION_ERROR", (data) => {
+        console.error("Reaction error:", data.error);
+      });
+      
+      // Clean up function
+      return () => {
+        // Giữ nguyên cleanup code hiện có
+        props.socketRef.current.off("RECEIVED_REACTION");
+        props.socketRef.current.off("REACTION_ERROR");
+      };
+    }
+  }, [props.roomData.receiver]);
+
   // Hàm làm sạch ảnh review
   const handleClearAllPreviews = () => {
     setPreviewImages([]); // Xóa toàn bộ ảnh xem trước
@@ -669,7 +814,7 @@ export default function ChatPerson(props) {
   return (
     <div className="row g-0 h-100">
       {/* Main Chat Area */}
-      <div className="col bg-light">
+      <div className="col bg-light" style={{ position: "relative" }}>
         {/* Chat Header */}
         <div className="bg-white p-2 d-flex align-items-center border-bottom justify-content-between">
           <div className="d-flex align-items-center">
@@ -718,6 +863,7 @@ export default function ChatPerson(props) {
               ? "calc(100vh - 230px)" // Khi có ảnh được chọn
               : "calc(100vh - 130px)", // Khi không có ảnh nào được chọn
             overflowY: "auto",
+            position: "relative"
           }}
         >
           <div className="flex flex-col justify-end">
@@ -914,6 +1060,7 @@ export default function ChatPerson(props) {
 
             <div ref={messagesEndRef} />
           </div>
+
         </div>
 
         {/* Message Input */}
@@ -994,16 +1141,11 @@ export default function ChatPerson(props) {
               className="form-control flex-1 p-2 border rounded-lg outline-none"
               type="text"
               value={message}
-              onChange={(e) => setMessage(e.target.value)}
+              onChange={handleInputChange}
               onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  if (previewReply !== "") {
-                    sendMessage(`${previewReply}\n\n${message}`, "text");
-                    setHasSelectedImages(false);
-                    setPreviewReply("")
-                  } else {
-                    sendMessage(message, "text");
-                  }
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleMessage(message);
                 }
               }}
               placeholder="Nhập tin nhắn..."
@@ -1027,6 +1169,19 @@ export default function ChatPerson(props) {
               <Send size={20} />
             </button>
           </div>
+
+          {Object.values(typingUsers).length > 0 && (
+            <div className={`typing-indicator ${previewImages.length > 0 ? 'with-preview' : 'normal'}`}>
+              <small className="text-muted d-flex align-items-center">
+                <span>
+                  {Object.values(typingUsers).length === 1
+                    ? `${Object.values(typingUsers)[0]} đang nhập...`
+                    : `${Object.values(typingUsers).length} người đang nhập...`}
+                </span>
+                <span className="typing-dots"></span>
+              </small>
+            </div>
+          )}
 
         </div>
       </div>

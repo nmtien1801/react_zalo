@@ -17,11 +17,15 @@
 - Mô tả:
   + Giúp người dùng tạo tài khoản để truy cập vào ứng dụng.
   
-- Ưu điểm của xác minh email: 
-  + Xác minh danh tính người dùng thật.
-  + Bảo mật tài khoản người dùng.
-  + Hỗ trợ khôi phục mật khẩu.
-  + Giao tiếp với người dùng.
+- Ưu điểm: 
+  + Đăng ký cực kỳ đơn giản – chỉ cần số điện thoại.
+  + Miễn phí 100% – không giới hạn chức năng cơ bản.
+  + Tích hợp tốt với danh bạ điện thoại.
+  + Đăng ký một lần – dùng được cả Zalo App, Web, PC
+- Nhược điểm:
+  + Phụ thuộc hoàn toàn vào số điện thoại.
+  + Không đăng ký bằng email, Google hay Facebook.
+  + Không có tùy chọn tạo tài khoản ẩn danh
     
 ### 2. Đăng nhập.
 - Hình ảnh:
@@ -31,6 +35,15 @@
   + Giúp người dùng truy cập vào hệ thống.
     
 - Ưu điểm:
+  + Đăng nhập cực nhanh bằng số điện thoại.
+  + Có thể đăng nhập nhiều thiết bị (trong giới hạn).
+  
+- Nhược điểm:
+  + Phụ thuộc hoàn toàn vào số điện thoại.
+  + Không hỗ trợ đăng nhập qua Google/Facebook.
+  + Không có tính năng xác thực 2 lớp nâng cao.
+  + Không có đăng nhập qua QR code.
+    
 ### 3. Giao diện chính.
 - Hình ảnh:
   

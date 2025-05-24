@@ -469,13 +469,12 @@ export default function ChatInterface(props) {
       <div className="row h-100 g-0 ">
         {/* Left Sidebar */}
         <div
-          className={`col-3 border-end bg-white ${typeChatRoom ? 'd-none d-lg-block' : ''
-            }`}
-          style={{ maxWidth: "300px" }}
+          className={`col-12 col-sm-6 col-md-4 col-lg-3 border-end bg-white`}
+          style={{ maxWidth: typeChatRoom ? "0" : "300px", transition: 'max-width 0.3s' }}
         >
           {/*  Search */}
           <div className="p-2 border-bottom">
-            <div className="d-flex align-items-center pb-3">
+            <div className="d-flex align-items-center">
               <div className="input-group me-3">
                 <input
                   type="text"
@@ -492,7 +491,7 @@ export default function ChatInterface(props) {
                   className="btn btn-light rounded-circle mb-1"
                   onClick={handleCloseSearch}
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M19 6.41L17.59 5L12 10.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L12 13.41L17.59 19L19 17.59L13.41 12z"/></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M19 6.41L17.59 5L12 10.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L12 13.41L17.59 19L19 17.59L13.41 12z" /></svg>
                 </button>) : (
                 <>
                   <button className="btn btn-light rounded-circle mb-1"
@@ -528,7 +527,7 @@ export default function ChatInterface(props) {
               </>) :
               (<>
                 <div className="d-flex align-items-center justify-content-between">
-                  <div className="d-flex align-items-center gap-4">
+                  <div className="d-flex align-items-center gap-4 p-2">
                     {["Tất cả", "Chưa đọc"].map((item, index) => (
                       <span
                         key={index}
@@ -551,9 +550,8 @@ export default function ChatInterface(props) {
                   conversations.map((chat) => (
                     <div
                       key={chat._id}
-                      className={`d-flex align-items-center p-2 border-bottom hover-bg-light cursor-pointer ${
-                        selectedUser && selectedUser._id === chat._id ? 'active-chat' : ''
-                      }`}
+                      className={`d-flex align-items-center p-2 border-bottom hover-bg-light cursor-pointer ${selectedUser && selectedUser._id === chat._id ? 'active-chat' : ''
+                        }`}
                       onClick={() => {
                         handleTypeChat(chat.type, chat);
                         setSelectedUser(chat);
@@ -635,7 +633,16 @@ export default function ChatInterface(props) {
               )}
             </>
           ) : (
-            <>Chào mừng bạn đến với chúng tôi</>
+            <div
+              className="d-flex justify-content-center align-items-center h-100"
+              style={{
+                fontFamily: 'Segoe UI, sans-serif',
+                fontSize: '1.2rem',
+                fontWeight: '500',
+              }}
+            >
+              Chào mừng bạn đến với chúng tôi
+            </div>
           )}
         </div>
       </div>

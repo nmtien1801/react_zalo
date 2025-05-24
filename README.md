@@ -1,6 +1,6 @@
 <div align="center">
 
-  <img src="https://seeklogo.com/images/Z/zalo-logo-181F4988DA-seeklogo.com.png" width="100" alt="Zalo Logo"/>
+  <img src="[https://seeklogo.com/images/Z/zalo-logo-181F4988DA-seeklogo.com.png](https://github.com/nmtien1801/react_zalo/blob/master/public/ChatGPT%20Image%20May%2024%2C%202025%2C%2008_44_37%20PM.png)" width="100" alt="Zalo Logo"/>
 
   <h1>Ứng dụng Zata</h1>
 

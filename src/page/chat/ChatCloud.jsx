@@ -255,30 +255,26 @@ export default function ChatPerson(props) {
     const selectedImages = e.target.files;
 
     if (selectedImages && selectedImages.length > 0) {
-
       if (selectedImages.length > 10) {
         setHasSelectedImages(false);
         alert("Số lượng ảnh không được quá 10!");
         return;
       }
 
-      const previews = [];
       const files = Array.from(e.target.files);
+      const previews = await Promise.all(
+        Array.from(selectedImages).map((image) => {
+          return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.readAsDataURL(image);
+          });
+        })
+      );
 
-      for (let image of selectedImages) {
-        // Tạo URL xem trước
-        const reader = new FileReader();
-        reader.onload = () => {
-          previews.push(reader.result); // Lưu URL xem trước vào mảng
-          setPreviewImages([...previews]); // Cập nhật state xem trước
-          setHasSelectedImages(true);
-        };
-        reader.readAsDataURL(image);
-      }
-
-      if (files.length > 0) {
-        setSelectedFiles((prev) => [...prev, ...files]);
-      }
+      setPreviewImages(previews);
+      setSelectedFiles((prev) => [...prev, ...files]);
+      setHasSelectedImages(true);
     } else {
       setHasSelectedImages(false);
     }
@@ -290,6 +286,8 @@ export default function ChatPerson(props) {
   };
 
   const handleButtonClickImage = () => {
+    setPreviewImages([]);
+    setSelectedFiles([]);
     imageInputRef.current.click(); // Mở dialog chọn file
   };
 

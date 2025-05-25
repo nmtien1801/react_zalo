@@ -183,9 +183,6 @@ export default function ChatPerson(props) {
 
   const [isOpen, setIsOpen] = useState(false);
 
-  const openModal = () => setIsOpen(true);
-  const closeModal = () => setIsOpen(false);
-
   // Sự kiện nhấn chuột phải
   const handleShowPopup = (e, msg) => {
     e.preventDefault();
@@ -573,11 +570,7 @@ export default function ChatPerson(props) {
               className="rounded-circle"
               alt=""
               style={{ width: "40px", height: "40px" }}
-              onClick={openModal}
             />
-
-            <AccountInfo isOpen={isOpen} closeModal={closeModal} socketRef={socketRef} />
-
             <div className="ms-2">
               <div className="fw-medium">Cloud của tôi</div>
               <small className="text-muted">
@@ -890,7 +883,6 @@ export default function ChatPerson(props) {
                 alt="Profile"
                 className="rounded-circle"
                 style={{ width: "80px", height: "80px" }}
-                onClick={openModal}
               />
               <button className="btn btn-light btn-sm rounded-circle position-absolute bottom-0 end-0 p-1">
                 <Edit2 size={14} />

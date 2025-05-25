@@ -575,7 +575,9 @@ export default function ChatInterface(props) {
                           className="text-truncate small text-muted"
                           style={{ maxWidth: "200px", whiteSpace: "nowrap" }}
                         >
-                          {chat.message}
+                          {chat.message.startsWith("https://monhoc1.s3.ap-southeast-1.amazonaws.com/media")
+                            ? "*file*"
+                            : chat.message}
                         </div>
                       </div>
                       <small className="text-muted ms-auto">

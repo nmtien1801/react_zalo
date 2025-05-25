@@ -1016,6 +1016,104 @@ export default function ChatPerson(props) {
 
   }
 
+  // Hàm trích xuất ID từ các định dạng khác nhau
+  const extractId = (idObject) => {
+    if (!idObject) return null;
+    
+    // Nếu là object với $oid
+    if (idObject.$oid) return idObject.$oid;
+    
+    // Nếu là string
+    if (typeof idObject === 'string') return idObject;
+    
+    // Nếu là object MongoDB đã chuyển đổi
+    if (idObject.toString) return idObject.toString();
+    
+    return null;
+  };
+
+  // Hàm xử lý dữ liệu ReadBy
+  const processReadByData = (msg, currentUserId, conversations) => {
+    // Nếu không có dữ liệu readBy
+    if (!msg.readBy || !Array.isArray(msg.readBy) || msg.readBy.length === 0) {
+      return { readers: [], count: 0 };
+    }
+    
+    // Lọc bỏ người dùng hiện tại và người gửi tin nhắn
+    const filteredReaderIds = msg.readBy.filter(readerId => {
+      const id = extractId(readerId);
+      const currentId = extractId(currentUserId);
+      const senderId = extractId(msg.sender._id);
+      
+      // Chỉ quan tâm đến người khác đã đọc (không phải người dùng hiện tại hoặc người gửi)
+      return id !== currentId && id !== senderId;
+    });
+    
+    if (filteredReaderIds.length === 0) {
+      return { readers: [], count: 0 };
+    }
+    
+    // Tạo mapping người dùng từ thông tin đã có và conversations
+    const userMap = new Map();
+    
+    // Thêm người gửi và người nhận vào map để tìm kiếm nhanh hơn
+    if (msg.sender) {
+      userMap.set(extractId(msg.sender._id), {
+        _id: msg.sender._id,
+        avatar: msg.sender.avatar || "/placeholder.svg",
+        username: msg.sender.name || "Unknown"
+      });
+    }
+    
+    if (msg.receiver) {
+      userMap.set(extractId(msg.receiver._id), {
+        _id: msg.receiver._id,
+        avatar: msg.receiver.avatar || "/placeholder.svg",
+        username: msg.receiver.name || "Unknown"
+      });
+    }
+    
+    // Thêm thành viên từ receiver.members nếu có
+    if (msg.receiver && msg.receiver.members) {
+      // Nếu là nhóm, lấy thông tin thành viên từ conversations
+      conversations.forEach(conv => {
+        if (conv._id && conv.avatar) {
+          userMap.set(extractId(conv._id), {
+            _id: conv._id,
+            avatar: conv.avatar,
+            username: conv.username || conv.name || "Unknown"
+          });
+        }
+      });
+    }
+    
+    // Lấy thông tin chi tiết của tối đa 3 người đọc
+    const detailedReaders = filteredReaderIds.slice(0, 3).map(readerId => {
+      const id = extractId(readerId);
+      // Tìm thông tin từ userMap trước
+      if (userMap.has(id)) {
+        return userMap.get(id);
+      }
+      
+      // Nếu không tìm thấy trong userMap, tìm trong conversations
+      const readerInfo = conversations.find(conv => 
+        extractId(conv._id) === id || 
+        (conv.members && conv.members.some(m => extractId(m) === id))
+      );
+      
+      return readerInfo || { 
+        _id: id, 
+        avatar: "/placeholder.svg", 
+        username: "Unknown" 
+      };
+    });
+    
+    return {
+      readers: detailedReaders,
+      count: filteredReaderIds.length
+    };
+  };
+
   // reply mess
   let [previewReply, setPreviewReply] = useState("")
   const handleReply = async (selectedMessage) => {
@@ -1291,54 +1389,54 @@ export default function ChatPerson(props) {
                         </div>
 
                         {msg.sender._id === user._id && (
-                          <div 
-                            className={`message-status d-flex align-items-center small text-muted ${
-                              (index === filteredMessages.length - 1 || selectedReadStatus === msg._id) ? "show-status" : ""}`}
+                          <div className={`message-status d-flex align-items-center small text-muted ${
+                            (index === filteredMessages.length - 1 || selectedReadStatus === msg._id) ? "show-status" : ""}`}
                           >
-                            {/* Hiển thị "Đã xem" hoặc "Đã gửi" chỉ cho tin nhắn mới nhất hoặc tin nhắn được chọn */}
                             {(index === filteredMessages.length - 1 || selectedReadStatus === msg._id) && (
                               <>
-                                {msg.readBy && msg.readBy.filter(readerId => readerId !== user._id).length > 0 ? (
+                                {msg.readBy && msg.readBy.length > 0 ? (
                                   <div className="d-flex align-items-center" title="Đã xem">
-                                    {/* Hiển thị avatar của những người đã đọc */}
                                     <div className="read-avatars d-flex">
-                                      {msg.readBy
-                                        .filter(readerId => readerId !== user._id)
-                                        .slice(0, 3)
-                                        .map((readerId, index) => {
-                                          // Code hiển thị avatar người đã đọc
-                                          const readerInfo = props.conversations.find(conv => 
-                                            conv._id === readerId || 
-                                            (conv.members && conv.members.includes(readerId))
-                                          );
-                                          
-                                          return (
-                                            <div 
-                                              key={index} 
-                                              className="reader-avatar" 
-                                              style={{
-                                                marginLeft: index > 0 ? '-8px' : '0',
-                                                zIndex: 10 - index,
-                                                position: 'relative'
-                                              }}
-                                            >
-                                              <img 
-                                                src={readerInfo?.avatar || "/placeholder.svg"} 
-                                                alt="Avatar" 
-                                                className="rounded-circle border border-white" 
-                                                style={{width: '16px', height: '16px', objectFit: 'cover', backgroundColor: 'white'}}
-                                              />
-                                            </div>
-                                          );
-                                        })
-                                      }
-                                      
-                                      {/* Hiển thị số lượng người xem còn lại nếu có nhiều hơn 3 người */}
-                                      {msg.readBy.filter(readerId => readerId !== user._id).length > 3 && (
-                                        <span className="ms-1 text-muted small">
-                                          +{msg.readBy.filter(readerId => readerId !== user._id).length - 3}
-                                        </span>
-                                      )}
+                                      {(() => {
+                                        // Lấy ID của current user
+                                        const currentUserId = user._id.$oid || user._id;
+                                        
+                                        console.log("Current User ID:", currentUserId);
+                                        
+                                        // Sử dụng hàm processReadByData để xử lý dữ liệu readBy
+                                        const { readers, count } = processReadByData(msg, currentUserId, props.conversations);
+                                        
+                                        // Render avatars của những người đã đọc
+                                        return (
+                                          <>
+                                            {readers.map((reader, index) => (
+                                              <div 
+                                                key={index} 
+                                                className="reader-avatar" 
+                                                style={{
+                                                  marginLeft: index > 0 ? '-8px' : '0',
+                                                  zIndex: 10 - index,
+                                                  position: 'relative'
+                                                }}
+                                              >
+                                                <img 
+                                                  src={reader.avatar || "/placeholder.svg"} 
+                                                  alt={reader.username || "User"} 
+                                                  className="rounded-circle border border-white" 
+                                                  style={{width: '16px', height: '16px', objectFit: 'cover', backgroundColor: 'white'}}
+                                                />
+                                              </div>
+                                            ))}
+                                            
+                                            {/* Hiển thị số người còn lại đã đọc nếu > 3 */}
+                                            {count > 3 && (
+                                              <span className="ms-1 text-muted small">
+                                                +{count - 3}
+                                              </span>
+                                            )}
+                                          </>
+                                        );
+                                      })()}
                                     </div>
                                   </div>
                                 ) : msg.status !== "pending" && msg.status !== "fail" ? (

@@ -780,6 +780,10 @@ export default function ChatGroup(props) {
       const id2 = extractId(currentUserId);
       return id1 !== id2;
     });
+
+    if (filteredReaders.length === 0) {
+      return { readers: [], count: 0 };
+    }
     
     // Tìm thông tin chi tiết của người đọc (tối đa 3 người)
     const detailedReaders = filteredReaders

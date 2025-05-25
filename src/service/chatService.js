@@ -1,7 +1,7 @@
 import customizeAxios from "../component/customizeAxios";
 
-const loadMessagesService = (sender, receiver, type) => {
-  return customizeAxios.get(`/api/messages/${sender}/${receiver}/${type}`);
+const loadMessagesService = (sender, receiver, type, page = 1, limit = 20) => {
+  return customizeAxios.get(`/api/messages/${sender}/${receiver}/${type}?page=${page}&limit=${limit}`);
 };
 
 const getConversationsService = (sender) => {
@@ -73,6 +73,11 @@ const chatGPTService = async (message) => {
   });
 };
 
+// Tải tin nhắn cũ hơn
+const loadOlderMessagesService = (sender, receiver, type, lastMessageId, limit = 20) => {
+  return customizeAxios.get(`/messages/${sender}/${receiver}/${type}/older?lastMessageId=${lastMessageId}&limit=${limit}`);
+};
+
 export {
   removeMemberFromGroupService,
   loadMessagesService,
@@ -86,5 +91,6 @@ export {
   dissolveGroupService,
   chatGPTService,
   markMessageAsReadService,
-  markAllMessagesAsReadService
+  markAllMessagesAsReadService,
+  loadOlderMessagesService,
 };

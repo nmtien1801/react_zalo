@@ -58,7 +58,9 @@ export default function ChatInterface(props) {
 
   const [selectedUser, setSelectedUser] = useState(null);
 
-
+  // State phân trang tin nhắn
+  const [messagePages, setMessagePages] = useState({});
+  const [currentPage, setCurrentPage] = useState({});
 
   // action socket
   useEffect(() => {
@@ -485,12 +487,30 @@ export default function ChatInterface(props) {
   };
 
   const handleLoadMessages = async (receiver, type) => {
+
+    // Khởi tạo hoặc reset thông tin phân trang cho người nhận mới
+    if (!currentPage[receiver] || selectedUser?._id !== receiver) {
+      setCurrentPage(prev => ({...prev, [receiver]: 1}));
+    }
+
+    const page = currentPage[receiver] || 1;
+
     const res = await dispatch(
-      loadMessages({ sender: user._id, receiver: receiver, type: type })
+      loadMessages({ sender: user._id, receiver: receiver, type: type, page, limit: 20 })
     );
 
     if (res.payload.EC === 0) {
       setAllMsg(res.payload.DT);
+
+      // Lưu thông tin về phân trang
+      setMessagePages(prev => ({
+        ...prev, 
+        [receiver]: {
+          currentPage: page,
+          hasMore: res.payload.pagination?.hasMore || false,
+          totalPages: res.payload.pagination?.totalPages || 1
+        }
+      }));
     }
   };
 
@@ -721,6 +741,12 @@ export default function ChatInterface(props) {
                   onlineUsers={onlineUsers}
                   selectedUser={selectedUser}
                   handleStartCall={props.handleStartCall}
+                  // Thông tin phân trang
+                  pagination={messagePages[roomData.receiver?._id] || {}} 
+                  onLoadMore={(newPage) => {
+                    setCurrentPage(prev => ({...prev, [roomData.receiver._id]: newPage}));
+                    handleLoadMessages(roomData.receiver._id, roomData.receiver.type);
+                  }}
                 />
               ) : (
                 <ChatCloud

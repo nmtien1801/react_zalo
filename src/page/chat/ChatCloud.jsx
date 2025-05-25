@@ -25,7 +25,7 @@ import "./Chat.scss";
 import { useSelector, useDispatch } from "react-redux";
 import { uploadAvatar } from '../../redux/profileSlice.js'
 import IconModal from '../../component/IconModal.jsx'
-import { deleteMessageForMeService, getReactionMessageService, recallMessageService, sendReactionService } from "../../service/chatService.js";
+import { deleteMessageForMeService, getReactionMessageService, loadMessagesService, recallMessageService, sendReactionService } from "../../service/chatService.js";
 import ImageViewer from "./ImageViewer.jsx";
 import ShareMsgModal from "../../component/ShareMsgModal.jsx";
 import AccountInfo from "../info/accountInfo.jsx";
@@ -74,6 +74,19 @@ export default function ChatPerson(props) {
   // Ref cho input msg
   const messageInputRef = useRef(null);
 
+  // State phân trang và scroll
+  const [isLoadingOlder, setIsLoadingOlder] = useState(false);
+  const [hasMoreMessages, setHasMoreMessages] = useState(true);
+  const [page, setPage] = useState(1);
+  const [scrollPositionY, setScrollPositionY] = useState(0);
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+  const chatContainerRef = useRef(null);
+  const initialLoadComplete = useRef(false);
+  const preventInitialFetch = useRef(true);
+  const prevMessagesLengthRef = useRef(0);
+  const prevLastMessageIdRef = useRef(null);
+  const prevMessagesRef = useRef([]);
+
   //Object Ánh xạ Emoji
   const emojiToTextMap = {
     "👍": "Like",
@@ -108,15 +121,109 @@ export default function ChatPerson(props) {
     }
   }, [props.allMsg]);
 
+  useEffect(() => {
+    const inputElement = messageInputRef.current;
+    
+    if (inputElement) {
+      inputElement.addEventListener('paste', handlePaste);
+    }
+    
+    return () => {
+      if (inputElement) {
+        inputElement.removeEventListener('paste', handlePaste);
+      }
+    };
+  }, []);
+
   const scrollToBottom = () => {
     if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      messagesEndRef.current.scrollIntoView({ behavior: "auto", block: "end" });
+    }
+
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   };
 
   useEffect(() => {
-    scrollToBottom();
+    // Chỉ cuộn xuống khi có tin nhắn mới hoặc lần đầu tiên load tin nhắn
+    if (!isLoadingOlder) {
+
+      const isNewMessage = prevMessagesLengthRef.current > 0 && 
+        messages.length > prevMessagesLengthRef.current && 
+        messages[messages.length - 1]?._id !== prevLastMessageIdRef.current;
+
+      if (initialLoadComplete.current === false || isNewMessage) {
+        scrollToBottom();
+
+        // Đánh dấu đã hoàn thành render lần đầu
+        if (!initialLoadComplete.current) {
+          initialLoadComplete.current = true;
+          // Delay ngắn để tránh kích hoạt loadOlderMessages do sự kiện scroll tự động
+          setTimeout(() => {
+            if (chatContainerRef.current) {
+              // Đặt scroll position tới cuối luôn
+              chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+            }
+          }, 100);
+        }
+      }
+    }
+
+    if (messages.length > 0) {
+      prevMessagesLengthRef.current = messages.length;
+      prevLastMessageIdRef.current = messages[messages.length - 1]?._id;
+    }
+  }, [messages, isLoadingOlder]);
+
+  useEffect(() => {
+    // Store previous messages for comparison
+    const prevMessages = prevMessagesRef.current;
+    
+    // Update the ref with current messages
+    prevMessagesRef.current = messages;
+    
+    // First load, always scroll to bottom
+    if (!prevMessages || prevMessages.length === 0) {
+      scrollToBottom();
+      return;
+    }
+    
+    // Skip auto-scroll logic if we're loading older messages
+    if (isLoadingOlder) return;
+    
+    // If messages were added to the beginning (older messages loaded), don't auto-scroll
+    if (messages.length > prevMessages.length && 
+        messages[0]?._id !== prevMessages[0]?._id && 
+        messages[messages.length - 1]?._id === prevMessages[prevMessages.length - 1]?._id) {
+      return;
+    }
+    
+    // Check if we should auto-scroll for new messages
+    if (shouldAutoScrollToBottom(prevMessages, messages)) {
+      scrollToBottom();
+    }
   }, [messages]);
+
+  // Reset state khi receiver thay đổi
+  useEffect(() => {
+    // Khi component mount hoặc thay đổi receiver, cuộn xuống dưới cùng ngay lập tức
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+    
+    // Đặt lại các biến kiểm soát
+    preventInitialFetch.current = true;
+    initialLoadComplete.current = false;
+    setPage(1);
+    setHasMoreMessages(true);
+    
+    return () => {
+      // Reset các biến khi unmount component
+      preventInitialFetch.current = true;
+      initialLoadComplete.current = false;
+    };
+  }, [props.roomData.receiver._id]);
 
   const sendMessage = async (msg, type) => {
 
@@ -185,23 +292,130 @@ export default function ChatPerson(props) {
     setLinkMessages(links); // Lưu các tin nhắn dạng URL
   }, [messages]);
 
-  useEffect(() => {
-    const inputElement = messageInputRef.current;
-    
-    if (inputElement) {
-      inputElement.addEventListener('paste', handlePaste);
-    }
-    
-    return () => {
-      if (inputElement) {
-        inputElement.removeEventListener('paste', handlePaste);
-      }
-    };
-  }, []);
-
-  const cleanFileName = (fileName) => {
+   const cleanFileName = (fileName) => {
     // Loại bỏ các ký tự hoặc số không cần thiết ở đầu tên file
     return fileName.replace(/^\d+_|^\d+-/, ""); // Loại bỏ số và dấu gạch dưới hoặc gạch ngang ở đầu
+  };
+
+  // Hàm kiểm tra xem có nên tự động cuộn xuống dưới cùng không
+  const shouldAutoScrollToBottom = (oldMessages, newMessages) => {
+    // Nếu không có tin nhắn trước đó, luôn cuộn xuống dưới
+    if (!oldMessages || !oldMessages.length) return true;
+    
+    // Kiểm tra xem tin nhắn mới nhất được thêm vào cuối (tin nhắn đến)
+    const oldLastMessage = oldMessages[oldMessages.length - 1];
+    const newLastMessage = newMessages[newMessages.length - 1];
+    
+    // Cuộn xuống nếu:
+    // 1. Có tin nhắn mới ở cuối VÀ
+    // 2. Nó là từ người dùng hiện tại hoặc chúng ta đang ở gần phía dưới
+    if (oldLastMessage?._id !== newLastMessage?._id) {
+      const isFromCurrentUser = newLastMessage?.sender?._id === user._id;
+      const isNearBottom = chatContainerRef.current && 
+        (chatContainerRef.current.scrollHeight - chatContainerRef.current.scrollTop - 
+        chatContainerRef.current.clientHeight < 100);
+        
+      return isFromCurrentUser || isNearBottom;
+    }
+    
+    return false;
+  };
+
+  // Hàm tải tin nhắn cũ hơn
+  const loadOlderMessages = async () => {
+    if (!hasMoreMessages || isLoadingOlder || messages.length === 0) return;
+    
+    setIsLoadingOlder(true);
+    
+    try {
+      // Kiểm tra tồn tại của chatContainerRef.current
+      const chatContainer = chatContainerRef.current;
+      if (!chatContainer) {
+        console.warn("Chat container not found, aborting loadOlderMessages");
+        setIsLoadingOlder(false);
+        return;
+      }
+      
+      const oldScrollHeight = chatContainer.scrollHeight;
+      const scrollPosition = chatContainer.scrollTop;
+      
+      const response = await loadMessagesService(
+        user._id, 
+        props.roomData.receiver._id, 
+        props.roomData.receiver.type,
+        page + 1,
+        20
+      );
+      
+      if (response.EC === 0) {
+        const olderMessages = response.DT;
+        
+        if (olderMessages && olderMessages.length > 0) {
+          // Sử dụng Set để lọc các tin nhắn trùng lặp
+          const uniqueMessages = [...olderMessages];
+          const existingIds = new Set(messages.map(msg => msg._id));
+          
+          // Lọc những tin nhắn chưa có trong danh sách hiện tại
+          const filteredMessages = uniqueMessages.filter(msg => !existingIds.has(msg._id));
+          
+          // Thêm tin nhắn cũ vào đầu danh sách
+          setMessages(prevMessages => [...filteredMessages, ...prevMessages]);
+          setPage(prev => prev + 1);
+          
+          // Kiểm tra xem còn tin nhắn để tải không
+          setHasMoreMessages(olderMessages.length === 20 && response.pagination?.hasMore);
+
+          // Duy trì vị trí cuộn
+          const maintainScrollPosition = () => {
+            // Kiểm tra lại chatContainer vì có thể đã thay đổi sau khi setMessages
+            if (chatContainerRef.current) {
+              const newScrollHeight = chatContainerRef.current.scrollHeight;
+              const heightDifference = newScrollHeight - oldScrollHeight;
+              chatContainerRef.current.scrollTop = heightDifference + scrollPosition;
+            }
+          };
+          
+          // Gọi nhiều lần để đảm bảo thực hiện sau khi DOM đã cập nhật
+          maintainScrollPosition();
+          setTimeout(maintainScrollPosition, 10);
+          setTimeout(maintainScrollPosition, 50);
+          setTimeout(maintainScrollPosition, 100);
+        } else {
+          setHasMoreMessages(false);
+        }
+      } else {
+        console.error("Không thể tải thêm tin nhắn cũ:", response.EM);
+        setHasMoreMessages(false);
+      }
+    } catch (error) {
+      console.error("Lỗi khi tải tin nhắn cũ:", error);
+    } finally {
+      setIsLoadingOlder(false);
+    }
+  };
+
+  // Xử lý sự kiện scroll
+  const handleScroll = (e) => {
+    if (!chatContainerRef.current) return; // Nếu không có container thì không xử lý
+    
+    const { scrollTop, scrollHeight, clientHeight } = e.target;
+    
+    // Lưu vị trí scroll hiện tại
+    setScrollPositionY(scrollTop);
+    
+    // Hiển thị nút cuộn về dưới khi kéo lên trên
+    const isScrolledUp = scrollTop < scrollHeight - clientHeight - 300;
+    setShowScrollToBottom(isScrolledUp);
+
+    // Chỉ tải tin nhắn cũ khi đã render xong lần đầu và người dùng thực sự cuộn lên
+    if (scrollTop < 150 && !isLoadingOlder && hasMoreMessages && !preventInitialFetch.current) {
+      loadOlderMessages();
+    }
+    
+    // Đánh dấu là đã có tương tác người dùng thực sự sau khi render lần đầu
+    if (preventInitialFetch.current && initialLoadComplete.current) {
+      preventInitialFetch.current = false;
+    }
   };
 
   const [isOpen, setIsOpen] = useState(false);
@@ -695,6 +909,7 @@ export default function ChatPerson(props) {
               : "calc(100vh - 130px)", // Khi không có ảnh nào được chọn
             overflowY: "auto",
           }}
+          onScroll={handleScroll} // Thêm sự kiện cuộn
         >
           <div className="flex flex-col justify-end">
             {filteredMessages &&

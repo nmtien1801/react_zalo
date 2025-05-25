@@ -41,7 +41,7 @@ import { useSelector, useDispatch } from "react-redux";
 import CallScreen from "../../component/CallScreen.jsx";
 import { uploadAvatar } from '../../redux/profileSlice.js'
 import IconModal from '../../component/IconModal.jsx'
-import { deleteMessageForMeService, getReactionMessageService, recallMessageService, sendReactionService, markMessageAsReadService, markAllMessagesAsReadService } from "../../service/chatService.js";
+import { deleteMessageForMeService, getReactionMessageService, recallMessageService, sendReactionService, markMessageAsReadService, markAllMessagesAsReadService, loadMessagesService } from "../../service/chatService.js";
 import ImageViewer from "./ImageViewer.jsx";
 import ShareMsgModal from "../../component/ShareMsgModal.jsx";
 import AccountInfo from "../info/accountInfo.jsx";
@@ -99,6 +99,19 @@ export default function ChatPerson(props) {
 
   // Ref cho input msg
   const messageInputRef = useRef(null);
+
+  // State phân trang
+  const [isLoadingOlder, setIsLoadingOlder] = useState(false);
+  const [hasMoreMessages, setHasMoreMessages] = useState(true);
+  const [page, setPage] = useState(1);
+  const [scrollPositionY, setScrollPositionY] = useState(0);
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+  const chatContainerRef = useRef(null);
+  const initialLoadComplete = useRef(false);
+  const preventInitialFetch = useRef(true);
+  const prevMessagesLengthRef = useRef(0);
+  const prevLastMessageIdRef = useRef(null);
+  const prevMessagesRef = useRef([]);
 
   //Object Ánh xạ Emoji
   const emojiToTextMap = {
@@ -246,13 +259,85 @@ export default function ChatPerson(props) {
 
   const scrollToBottom = () => {
     if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      messagesEndRef.current.scrollIntoView({ behavior: "auto", block: "end" });
+    }
+
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   };
 
   useEffect(() => {
-    scrollToBottom();
+    // Chỉ cuộn xuống khi có tin nhắn mới hoặc lần đầu tiên load tin nhắn
+    if (!isLoadingOlder) {
+
+      const isNewMessage = prevMessagesLengthRef.current > 0 && 
+        messages.length > prevMessagesLengthRef.current && 
+        messages[messages.length - 1]._id !== prevLastMessageIdRef.current;
+
+      if (initialLoadComplete.current === false || isNewMessage) {
+        scrollToBottom();
+
+        // Đánh dấu đã hoàn thành render lần đầu
+        if (!initialLoadComplete.current) {
+          initialLoadComplete.current = true;
+          // Delay ngắn để tránh kích hoạt loadOlderMessages do sự kiện scroll tự động
+          setTimeout(() => {
+            if (chatContainerRef.current) {
+              // Đặt scroll position tới cuối luôn
+              chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+            }
+          }, 100);
+        }
+      }
+    }
+
+    if (messages.length > 0) {
+      prevMessagesLengthRef.current = messages.length;
+      prevLastMessageIdRef.current = messages[messages.length - 1]._id;
+    }
+  }, [messages, isLoadingOlder]);
+
+  // Add this useEffect for better message update handling
+  useEffect(() => {
+    // Store previous messages for comparison
+    const prevMessages = prevMessagesRef.current;
+    
+    // Update the ref with current messages
+    prevMessagesRef.current = messages;
+    
+    // First load, always scroll to bottom
+    if (!prevMessages || prevMessages.length === 0) {
+      scrollToBottom();
+      return;
+    }
+    
+    // Skip auto-scroll logic if we're loading older messages
+    if (isLoadingOlder) return;
+    
+    // If messages were added to the beginning (older messages loaded), don't auto-scroll
+    if (messages.length > prevMessages.length && 
+        messages[0]._id !== prevMessages[0]._id && 
+        messages[messages.length - 1]._id === prevMessages[prevMessages.length - 1]._id) {
+      return;
+    }
+    
+    // Check if we should auto-scroll for new messages
+    if (shouldAutoScrollToBottom(prevMessages, messages)) {
+      scrollToBottom();
+    }
   }, [messages]);
+
+  // useEffect(() => {
+  //   scrollToBottom();
+  // }, [messages]);
+
+  // useEffect(() => {
+  //   // Cuộn xuống dưới khi có tin nhắn mới
+  //   if (messages.length > 0 && !isLoadingOlder) {
+  //     scrollToBottom();
+  //   }
+  // }, []);
 
   const handlePaste = (e) => {
     const items = e.clipboardData.items;
@@ -285,6 +370,115 @@ export default function ChatPerson(props) {
         // Chỉ xử lý file hình ảnh đầu tiên tìm thấy
         break;
       }
+    }
+  };
+
+  const shouldAutoScrollToBottom = (oldMessages, newMessages) => {
+    // If no previous messages, always scroll
+    if (!oldMessages.length) return true;
+    
+    // Check if the newest message was added at the end (incoming message)
+    const oldLastMessage = oldMessages[oldMessages.length - 1];
+    const newLastMessage = newMessages[newMessages.length - 1];
+    
+    // Scroll if:
+    // 1. New message at the end AND
+    // 2. It's either from current user or we're very close to the bottom already
+    if (oldLastMessage._id !== newLastMessage._id) {
+      const isFromCurrentUser = newLastMessage.sender._id === user._id;
+      const isNearBottom = chatContainerRef.current && 
+        (chatContainerRef.current.scrollHeight - chatContainerRef.current.scrollTop - 
+        chatContainerRef.current.clientHeight < 100);
+        
+      return isFromCurrentUser || isNearBottom;
+    }
+    
+    return false;
+  };
+
+  // Hàm tải tin nhắn cũ hơn
+  const loadOlderMessages = async () => {
+    if (!hasMoreMessages || isLoadingOlder || messages.length === 0) return;
+    
+    setIsLoadingOlder(true);
+    
+    try {
+      // Lưu vị trí scroll hiện tại và tin nhắn đầu tiên đang hiển thị
+      const chatContainer = chatContainerRef.current;
+      const oldScrollHeight = chatContainer.scrollHeight;
+      const scrollPosition = chatContainer.scrollTop;
+      
+      const response = await loadMessagesService(
+        user._id, 
+        props.roomData.receiver._id, 
+        props.roomData.receiver.type,
+        page + 1,
+        20
+      );
+      
+      if (response.EC === 0) {
+        const olderMessages = response.DT;
+        
+        if (olderMessages && olderMessages.length > 0) {
+          // Sử dụng Set để lọc các tin nhắn trùng lặp
+          const uniqueMessages = [...olderMessages];
+          const existingIds = new Set(messages.map(msg => msg._id));
+          
+          // Lọc những tin nhắn chưa có trong danh sách hiện tại
+          const filteredMessages = uniqueMessages.filter(msg => !existingIds.has(msg._id));
+          
+          // Thêm tin nhắn cũ vào đầu danh sách
+          setMessages(prevMessages => [...filteredMessages, ...prevMessages]);
+          setPage(prev => prev + 1);
+          
+          // Kiểm tra xem còn tin nhắn để tải không
+          setHasMoreMessages(olderMessages.length === 20 && response.pagination?.hasMore);
+
+          const maintainScrollPosition = () => {
+            if (chatContainer) {
+              const newScrollHeight = chatContainer.scrollHeight;
+              const heightDifference = newScrollHeight - oldScrollHeight;
+              chatContainer.scrollTop = heightDifference + scrollPosition;
+            }
+          };
+        
+          maintainScrollPosition();
+          setTimeout(maintainScrollPosition, 10);
+          setTimeout(maintainScrollPosition, 50);
+          setTimeout(maintainScrollPosition, 100);
+        } else {
+          setHasMoreMessages(false);
+        }
+      } else {
+        console.error("Không thể tải thêm tin nhắn cũ:", response.EM);
+        setHasMoreMessages(false);
+      }
+    } catch (error) {
+      console.error("Lỗi khi tải tin nhắn cũ:", error);
+    } finally {
+      setIsLoadingOlder(false);
+    }
+  };
+
+  // Xử lý sự kiện scroll
+  const handleScroll = (e) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.target;
+    
+    // Lưu vị trí scroll hiện tại
+    setScrollPositionY(scrollTop);
+    
+    // Hiển thị nút cuộn về dưới khi kéo lên trên
+    const isScrolledUp = scrollTop < scrollHeight - clientHeight - 300;
+    setShowScrollToBottom(isScrolledUp);
+
+    // Chỉ tải tin nhắn cũ khi đã render xong lần đầu và người dùng thực sự cuộn lên
+    if (scrollTop < 150 && !isLoadingOlder && hasMoreMessages && !preventInitialFetch.current) {
+      loadOlderMessages();
+    }
+    
+    // Đánh dấu là đã có tương tác người dùng thực sự sau khi render lần đầu
+    if (preventInitialFetch.current && initialLoadComplete.current) {
+      preventInitialFetch.current = false;
     }
   };
 
@@ -1196,7 +1390,27 @@ export default function ChatPerson(props) {
             overflowY: "auto",
             position: "relative"
           }}
+          ref={chatContainerRef}
+          onScroll={handleScroll}
         >
+
+          {/* Vị trí loading tin nhắn */}
+          {isLoadingOlder && (
+            <div className="text-center py-3">
+              <div className="spinner-border spinner-border-sm text-primary" role="status">
+                <span className="visually-hidden">Đang tải...</span>
+              </div>
+              <span className="ms-2 text-muted">Đang tải tin nhắn cũ...</span>
+            </div>
+          )}
+
+          {/* Thông báo hiển thị hết tin nhắn */}
+          {!hasMoreMessages && messages.length > 0 && (
+            <div className="text-center py-3">
+              <small className="text-muted fst-italic">Bạn đã xem hết tin nhắn</small>
+            </div>
+          )}
+
           <div className="flex flex-col justify-end">
             {filteredMessages &&
               filteredMessages.map((msg, index) => {
@@ -1474,8 +1688,27 @@ export default function ChatPerson(props) {
 
             <div ref={messagesEndRef} />
           </div>
-
         </div>
+
+        {/* Nút cuộn về tin nhắn mới nhất */}
+        {showScrollToBottom && (
+          <button 
+            className="btn btn-primary rounded-circle position-absolute" 
+            onClick={scrollToBottom}
+            style={{
+              bottom: '80px',
+              right: '20px',
+              zIndex: 100,
+              width: '40px',
+              height: '40px',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center'
+            }}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+        )}
 
         {/* Message Input */}
         <div className="bg-white p-2 border-top" >

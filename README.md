@@ -114,6 +114,21 @@
 
 - Mô tả:
   + Hiển thị danh sách các cá nhân gửi yêu cầu kết bạn đến mình.
+  + 
+### 10. Tìm kiếm.
+- Hình ảnh:
+
+![image](https://github.com/user-attachments/assets/38ff75a8-0962-4b36-84ae-3f27a82fb149)
+
+- Mô tả:
+  + Hiển thị danh sách các nhóm hay cá nhân cần tìm kiếm.
+
+- Ưu điểm:
+  + Tìm nhanh trong tin nhắn cá nhân và nhóm.
+
+- Nhược điểm:
+  + Không hỗ trợ tìm kiếm nâng cao.
+  + Tìm kiếm trong nhóm lớn có thể chậm.
     
 ### 10. Nhắn tin cá nhân.
 - Hình ảnh:

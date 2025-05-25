@@ -465,12 +465,11 @@ export default function ChatInterface(props) {
   }, [friend, conversations]);
 
   return (
-    <div className="container-fluid vh-100 p-0 min-vh-100">
+    <div className="container-fluid vh-95 p-0 min-vh-95">
       <div className="row h-100 g-0 ">
         {/* Left Sidebar */}
         <div
-          className={`col-12 col-sm-6 col-md-4 col-lg-3 border-end bg-white`}
-          style={{ maxWidth: typeChatRoom ? "0" : "300px", transition: 'max-width 0.3s' }}
+          className={`chat-sidebar ${typeChatRoom ? "hidden" : ""} col-12 col-sm-6 col-md-4 col-lg-3 border-end bg-white`}
         >
           {/*  Search */}
           <div className="p-2 border-bottom">

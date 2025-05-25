@@ -459,8 +459,8 @@ export default function ChatPerson(props) {
   };
 
   const handleButtonClickImage = () => {
-     setPreviewImages([]);
-     setSelectedFiles([]);
+    setPreviewImages([]);
+    setSelectedFiles([]);
     imageInputRef.current.click(); // Mở dialog chọn file
   };
 
@@ -1091,7 +1091,13 @@ export default function ChatPerson(props) {
         {/* Message Input */}
         <div className="bg-white p-2 border-top" >
           {/* Xem hình ảnh trước khi gửi */}
-          <div className="preview-container d-flex flex-wrap gap-2 mt-2" >
+          <div
+            className="preview-container d-flex flex-wrap gap-2 mt-2 position-relative"
+            style={{
+              maxHeight: "100px",
+              overflowY: "auto",
+            }}
+          >
             {previewImages.map((image, index) => (
               <div key={index} className="preview-item position-relative">
                 <img
@@ -1109,10 +1115,13 @@ export default function ChatPerson(props) {
                 </button>
               </div>
             ))}
+
+            {/* Xóa tất cả */}
             {previewImages.length > 0 && (
               <button
-                className="btn btn-link text-danger mt-2"
+                className="btn btn-link text-danger position-absolute top-0 end-0"
                 onClick={handleClearAllPreviews}
+                style={{ fontSize: "12px", lineHeight: "1" }}
               >
                 Xóa tất cả
               </button>

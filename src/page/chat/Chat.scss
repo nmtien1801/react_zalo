@@ -660,6 +660,18 @@
   opacity: 1;
 }
 
+// Animation cho tin nhắn được chọn
+.message-content {
+  transition: all 0.3s ease-in-out;
+  position: relative;
+}
+
+// Hiệu ứng nổi bật cho tin nhắn được chọn
+.message-selected {
+  transform: translateZ(0);
+  animation: message-highlight 0.5s ease forwards;
+}
+
 // Hiệu ứng loading khi gửi tin nhắn
 @keyframes pulse {
   0% { opacity: 1; }
@@ -922,5 +934,51 @@
   
   &:hover {
     background: #bdbdbd;
+  }
+}
+
+.message-status {
+  justify-content: flex-end;
+  height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: height 0.3s ease, opacity 0.3s ease;
+}
+
+.message-status.show-status {
+  height: auto;
+  opacity: 1;
+  margin-top: 4px;
+}
+
+.message-content.selected .message-bubble {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.chat-message {
+  transition: transform 0.3s ease, margin 0.3s ease;
+}
+
+.chat-message.slide-up {
+  transform: translateY(-4px);
+}
+
+.chat-message.slide-down {
+  transform: translateY(4px);
+}
+
+.chat-message.selected {
+  z-index: 2;
+}
+
+@keyframes message-highlight {
+  0% {
+    background-color: transparent;
+  }
+  20% {
+    background-color: rgba(13, 110, 253, 0.1);
+  }
+  100% {
+    background-color: transparent;
   }
 }

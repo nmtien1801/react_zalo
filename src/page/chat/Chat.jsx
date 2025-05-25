@@ -138,7 +138,88 @@ export default function ChatInterface(props) {
     // receiver msg - update message in conversation
     socketRef.current.on("RECEIVED_MSG", (data) => {
       dispatch(getConversations(user._id));
+
+      //Nếu đang trong chat với người gửi, tự động đánh dấu đã đọc
+      if (data.sender._id === selectedUser?._id) {
+        // Thêm tin nhắn vào giao diện
+        setAllMsg((prevState) => [...prevState, data]);
+        
+        // Đánh dấu tin nhắn đã đọc
+        socketRef.current.emit("MARK_READ", {
+          messageId: data._id,
+          userId: user._id,
+          conversationId: data.sender._id
+        });
+      }
     });
+
+    // Xử lý sự kiện tin nhắn đã đọc
+    socketRef.current.on("MESSAGE_READ", (data) => {
+      // Cập nhật trạng thái đã đọc cho tin nhắn
+      setAllMsg((prevMsgs) => 
+        prevMsgs.map((msg) => {
+          if (msg._id === data.messageId) {
+            // Nếu người đánh dấu đã đọc là người gửi, bỏ qua
+            if (data.userId === msg.sender._id) return msg;
+            
+            // Nếu readBy đã có userId này, không thêm lại
+            if (msg.readBy && msg.readBy.some(id => 
+              (id.$oid || id) === (data.userId.$oid || data.userId))
+            ) {
+              return { ...msg, isRead: true };
+            }
+            
+            // Thêm vào mảng readBy
+            return {
+              ...msg,
+              isRead: true,
+              readBy: [...(msg.readBy || []), data.userId]
+            };
+          }
+          return msg;
+        })
+      );
+      console.log("MESSAGE_READ: ", data);
+    });
+
+    // Xử lý sự kiện tất cả tin nhắn đã đọc
+    socketRef.current.on("ALL_MESSAGES_READ", (data) => {
+      // Cập nhật trạng thái đã đọc cho tất cả tin nhắn từ người dùng cụ thể
+      setAllMsg((prevMsgs) => 
+        prevMsgs.map((msg) => {
+          // Chỉ cập nhật các tin nhắn trong cuộc trò chuyện được chỉ định
+          if (msg.receiver._id === data.conversationId) {
+            // Nếu người đánh dấu đã đọc là người gửi, bỏ qua
+            if (data.userId === msg.sender._id) return msg;
+            
+            // Kiểm tra xem người này đã có trong danh sách readBy chưa
+            const hasUserInReadBy = msg.readBy && msg.readBy.some(id => 
+              (id.$oid || id) === (data.userId.$oid || data.userId)
+            );
+            
+            if (hasUserInReadBy) {
+              // Người dùng đã có trong danh sách readBy
+              return { ...msg, isRead: true };
+            } else {
+              // Thêm người dùng vào danh sách readBy
+              return {
+                ...msg,
+                isRead: true,
+                readBy: [...(msg.readBy || []), data.userId]
+              };
+            }
+          }
+          return msg;
+        })
+      );
+      console.log("ALL_MESSAGES_READ: ", data);
+    });
+
+    return () => {
+      socketRef.current.off("MESSAGE_READ");
+      socketRef.current.off("ALL_MESSAGES_READ");
+    };
+
   }, [socketRef]);
 
   useEffect(() => {
@@ -179,7 +260,9 @@ export default function ChatInterface(props) {
         },
         sender,
         type: typeUpload,  // 1 - text , 2 - image, 3 - video, 4 - file, 5 - icon
+        readBy: []
       };
+
       console.log("data: ", data);
       socketRef.current.emit("SEND_MSG", data);
     }

@@ -32,6 +32,14 @@ const sendReactionService = (messageId, userId, emoji) => {
   });
 };
 
+const markMessageAsReadService = (messageId, userId) => {
+  return customizeAxios.post(`/api/mark-read/${messageId}`, { userId });
+};
+
+const markAllMessagesAsReadService = (conversationId, userId) => {
+  return customizeAxios.post(`/api/mark-all-read/${conversationId}`, { userId });
+};
+
 const getReactionMessageService = (messageId) => {
   return customizeAxios.get(`/api/messages/${messageId}/reactions/`);
 };
@@ -77,4 +85,6 @@ export {
   updatePermissionService,
   dissolveGroupService,
   chatGPTService,
+  markMessageAsReadService,
+  markAllMessagesAsReadService
 };

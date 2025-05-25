@@ -41,7 +41,7 @@ import { useSelector, useDispatch } from "react-redux";
 import CallScreen from "../../component/CallScreen.jsx";
 import { uploadAvatar } from '../../redux/profileSlice.js'
 import IconModal from '../../component/IconModal.jsx'
-import { deleteMessageForMeService, getReactionMessageService, recallMessageService, sendReactionService } from "../../service/chatService.js";
+import { deleteMessageForMeService, getReactionMessageService, recallMessageService, sendReactionService, markMessageAsReadService, markAllMessagesAsReadService } from "../../service/chatService.js";
 import ImageViewer from "./ImageViewer.jsx";
 import ShareMsgModal from "../../component/ShareMsgModal.jsx";
 import AccountInfo from "../info/accountInfo.jsx";
@@ -93,6 +93,9 @@ export default function ChatPerson(props) {
   const [showEmojiPopup, setShowEmojiPopup] = useState(false);
   const [emojiButtonPosition, setEmojiButtonPosition] = useState({ top: 0, left: 0, right: 0 });
   const emojiButtonRef = useRef(null);
+
+  // Status theo dõi click tin nhắn
+  const [selectedReadStatus, setSelectedReadStatus] = useState(null);
 
   // Ref cho input msg
   const messageInputRef = useRef(null);
@@ -146,6 +149,94 @@ export default function ChatPerson(props) {
       });
     }
   }, [props.allMsg]);
+
+  useEffect(() => {
+    if (props.allMsg && props.allMsg.length > 0) {
+      // Tìm tin nhắn chưa đọc từ người khác
+      const unreadMessages = props.allMsg.filter(
+        msg => msg.sender._id !== user._id && 
+              (!msg.readBy || !msg.readBy.includes(user._id))
+      );
+      
+      // Đánh dấu từng tin nhắn chưa đọc
+      unreadMessages.forEach(msg => {
+        markMessageAsRead(msg._id);
+      });
+    }
+  }, [props.allMsg]);
+
+  // Đánh dấu đã đọc khi vào phòng chat
+  useEffect(() => {
+    if (props.roomData && props.roomData.receiver && user) {
+      // Đánh dấu tất cả tin nhắn trong phòng là đã đọc
+      markAllMessagesAsRead(props.roomData.receiver._id);
+    }
+  }, [props.roomData]);
+
+  const handleMessageClick = (msgId) => {
+
+    const previousMessageId = selectedReadStatus;
+
+    if (selectedReadStatus === msgId) {
+      setSelectedReadStatus(null);
+    } else {
+      setSelectedReadStatus(msgId);
+
+      if (previousMessageId) {
+        // Tìm phần tử tin nhắn trước đó và hiện tại
+        const prevMessageElement = document.querySelector(`[data-message-id="${previousMessageId}"]`);
+        const currentMessageElement = document.querySelector(`[data-message-id="${msgId}"]`);
+
+        if (prevMessageElement && currentMessageElement) {
+          // Thêm lớp animation cho tin nhắn đã chọn trước đó và tin nhắn hiện tại
+          prevMessageElement.classList.add('slide-down');
+          currentMessageElement.classList.add('slide-up', 'selected');
+          
+          // Xóa lớp animation sau khi hoàn thành
+          setTimeout(() => {
+            prevMessageElement.classList.remove('slide-down');
+            currentMessageElement.classList.remove('slide-up');
+          }, 300);
+        }
+      }
+    }
+  };
+
+  // Hàm đánh dấu một tin nhắn đã đọc
+  const markMessageAsRead = async (messageId) => {
+    try {
+      // Chỉ đánh dấu tin nhắn của người khác gửi đến
+      if (messageId) {
+        const response = await markMessageAsReadService(messageId, user._id);
+        if (response.EC === 0) {
+          // Emit socket event
+          props.socketRef.current.emit("MARK_READ", {
+            messageId,
+            userId: user._id,
+            conversationId: props.roomData.receiver._id
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Error marking message as read:", error);
+    }
+  };
+
+  // Hàm đánh dấu tất cả tin nhắn là đã đọc
+  const markAllMessagesAsRead = async (conversationId) => {
+    try {
+      const response = await markAllMessagesAsReadService(conversationId, user._id);
+      if (response.EC === 0) {
+        // Emit socket event
+        props.socketRef.current.emit("MARK_ALL_READ", {
+          userId: user._id,
+          conversationId: conversationId
+        });
+      }
+    } catch (error) {
+      console.error("Error marking all messages as read:", error);
+    }
+  };
 
   useEffect(() => {
     if (props.allMsg) {
@@ -1050,7 +1141,10 @@ export default function ChatPerson(props) {
 
                     <div
                       key={index}
-                      className={`p-2 my-1 d-flex chat-message ${msg.sender._id === user._id ? "justify-content-end" : "justify-content-start"}`}
+                      className={`px-2 my-1 d-flex chat-message ${
+                        msg.sender._id === user._id ? "justify-content-end" : "justify-content-start"
+                      } ${selectedReadStatus === msg._id ? "selected" : ""}`}
+                      data-message-id={msg._id}
                     >
 
                       {/* Hiển thị avatar cho người khác (không phải mình) */}
@@ -1069,7 +1163,13 @@ export default function ChatPerson(props) {
                         </div>
                       )}
 
-                      <div className={`message-content ${isSameSender ? "message-group" : ""}`} style={{ maxWidth: "70%" }}>
+                      <div 
+                        className={`message-content ${isSameSender ? "message-group" : ""} ${
+                          selectedReadStatus === msg._id ? "selected" : ""
+                        }`} 
+                        style={{ maxWidth: "70%" }}
+                        onClick={() => msg.sender._id === user._id && handleMessageClick(msg._id)}
+                      >
                         <div
                           className={`message-bubble ${msg.sender._id === user._id ? "own" : "other"} ${msg.type !== "text" && msg.type !== "file" && msg.type !== "system" ? "bg-transparent" : ""
                             }`}
@@ -1176,7 +1276,7 @@ export default function ChatPerson(props) {
                                 </div>
                               )}
                             </div>
-                            <div className={`message-time`}>
+                            <div className={`message-time d-flex align-items-center`}>
                               {convertTime(msg.createdAt)}
                             </div>
                           </div>
@@ -1190,24 +1290,81 @@ export default function ChatPerson(props) {
                       </button> */}
                         </div>
 
-                        {msg.status === "pending" && (
-                          <span className="small text-warning">• Đang gửi</span>
-                        )}
-                        {msg.status === "sent" && (
-                          <span className="small text-success">• Đã gửi</span>
-                        )}
-                        {msg.status === "fail" && (
-                          <div className="d-flex align-items-center">
-                            <span className="small text-danger me-2">• Gửi thất bại</span>
-                            <button 
-                              className="btn btn-sm p-0 text-danger" 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleResendMessage(msg);
-                              }}
-                            >
-                              <RotateCw size={14} /> Gửi lại
-                            </button>
+                        {msg.sender._id === user._id && (
+                          <div 
+                            className={`message-status d-flex align-items-center small text-muted ${
+                              (index === filteredMessages.length - 1 || selectedReadStatus === msg._id) ? "show-status" : ""}`}
+                          >
+                            {/* Hiển thị "Đã xem" hoặc "Đã gửi" chỉ cho tin nhắn mới nhất hoặc tin nhắn được chọn */}
+                            {(index === filteredMessages.length - 1 || selectedReadStatus === msg._id) && (
+                              <>
+                                {msg.readBy && msg.readBy.filter(readerId => readerId !== user._id).length > 0 ? (
+                                  <div className="d-flex align-items-center" title="Đã xem">
+                                    {/* Hiển thị avatar của những người đã đọc */}
+                                    <div className="read-avatars d-flex">
+                                      {msg.readBy
+                                        .filter(readerId => readerId !== user._id)
+                                        .slice(0, 3)
+                                        .map((readerId, index) => {
+                                          // Code hiển thị avatar người đã đọc
+                                          const readerInfo = props.conversations.find(conv => 
+                                            conv._id === readerId || 
+                                            (conv.members && conv.members.includes(readerId))
+                                          );
+                                          
+                                          return (
+                                            <div 
+                                              key={index} 
+                                              className="reader-avatar" 
+                                              style={{
+                                                marginLeft: index > 0 ? '-8px' : '0',
+                                                zIndex: 10 - index,
+                                                position: 'relative'
+                                              }}
+                                            >
+                                              <img 
+                                                src={readerInfo?.avatar || "/placeholder.svg"} 
+                                                alt="Avatar" 
+                                                className="rounded-circle border border-white" 
+                                                style={{width: '16px', height: '16px', objectFit: 'cover', backgroundColor: 'white'}}
+                                              />
+                                            </div>
+                                          );
+                                        })
+                                      }
+                                      
+                                      {/* Hiển thị số lượng người xem còn lại nếu có nhiều hơn 3 người */}
+                                      {msg.readBy.filter(readerId => readerId !== user._id).length > 3 && (
+                                        <span className="ms-1 text-muted small">
+                                          +{msg.readBy.filter(readerId => readerId !== user._id).length - 3}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                ) : msg.status !== "pending" && msg.status !== "fail" ? (
+                                  <span className="small text-success">• Đã gửi</span>
+                                ) : null}
+                              </>
+                            )}
+                            
+                            {/* Luôn hiển thị trạng thái "Đang gửi" và "Gửi thất bại" cho mọi tin nhắn */}
+                            {msg.status === "pending" && (
+                              <span className="small text-warning">• Đang gửi</span>
+                            )}
+                            {msg.status === "fail" && (
+                              <div className="d-flex align-items-center">
+                                <span className="small text-danger me-2">• Gửi thất bại</span>
+                                <button 
+                                  className="btn btn-sm p-0 text-danger" 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleResendMessage(msg);
+                                  }}
+                                >
+                                  <RotateCw size={14} /> Gửi lại
+                                </button>
+                              </div>
+                            )}
                           </div>
                         )}
 

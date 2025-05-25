@@ -1,70 +1,187 @@
-# Getting Started with Create React App
+<div align="center">
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+  <img src="https://github.com/nmtien1801/react_zalo/blob/master/public/ChatGPT%20Image%20May%2024%2C%202025%2C%2008_44_37%20PM.png" width="300" alt="Zalo Logo"/>
 
-## Available Scripts
+  <h1>Ứng dụng Zata</h1>
 
-In the project directory, you can run:
+  <p><em>Ứng dụng ngắn tin số 1 Việt Nam!</em></p>
 
-### `npm start`
+</div>
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## I. Screenshorts của các chức năng trong ứng dụng.
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+### 1. Đăng ký.
+- Hình ảnh:
+  
+![image](https://github.com/user-attachments/assets/34d5f5be-a8da-444e-bd2e-7a1060f3bb66)
+- Mô tả:
+  + Giúp người dùng tạo tài khoản để truy cập vào ứng dụng.
+  
+- Ưu điểm: 
+  + Đăng ký cực kỳ đơn giản – chỉ cần số điện thoại.
+  + Miễn phí 100% – không giới hạn chức năng cơ bản.
+  + Tích hợp tốt với danh bạ điện thoại.
+  + Đăng ký một lần – dùng được cả Zalo App, Web, PC
+- Nhược điểm:
+  + Phụ thuộc hoàn toàn vào số điện thoại.
+  + Không đăng ký bằng email, Google hay Facebook.
+  + Không có tùy chọn tạo tài khoản ẩn danh
+    
+### 2. Đăng nhập.
+- Hình ảnh:
 
-### `npm test`
+![image](https://github.com/user-attachments/assets/7f3a7cbe-5c26-492d-87a5-cc9bae54209e)
+- Mô tả:
+  + Giúp người dùng truy cập vào hệ thống.
+    
+- Ưu điểm:
+  + Đăng nhập cực nhanh bằng số điện thoại.
+  + Có thể đăng nhập nhiều thiết bị (trong giới hạn).
+  
+- Nhược điểm:
+  + Phụ thuộc hoàn toàn vào số điện thoại.
+  + Không hỗ trợ đăng nhập qua Google/Facebook.
+  + Không có tính năng xác thực 2 lớp nâng cao.
+  + Không có đăng nhập qua QR code.
+    
+### 3. Giao diện chính.
+- Hình ảnh:
+  
+![image](https://github.com/user-attachments/assets/941f3e2b-5c09-4103-ab5b-e4e60ede8c23)
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+- Mô tả:
+  + Sau khi đăng nhập thành công, hệ thống sẽ hiển thị giao diện chính như trên.
+- Ưu điểm:
+  + Giao diện có màu sắc hài hoài.
+  + Bố cục đơn giản dễ sữ dụng cho mọi lứa tuổi.
+    
+### 4. Cloud lưu trữ ảnh.
+  - Hình ảnh:
+    
+![image](https://github.com/user-attachments/assets/c1cd75d2-d7ab-465d-a52e-c9d371df14d2)
+- Mô tả:
+  + Lưu trữ nhiều loại tài liệu như văn bản, hình ảnh, video ... trên cloud của Zata.
+  
+- Ưu điểm:
+  + Tích hợp sẵn trong nền tảng Zalo.
+  + Tốc độ tải lên / tải xuống nhanh.
+  + Hệ thống phân loại thông minh.
+  + Đồng bộ đa thiết bị.
+  + Riêng tư và chỉ mình bạn xem.
+    
+- Nhược điểm:
+  + Dung lượng giới hạn.
+  + Thiếu tính năng nâng cao.
+  + Phụ thuộc vào nền tảng Zalo.
+  + Không rõ ràng về mã hóa và bảo mật.
+  + Thiếu API mở.
+    
+### 5. Kết bạn.
+- Hình ảnh:
+   
+![image](https://github.com/user-attachments/assets/31596059-cc01-42b1-8963-f72971c2e5d2)
 
-### `npm run build`
+- Mô tả:
+  + Cho phép người dùng kết bạn để nhắn tin khi biết số điện thoại.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+- Ưu điểm:
+  + Kết bạn qua số điện thoại cực tiện.
+  + Giao diện thân thiện, dễ dùng.
+- Nhược điểm:
+  + Phụ thuộc vào số điện thoại.
+  + Khó kết bạn với người không dùng Zata.
+ 
+### 6. Danh sách bạn bè.
+- Hình ảnh:
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+![image](https://github.com/user-attachments/assets/a0922638-8f0a-452f-86fa-c703d57ab60f)
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+- Mô tả:
+  + Hiển thị danh sách bạn đã kết bạn. 
 
-### `npm run eject`
+### 7. Danh sách nhóm và cộng.
+ - Hình ảnh:
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+ ![image](https://github.com/user-attachments/assets/be6f0a58-224b-40bd-ae3d-533688a4f57d)
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+- Mô tả:
+  + Hiển thị danh sách nhóm và cộng đồng đã tham gia.
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+### 9. Lời mời kết bạn.
+- Hình ảnh:
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+![image](https://github.com/user-attachments/assets/5a12f3bb-89d7-4b58-b92c-c9f580fb6e12)
 
-## Learn More
+- Mô tả:
+  + Hiển thị danh sách các cá nhân gửi yêu cầu kết bạn đến mình.
+    
+### 10. Nhắn tin cá nhân.
+- Hình ảnh:
+  
+![image](https://github.com/user-attachments/assets/4b16273c-be17-403c-bff1-fa65152e5583)
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+- Mô tả:
+  + Giúp nhắn tin giữa 2 người trong ứng dụng (1-1).
+- Ưu điểm:
+  + Tốc độ nhanh, ổn định và miễn phí.
+  + Giao diện thân thiện, dễ dùng.
+  + Đồng bộ đa nền tảng.
+  + Tính năng đa dạng, phục vụ công việc.
+  + Bảo mật mức cơ bản ổn.
+- Nhược điểm:
+  + Không có mã hóa đầu-cuối.
+  + Giới hạn kích thước file.
+  
+### 11. Nhắn tin nhóm.
+- Hình ảnh:
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+![image](https://github.com/user-attachments/assets/bfe6a4b1-f6cb-4769-8c19-5122030cac55)
 
-### Code Splitting
+- Mô tả:
+  + Giúp nhắn tin giữa 3 người trở lên trong ứng dụng.
+    
+- Ưu điểm:
+  + Tạo nhóm nhanh, dễ mời thành viên.
+    
+- Nhược điểm:
+  + Không có mã hóa đầu-cuối.
+  + Tính năng còn hạn chế so với Telegram, Slack...
+  + Khó kiểm soát khi nhóm quá đông.
+  + Không có lưu trữ đám mây lâu dài.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+### 12. Chat bot.
+- Hình ảnh:
 
-### Analyzing the Bundle Size
+![image](https://github.com/user-attachments/assets/f355ba31-9a67-4905-8159-3b1241082a72)
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+- Mô tả:
+  + Cho phép người dùng hỏi các câu hỏi liên quan đến ứng dụng Zata.
+    
+- Ưu điểm:
+  + Giao diện thân thiện, dễ tiếp cận cho người Việt.
+  + Hiểu tiếng Việt tốt, tự nhiên.
+  + Hỗ trợ thông tin nhanh chóng.
+  + Tích hợp vào hệ sinh thái Zata.
+  + Hoạt động 24/7.
+  + Miễn phí và không cần cấu hình.
 
-### Making a Progressive Web App
+- Nhược điểm:
+  + Khả năng xử lý hạn chế hơn so với ChatGPT hoặc Google Bard.
+  + Ít tùy chọn tuỳ biến, không lập trình được.
+  + Bị giới hạn chức năng chuyên môn.
+  + Không có khả năng nhận diện hình ảnh, giọng nói (ở chế độ chat).
+  +  Dữ liệu huấn luyện có thể chưa cập nhật liên tục.
+  +  Tính "nhân hóa" chưa cao.
+  
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+  
 
-### Advanced Configuration
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+    
 
-### Deployment
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+    
 
-### `npm run build` fails to minify
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+
+

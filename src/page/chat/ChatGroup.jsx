@@ -738,7 +738,10 @@ export default function ChatGroup(props) {
         let res = await dispatch(uploadAvatarGroup({ groupId: props.roomData.receiver._id, avatar: response.payload.DT }))
         setAvatarUrl(response.payload.DT);
         if (res.payload.EC === 0) {
-          socketRef.current.emit("REQ_UPDATE_AVATAR", receiver);
+          socketRef.current.emit("REQ_UPDATE_AVATAR", {
+            receiver,
+            avatar: response.payload.DT
+          });
         }
 
       } else {
@@ -1050,10 +1053,12 @@ export default function ChatGroup(props) {
 
     // update avatar
     socketRef.current.on("RES_UPDATE_AVATAR", (data) => {
+
       setReceiver({
         ...receiver,
-        avatar: avatarUrl,
+        avatar: data.avatar,
       })
+      setAvatarUrl(data.avatar);
     });
   }, [])
 

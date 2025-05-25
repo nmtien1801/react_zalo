@@ -547,30 +547,26 @@ export default function ChatPerson(props) {
     const selectedImages = e.target.files;
 
     if (selectedImages && selectedImages.length > 0) {
-
       if (selectedImages.length > 10) {
         setHasSelectedImages(false);
         alert("Số lượng ảnh không được quá 10!");
         return;
       }
 
-      const previews = [];
       const files = Array.from(e.target.files);
+      const previews = await Promise.all(
+        Array.from(selectedImages).map((image) => {
+          return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.readAsDataURL(image);
+          });
+        })
+      );
 
-      for (let image of selectedImages) {
-        // Tạo URL xem trước
-        const reader = new FileReader();
-        reader.onload = () => {
-          previews.push(reader.result); // Lưu URL xem trước vào mảng
-          setPreviewImages([...previews]); // Cập nhật state xem trước
-          setHasSelectedImages(true);
-        };
-        reader.readAsDataURL(image);
-      }
-
-      if (files.length > 0) {
-        setSelectedFiles((prev) => [...prev, ...files]);
-      }
+      setPreviewImages(previews);
+      setSelectedFiles((prev) => [...prev, ...files]);
+      setHasSelectedImages(true);
     } else {
       setHasSelectedImages(false);
     }
@@ -582,6 +578,8 @@ export default function ChatPerson(props) {
   };
 
   const handleButtonClickImage = () => {
+    setPreviewImages([]);
+    setSelectedFiles([]);
     imageInputRef.current.click(); // Mở dialog chọn file
   };
 
@@ -873,11 +871,7 @@ export default function ChatPerson(props) {
               className="rounded-circle"
               alt=""
               style={{ width: "40px", height: "40px" }}
-              onClick={openModal}
             />
-
-            <AccountInfo isOpen={isOpen} closeModal={closeModal} socketRef={socketRef} />
-
             <div className="ms-2">
               <div className="fw-medium">Cloud của tôi</div>
               <small className="text-muted">
@@ -1047,7 +1041,13 @@ export default function ChatPerson(props) {
         {/* Message Input */}
         <div className="bg-white p-2 border-top" >
           {/* Xem hình ảnh trước khi gửi */}
-          <div className="preview-container d-flex flex-wrap gap-2 mt-2" >
+          <div
+            className="preview-container d-flex flex-wrap gap-2 mt-2 position-relative"
+            style={{
+              maxHeight: "100px",
+              overflowY: "auto",
+            }}
+          >
             {previewImages.map((image, index) => (
               <div key={index} className="preview-item position-relative">
                 <img
@@ -1065,10 +1065,13 @@ export default function ChatPerson(props) {
                 </button>
               </div>
             ))}
+
+            {/* Xóa tất cả */}
             {previewImages.length > 0 && (
               <button
-                className="btn btn-link text-danger mt-2"
+                className="btn btn-link text-danger position-absolute top-0 end-0"
                 onClick={handleClearAllPreviews}
+                style={{ fontSize: "12px", lineHeight: "1" }}
               >
                 Xóa tất cả
               </button>
@@ -1188,7 +1191,6 @@ export default function ChatPerson(props) {
                 alt="Profile"
                 className="rounded-circle"
                 style={{ width: "80px", height: "80px" }}
-                onClick={openModal}
               />
               <button className="btn btn-light btn-sm rounded-circle position-absolute bottom-0 end-0 p-1">
                 <Edit2 size={14} />

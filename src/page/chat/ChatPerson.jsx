@@ -631,12 +631,12 @@ export default function ChatPerson(props) {
   const handleInputChange = (e) => {
     const text = e.target.value;
     setMessage(text);
-    
+
     // Xóa timeout hiện có để reset
     if (typingTimeout.current) {
       clearTimeout(typingTimeout.current);
     }
-    
+
     // Gửi sự kiện TYPING nếu đang nhập
     if (text.trim() !== "") {
       if (props.socketRef.current) {
@@ -651,7 +651,7 @@ export default function ChatPerson(props) {
 
         props.socketRef.current.emit("TYPING", typingData);
       }
-      
+
       // Set timeout để dừng typing sau 1.5 giây không nhập
       typingTimeout.current = setTimeout(() => {
         if (props.socketRef.current) {
@@ -688,7 +688,7 @@ export default function ChatPerson(props) {
       // Lắng nghe khi có người đang typing
       props.socketRef.current.on("USER_TYPING", (data) => {
         const { userId, username, conversationId } = data;
-        
+
         // Kiểm tra đúng cuộc trò chuyện hiện tại
         if (userId === props.roomData.receiver._id) {
           setTypingUsers(prev => ({
@@ -698,11 +698,11 @@ export default function ChatPerson(props) {
           console.log("Updated typing users:", userId, username);
         }
       });
-      
+
       // Lắng nghe khi có người dừng typing
       props.socketRef.current.on("USER_STOP_TYPING", (data) => {
         const { userId, conversationId } = data;
-        
+
         if (userId === props.roomData.receiver._id) {
           setTypingUsers(prev => {
             const newState = { ...prev };
@@ -711,12 +711,12 @@ export default function ChatPerson(props) {
           });
         }
       });
-      
+
       // Cleanup khi component unmount
       return () => {
         props.socketRef.current.off("USER_TYPING");
         props.socketRef.current.off("USER_STOP_TYPING");
-        
+
         // Dừng typing khi unmount
         if (props.socketRef.current) {
           props.socketRef.current.emit("STOP_TYPING", {
@@ -724,7 +724,7 @@ export default function ChatPerson(props) {
             receiver: props.roomData.receiver
           });
         }
-        
+
         if (typingTimeout.current) {
           clearTimeout(typingTimeout.current);
         }
@@ -822,30 +822,26 @@ export default function ChatPerson(props) {
     const selectedImages = e.target.files;
 
     if (selectedImages && selectedImages.length > 0) {
-
       if (selectedImages.length > 10) {
         setHasSelectedImages(false);
         alert("Số lượng ảnh không được quá 10!");
         return;
       }
 
-      const previews = [];
       const files = Array.from(e.target.files);
+      const previews = await Promise.all(
+        Array.from(selectedImages).map((image) => {
+          return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.readAsDataURL(image);
+          });
+        })
+      );
 
-      for (let image of selectedImages) {
-        // Tạo URL xem trước
-        const reader = new FileReader();
-        reader.onload = () => {
-          previews.push(reader.result); // Lưu URL xem trước vào mảng
-          setPreviewImages([...previews]); // Cập nhật state xem trước
-          setHasSelectedImages(true);
-        };
-        reader.readAsDataURL(image);
-      }
-
-      if (files.length > 0) {
-        setSelectedFiles((prev) => [...prev, ...files]);
-      }
+      setPreviewImages(previews);
+      setSelectedFiles((prev) => [...prev, ...files]);
+      setHasSelectedImages(true);
     } else {
       setHasSelectedImages(false);
     }
@@ -857,6 +853,8 @@ export default function ChatPerson(props) {
   };
 
   const handleButtonClickImage = () => {
+    setPreviewImages([]);
+    setSelectedFiles([]);
     imageInputRef.current.click(); // Mở dialog chọn file
   };
 
@@ -1146,24 +1144,24 @@ export default function ChatPerson(props) {
   useEffect(() => {
     if (props.socketRef.current) {
       // Giữ nguyên các listeners hiện có
-      
+
       // Thêm listener cho RECEIVED_REACTION
       props.socketRef.current.on("RECEIVED_REACTION", (data) => {
         console.log("Received reaction:", data);
         const { messageId, userId, emoji } = data;
-        
+
         setReactions(prevReactions => {
           const currentReactions = prevReactions[messageId] || [];
-          
+
           // Tìm reaction hiện có
           const existingReactionIndex = currentReactions.findIndex(
             reaction => String(reaction.userId) === String(userId) && reaction.emoji === emoji
           );
-          
+
           let updatedReactions;
           if (existingReactionIndex !== -1) {
             // Nếu đã tồn tại -> xóa (toggle)
-            updatedReactions = currentReactions.filter((_, index) => 
+            updatedReactions = currentReactions.filter((_, index) =>
               index !== existingReactionIndex
             );
           } else {
@@ -1177,19 +1175,19 @@ export default function ChatPerson(props) {
               }
             ];
           }
-          
+
           return {
             ...prevReactions,
             [messageId]: updatedReactions
           };
         });
       });
-      
+
       // Bắt lỗi reaction nếu có
       props.socketRef.current.on("REACTION_ERROR", (data) => {
         console.error("Reaction error:", data.error);
       });
-      
+
       // Clean up function
       return () => {
         // Giữ nguyên cleanup code hiện có
@@ -1713,7 +1711,13 @@ export default function ChatPerson(props) {
         {/* Message Input */}
         <div className="bg-white p-2 border-top" >
           {/* Xem hình ảnh trước khi gửi */}
-          <div className="preview-container d-flex flex-wrap gap-2 mt-2" >
+          <div
+            className="preview-container d-flex flex-wrap gap-2 mt-2 position-relative"
+            style={{
+              maxHeight: "100px",
+              overflowY: "auto",
+            }}
+          >
             {previewImages.map((image, index) => (
               <div key={index} className="preview-item position-relative">
                 <img
@@ -1731,10 +1735,13 @@ export default function ChatPerson(props) {
                 </button>
               </div>
             ))}
+
+            {/* Xóa tất cả */}
             {previewImages.length > 0 && (
               <button
-                className="btn btn-link text-danger mt-2"
+                className="btn btn-link text-danger position-absolute top-0 end-0"
                 onClick={handleClearAllPreviews}
+                style={{ fontSize: "12px", lineHeight: "1" }}
               >
                 Xóa tất cả
               </button>

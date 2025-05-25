@@ -45,15 +45,6 @@ export default function ChatInterface(props) {
   const [typeChatRoom, setTypeChatRoom] = useState("");
   const [onlineUsers, setOnlineUsers] = useState([]);
 
-  const [isSearchFocused, setIsSearchFocused] = useState(false);
-
-  const handleSearchFocus = () => {
-    setIsSearchFocused(true);
-  };
-
-  const handleCloseSearch = () => {
-    setIsSearchFocused(false);
-  };
   const [showModalAddFriend, setShowModalAddFriend] = useState(false);
 
   const [selectedUser, setSelectedUser] = useState(null);
@@ -61,6 +52,24 @@ export default function ChatInterface(props) {
   // State phân trang tin nhắn
   const [messagePages, setMessagePages] = useState({});
   const [currentPage, setCurrentPage] = useState({});
+  
+  // search
+  const [searchTerm, setSearchTerm] = useState("");
+  const handleSearchChange = (e) => {
+    const value = e.target.value;
+    setSearchTerm(value);
+
+    if (e.target.value.trim() === "") {
+      dispatch(getConversations(user._id));
+    } else {
+      const search = value.toLowerCase();
+      const filtered = conversations.filter((chat) =>
+        (chat.username && chat.username.toLowerCase().includes(search)) ||
+        (chat.phone && chat.phone.includes(search))
+      );
+      setConversations(filtered);
+    }
+  }
 
   // action socket
   useEffect(() => {
@@ -570,53 +579,42 @@ export default function ChatInterface(props) {
   }, [friend, conversations]);
 
   return (
-    <div className="container-fluid vh-100 p-0 min-vh-100">
+    <div className="container-fluid vh-95 p-0 min-vh-95">
       <div className="row h-100 g-0 ">
         {/* Left Sidebar */}
         <div
-          className={`col-3 border-end bg-white ${typeChatRoom ? 'd-none d-lg-block' : ''
-            }`}
-          style={{ maxWidth: "300px" }}
+          className={`chat-sidebar ${typeChatRoom ? "hidden" : ""} col-12 col-sm-6 col-md-4 col-lg-3 border-end bg-white`}
         >
           {/*  Search */}
           <div className="p-2 border-bottom">
-            <div className="d-flex align-items-center pb-3">
+            <div className="d-flex align-items-center">
               <div className="input-group me-3">
                 <input
                   type="text"
                   className="form-control form-control-sm bg-light"
                   placeholder="Tìm kiếm"
-                  onFocus={handleSearchFocus}
+                  value={searchTerm}
+                  onChange={handleSearchChange}
                 />
                 <button className="btn btn-light  cursor-pointer border">
                   <Search size={16} />
                 </button>
               </div>
-              {isSearchFocused ? (
-                <button
-                  className="btn btn-light rounded-circle mb-1"
-                  onClick={handleCloseSearch}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M19 6.41L17.59 5L12 10.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L12 13.41L17.59 19L19 17.59L13.41 12z"/></svg>
-                </button>) : (
-                <>
-                  <button className="btn btn-light rounded-circle mb-1"
-                    onClick={() => setShowModalAddFriend(true)}
-                  >
-                    <UserPlus size={20} />
-                  </button>
+              <button className="btn btn-light rounded-circle mb-1"
+                onClick={() => setShowModalAddFriend(true)}
+              >
+                <UserPlus size={20} />
+              </button>
 
-                  <AddFriendModal
-                    show={showModalAddFriend}
-                    onHide={() => setShowModalAddFriend(false)}
-                    socketRef={socketRef}
-                  />
-                  <button className="btn btn-light rounded-circle mb-1"
-                    onClick={() => handleOpenPopupCreateGroup()}>
-                    <Users size={20} />
-                  </button>
-                </>
-              )}
+              <AddFriendModal
+                show={showModalAddFriend}
+                onHide={() => setShowModalAddFriend(false)}
+                socketRef={socketRef}
+              />
+              <button className="btn btn-light rounded-circle mb-1"
+                onClick={() => handleOpenPopupCreateGroup()}>
+                <Users size={20} />
+              </button>
             </div>
           </div>
 
@@ -625,91 +623,68 @@ export default function ChatInterface(props) {
             className="overflow-auto"
             style={{ height: "calc(100vh - 60px)" }}
           >
-            {isSearchFocused ?
-              (<>
-                <div className="d-flex align-items-center justify-content-between">
-                  abc
-                </div>
-              </>) :
-              (<>
-                <div className="d-flex align-items-center justify-content-between">
-                  <div className="d-flex align-items-center gap-4">
-                    {["Tất cả", "Chưa đọc"].map((item, index) => (
-                      <span
-                        key={index}
-                        onClick={() => setSelected(index)}
-                        style={{
-                          textDecoration: selected === index ? "underline" : "none",
-                          color: selected === index ? "#0d6efd" : "black", // Đổi màu xanh khi chọn
-                          cursor: "pointer",
-                          textDecorationThickness: "4px", // Độ dày gạch chân
-                          textUnderlineOffset: "5px", // Khoảng cách gạch chân so với chữ
-                        }}
-                      >
-                        {item}
-                      </span>
-                    ))}
-                  </div>
-                  <div className="cursor-pointer hover-bg-light p-1">Phân loại</div>
-                </div>
-                {conversations &&
-                  conversations.map((chat) => {
-                    console.log(chat);
-                    return (
-                    <div
-                      key={chat._id}
-                      className={`d-flex align-items-center p-2 border-bottom hover-bg-light cursor-pointer ${
-                        selectedUser && selectedUser._id === chat._id ? 'active-chat' : ''
-                      }`}
-                      onClick={() => {
-                        handleTypeChat(chat.type, chat);
-                        setSelectedUser(chat);
+            <>
+              <div className="d-flex align-items-center justify-content-between">
+                <div className="d-flex align-items-center gap-4 p-2">
+                  {["Tất cả", "Chưa đọc"].map((item, index) => (
+                    <span
+                      key={index}
+                      onClick={() => setSelected(index)}
+                      style={{
+                        textDecoration: selected === index ? "underline" : "none",
+                        color: selected === index ? "#0d6efd" : "black", // Đổi màu xanh khi chọn
+                        cursor: "pointer",
+                        textDecorationThickness: "4px", // Độ dày gạch chân
+                        textUnderlineOffset: "5px", // Khoảng cách gạch chân so với chữ
                       }}
-
                     >
-                      <img
-                        src={
-                          chat.type === 3
-                            ? "/cloud.jpg"
-                            : chat.avatar || "/placeholder.svg"
-                        }
-                        className="rounded-circle"
-                        alt=""
-                        style={{ width: "48px", height: "48px" }}
-                      />
-                      <div className="ms-2 overflow-hidden flex-grow-1">
-                        <div className="text-truncate fw-medium">
-                          {chat.username}
-                        </div>
-                        <div
-                          className="text-truncate small text-muted"
-                          style={{ maxWidth: "200px", whiteSpace: "nowrap", alignItems: "center", display: "flex" }}
-                        >
-                          {(() => {
-                            // Regex kiểm tra link ảnh (jpg, jpeg, png, gif, webp)
-                            const imageRegex = /(https?:\/\/[^\s,]+?\.(jpg|jpeg|png|gif|webp))/gi;
-                            // Nếu là nhiều link ảnh, phân tách bởi dấu phẩy hoặc khoảng trắng
-                            const isImage =
-                              typeof chat.message === "string" &&
-                              chat.message.split(/,|\s/).some((url) => imageRegex.test(url));
-                            if (isImage) {
-                              return (
-                                <>
-                                  <ImageIcon size={16} className="me-1" />
-                                  Hình ảnh
-                                </>
-                              );
-                            }
-                            return chat.message;
-                          })()}
-                        </div>
+                      {item}
+                    </span>
+                  ))}
+                </div>
+                <div className="cursor-pointer hover-bg-light p-1">Phân loại</div>
+              </div>
+              {conversations &&
+                conversations.map((chat) => (
+                  <div
+                    key={chat._id}
+                    className={`d-flex align-items-center p-2 border-bottom hover-bg-light cursor-pointer ${selectedUser && selectedUser._id === chat._id ? 'active-chat' : ''
+                      }`}
+                    onClick={() => {
+                      handleTypeChat(chat.type, chat);
+                      setSelectedUser(chat);
+                    }}
+
+                  >
+                    <img
+                      src={
+                        chat.type === 3
+                          ? "/cloud.jpg"
+                          : chat.avatar || "/placeholder.svg"
+                      }
+                      className="rounded-circle"
+                      alt=""
+                      style={{ width: "48px", height: "48px" }}
+                    />
+                    <div className="ms-2 overflow-hidden flex-grow-1">
+                      <div className="text-truncate fw-medium">
+                        {chat.username}
                       </div>
-                      <small className="text-muted ms-auto">
-                        {convertTime(chat.time)}
-                      </small>
+                      <div
+                        className="text-truncate small text-muted"
+                        style={{ maxWidth: "200px", whiteSpace: "nowrap" }}
+                      >
+                        {chat.message.startsWith("https://monhoc1.s3.ap-southeast-1.amazonaws.com/media")
+                          ? "*file*"
+                          : chat.message}
+                      </div>
                     </div>
-                  )})}
-              </>)}
+                    <small className="text-muted ms-auto">
+                      {convertTime(chat.time)}
+                    </small>
+                  </div>
+                ))}
+            </>
           </div>
         </div>
 

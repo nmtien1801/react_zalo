@@ -6,21 +6,15 @@ import Navbar from "react-bootstrap/Navbar";
 import {
   MessageCircle,
   Users,
-  CheckSquare,
   Cloud,
   Calendar,
   Briefcase,
-  Settings,
   Bot
 } from "lucide-react";
 
 import AccountSetting from "../page/accountSetting/accountSetting";
 import { useSelector, useDispatch } from "react-redux";
-import SettingModel from "../page/accountSetting/settingModel";
-import InfomationAccount from "../page/accountSetting/infomationAccount";
 import "./Header.css";
-import { logout } from "../redux/authSlice";
-import { logoutUserService } from "../service/authService";
 import { getFriendRequestsService, getGroupJoinRequestsService } from "../service/friendRequestService";
 
 const Header = (props) => {
@@ -30,49 +24,6 @@ const Header = (props) => {
   const [modalContent, setModalContent] = useState("");
   const user = useSelector((state) => state.auth.userInfo);
   const socketRef = props.socketRef;
-
-
-  const [isOpenModelSetting, setIsOpenModelSetting] = useState(false);
-  const [isOpenModelInfomationAccount, setIsOpenModelInfomationAccount] = useState(false);
-
-  // const toggleModalSetting = () => {
-  //   if (!isOpenModelSetting) {
-  //     toggleDropdown();
-  //   }
-  //   setIsOpenModelSetting(!isOpenModelSetting);
-  // };
-
-  // const toggleModalInfomation = () => {
-  //   if (!isOpenModelInfomationAccount) {
-  //     toggleDropdown();
-  //   }
-  //   setIsOpenModelInfomationAccount(!isOpenModelInfomationAccount);
-  // };
-
-  // const toggleDropdown = () => {
-  //   setShowDropdown((prev) => !prev);
-  // };
-
-  // const handleLogout = async () => {
-  //   try {
-  //     const response = await logoutUserService();
-
-  //     if (response.EC === 2) {
-  //       dispatch(logout());
-
-  //       localStorage.removeItem("access_Token");
-  //       localStorage.removeItem("refresh_Token");
-
-  //       alert("Đăng xuất thành công!");
-  //       window.location.href = "/login";
-  //     } else {
-  //       alert(response.EM || "Đăng xuất thất bại!");
-  //     }
-  //   } catch (error) {
-  //     console.error("Lỗi khi logout:", error);
-  //     alert("Đã xảy ra lỗi khi đăng xuất.");
-  //   }
-  // }
 
   const friendRequests = props.friendRequests;
   const groupRequests = props.groupRequests;
@@ -136,21 +87,7 @@ const Header = (props) => {
             alt="Profile"
             className="rounded-circle border border-2 border-white"
             style={{ width: "40px", height: "40px", objectFit: "cover" }}
-          // onClick={toggleDropdown}
           />
-          {/* {showDropdown && (
-            <div className="dropdown-menu-custom">
-              <div className="dropdown-header">{user?.username || "Người dùng"}</div>
-              <div className="dropdown-item">
-                <span>Nâng cấp tài khoản</span>
-                <i className="bi bi-box-arrow-up-right"></i>
-              </div>
-              <div className="dropdown-item" onClick={toggleModalInfomation}>Hồ sơ của bạn</div>
-              <div className="dropdown-item">Cài đặt</div>
-              <hr className="dropdown-divider" />
-              <div className="dropdown-item text-danger" onClick={handleLogout}>Đăng xuất</div>
-            </div>
-          )} */}
         </Navbar.Brand>
 
         {/* Menu content */}
@@ -178,15 +115,6 @@ const Header = (props) => {
 
       {/* Settings at bottom */}
       <div className="mt-auto text-center d-flex flex-column align-items-center gap-4">
-        <button className="btn btn-link p-0 text-white opacity-75 hover-opacity-100">
-          <Cloud size={24} />
-        </button>
-        <button className="btn btn-link p-0 text-white opacity-75 hover-opacity-100">
-          <Calendar size={24} />
-        </button>
-        <button className="btn btn-link p-0 text-white opacity-75 hover-opacity-100">
-          <Briefcase size={24} />
-        </button>
         <div className="btn btn-link p-0 text-white opacity-75 hover-opacity-100">
           {/* <Settings size={24} /> */}
           <AccountSetting
@@ -196,15 +124,6 @@ const Header = (props) => {
           />
         </div>
       </div>
-
-      {/* {isOpenModelSetting && (
-        <SettingModel toggleModalSetting={toggleModalSetting} />
-      )}
-
-      {isOpenModelInfomationAccount && (
-        <InfomationAccount toggleModalInfomation={toggleModalInfomation} socketRef={socketRef} />
-      )} */}
-
     </Navbar>
   );
 };

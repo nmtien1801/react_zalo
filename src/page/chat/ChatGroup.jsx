@@ -445,12 +445,12 @@ export default function ChatGroup(props) {
   const handleInputChange = (e) => {
     const text = e.target.value;
     setMessage(text);
-    
+
     // Xóa timeout hiện có để reset
     if (typingTimeout.current) {
       clearTimeout(typingTimeout.current);
     }
-    
+
     // Gửi sự kiện TYPING nếu đang nhập
     if (text.trim() !== "") {
       if (socketRef.current) {
@@ -474,7 +474,7 @@ export default function ChatGroup(props) {
             userId: user._id,
             receiver: receiver
           });
-          
+
           console.log("Dừng typing", {
             userId: user._id,
             receiver: receiver
@@ -503,7 +503,7 @@ export default function ChatGroup(props) {
       // Lắng nghe khi có người đang typing
       socketRef.current.on("USER_TYPING", (data) => {
         const { userId, username, conversationId } = data;
-        
+
         // Kiểm tra đúng cuộc trò chuyện hiện tại
         if (conversationId === receiver._id) {
           setTypingUsers(prev => ({
@@ -512,11 +512,11 @@ export default function ChatGroup(props) {
           }));
         }
       });
-      
+
       // Lắng nghe khi có người dừng typing
       socketRef.current.on("USER_STOP_TYPING", (data) => {
         const { userId, conversationId } = data;
-        
+
         if (conversationId === receiver._id) {
           setTypingUsers(prev => {
             const newState = { ...prev };
@@ -525,12 +525,12 @@ export default function ChatGroup(props) {
           });
         }
       });
-      
+
       // Cleanup khi component unmount
       return () => {
         socketRef.current.off("USER_TYPING");
         socketRef.current.off("USER_STOP_TYPING");
-        
+
         // Dừng typing khi unmount
         if (socketRef.current) {
           socketRef.current.emit("STOP_TYPING", {
@@ -538,7 +538,7 @@ export default function ChatGroup(props) {
             receiver: receiver
           });
         }
-        
+
         if (typingTimeout.current) {
           clearTimeout(typingTimeout.current);
         }
@@ -574,7 +574,7 @@ export default function ChatGroup(props) {
       emoji: emojiText,
       receiver: receiver // Trong ChatGroup, biến là receiver thay vì props.roomData.receiver
     };
-  
+
     // Gửi reaction qua socket
     if (socketRef.current) {
       socketRef.current.emit("REACTION", reactionData);
@@ -625,21 +625,21 @@ export default function ChatGroup(props) {
   useEffect(() => {
     if (socketRef.current) {
       // Các listeners hiện có
-      
+
       // Thêm listener cho RECEIVED_REACTION
       socketRef.current.on("RECEIVED_REACTION", (data) => {
         console.log("Received reaction:", data);
         const { messageId, userId, emoji } = data;
-        
+
         setReactions(prevReactions => {
           const currentReactions = prevReactions[messageId] || [];
           const existingReactionIndex = currentReactions.findIndex(
             reaction => String(reaction.userId) === String(userId) && reaction.emoji === emoji
           );
-          
+
           let updatedReactions;
           if (existingReactionIndex !== -1) {
-            updatedReactions = currentReactions.filter((_, index) => 
+            updatedReactions = currentReactions.filter((_, index) =>
               index !== existingReactionIndex
             );
           } else {
@@ -652,18 +652,18 @@ export default function ChatGroup(props) {
               }
             ];
           }
-          
+
           return {
             ...prevReactions,
             [messageId]: updatedReactions
           };
         });
       });
-      
+
       socketRef.current.on("REACTION_ERROR", (data) => {
         console.error("Reaction error:", data.error);
       });
-      
+
       // Clean up
       return () => {
         // Giữ nguyên cleanup code hiện có
@@ -1044,30 +1044,26 @@ export default function ChatGroup(props) {
     const selectedImages = e.target.files;
 
     if (selectedImages && selectedImages.length > 0) {
-
       if (selectedImages.length > 10) {
         setHasSelectedImages(false);
         alert("Số lượng ảnh không được quá 10!");
         return;
       }
 
-      const previews = [];
       const files = Array.from(e.target.files);
+      const previews = await Promise.all(
+        Array.from(selectedImages).map((image) => {
+          return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.readAsDataURL(image);
+          });
+        })
+      );
 
-      for (let image of selectedImages) {
-        // Tạo URL xem trước
-        const reader = new FileReader();
-        reader.onload = () => {
-          previews.push(reader.result); // Lưu URL xem trước vào mảng
-          setPreviewImages([...previews]); // Cập nhật state xem trước
-          setHasSelectedImages(true);
-        };
-        reader.readAsDataURL(image);
-      }
-
-      if (files.length > 0) {
-        setSelectedFiles((prev) => [...prev, ...files]);
-      }
+      setPreviewImages(previews);
+      setSelectedFiles((prev) => [...prev, ...files]);
+      setHasSelectedImages(true);
     } else {
       setHasSelectedImages(false);
     }
@@ -1080,6 +1076,8 @@ export default function ChatGroup(props) {
 
   // Kích hoạt input ẩn image khi nhấn nút
   const handleButtonClickImage = () => {
+    setPreviewImages([]);
+    setSelectedFiles([]);
     imageInputRef.current.click(); // Mở dialog chọn file
   };
 
@@ -1117,7 +1115,10 @@ export default function ChatGroup(props) {
         let res = await dispatch(uploadAvatarGroup({ groupId: props.roomData.receiver._id, avatar: response.payload.DT }))
         setAvatarUrl(response.payload.DT);
         if (res.payload.EC === 0) {
-          socketRef.current.emit("REQ_UPDATE_AVATAR", receiver);
+          socketRef.current.emit("REQ_UPDATE_AVATAR", {
+            receiver,
+            avatar: response.payload.DT
+          });
         }
 
       } else {
@@ -1463,10 +1464,12 @@ export default function ChatGroup(props) {
 
     // update avatar
     socketRef.current.on("RES_UPDATE_AVATAR", (data) => {
+
       setReceiver({
         ...receiver,
-        avatar: avatarUrl,
+        avatar: data.avatar,
       })
+      setAvatarUrl(data.avatar);
     });
   }, [])
 
@@ -1867,7 +1870,13 @@ export default function ChatGroup(props) {
         {/* Message Input */}
         <div className="bg-white p-2 border-top" >
           {/* Xem hình ảnh trước khi gửi */}
-          <div className="preview-container d-flex flex-wrap gap-2 mt-2" >
+          <div
+            className="preview-container d-flex flex-wrap gap-2 mt-2 position-relative"
+            style={{
+              maxHeight: "100px",
+              overflowY: "auto",
+            }}
+          >
             {previewImages.map((image, index) => (
               <div key={index} className="preview-item position-relative">
                 <img
@@ -1885,10 +1894,13 @@ export default function ChatGroup(props) {
                 </button>
               </div>
             ))}
+
+            {/* Xóa tất cả */}
             {previewImages.length > 0 && (
               <button
-                className="btn btn-link text-danger mt-2"
+                className="btn btn-link text-danger position-absolute top-0 end-0"
                 onClick={handleClearAllPreviews}
+                style={{ fontSize: "12px", lineHeight: "1" }}
               >
                 Xóa tất cả
               </button>

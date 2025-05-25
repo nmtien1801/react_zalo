@@ -49,9 +49,9 @@ const DanhBa = (props) => {
   const renderContent = () => {
     switch (activeTab) {
       case 'Danh sách bạn bè':
-        return <FriendsList socketRef={socketRef}/>;
+        return <FriendsList socketRef={socketRef} />;
       case 'Danh sách nhóm và cộng đồng':
-        return <GroupsList socketRef={socketRef}/>;
+        return <GroupsList socketRef={socketRef} />;
       case 'Lời mời kết bạn':
         return <FriendRequest socketRef={socketRef} />;
       case 'Lời mời vào nhóm và cộng đồng':
@@ -65,12 +65,12 @@ const DanhBa = (props) => {
     <div className="container-fluid vh-100 p-0">
       <div className="row h-100 g-0 ">
         <div
-          className="col-3 border-end bg-white"
-          style={{ maxWidth: "300px" }}
+          className={`col-12 col-sm-6 col-md-4 col-lg-3 border-end bg-white`}
+          style={{ maxWidth: "300px", transition: 'max-width 0.3s' }}
         >
           {/*  Search */}
           <div className="p-2 border-bottom">
-            <div className="d-flex align-items-center pb-3">
+            <div className="d-flex align-items-center pb-1">
               <div className="input-group me-3">
                 <input
                   type="text"
@@ -110,7 +110,7 @@ const DanhBa = (props) => {
             </div>
           </div>
           {/* Sidebar */}
-          <div className="">
+          <div className="p-2">
             <ListGroup>
               <ListGroup.Item
                 active={activeTab === 'Danh sách bạn bè'}

@@ -1623,22 +1623,24 @@ export default function ChatPerson(props) {
                                         return (
                                           <>
                                             {readers.map((reader, index) => (
-                                              <div
-                                                key={index}
-                                                className="reader-avatar"
-                                                style={{
-                                                  marginLeft: index > 0 ? '-8px' : '0',
-                                                  zIndex: 10 - index,
-                                                  position: 'relative'
-                                                }}
-                                              >
-                                                <img
-                                                  src={reader.avatar || "/placeholder.svg"}
-                                                  alt={reader.username || "User"}
-                                                  className="rounded-circle border border-white"
-                                                  style={{ width: '16px', height: '16px', objectFit: 'cover', backgroundColor: 'white' }}
-                                                />
-                                              </div>
+                                              reader.avatar ? (
+                                                <div
+                                                  key={index}
+                                                  className="reader-avatar"
+                                                  style={{
+                                                    marginLeft: index > 0 ? '-8px' : '0',
+                                                    zIndex: 10 - index,
+                                                    position: 'relative'
+                                                  }}
+                                                >
+                                                  <img
+                                                    src={reader.avatar || "/placeholder.svg"}
+                                                    alt={reader.username || "User"}
+                                                    className="rounded-circle border border-white"
+                                                    style={{ width: '16px', height: '16px', objectFit: 'cover', backgroundColor: 'white' }}
+                                                  />
+                                                </div>
+                                              ) : null
                                             ))}
 
                                             {/* Hiển thị số người còn lại đã đọc nếu > 3 */}

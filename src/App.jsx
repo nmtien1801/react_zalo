@@ -22,6 +22,7 @@ import ResetPassword from "./page/auth/ResetPassword";
 import io from "socket.io-client";
 import VideoCallModal from "../src/component/VideoCallModal.jsx"
 import ChatBot from "./page/chat/ChatBot";
+import LoginWithQR from "./page/auth/LoginWithQRCode.jsx";
 
 function App() {
   const dispatch = useDispatch();
@@ -119,6 +120,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Login />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/login-qr" element={<LoginWithQR />} />
             <Route path="/register" element={<Register />} />
             <Route path="/forgot-password" element={<ResetPassword />} />
 

@@ -299,18 +299,24 @@ export default function ChatPerson(props) {
 
   // Hàm kiểm tra xem có nên tự động cuộn xuống dưới cùng không
   const shouldAutoScrollToBottom = (oldMessages, newMessages) => {
-    // Nếu không có tin nhắn trước đó, luôn cuộn xuống dưới
-    if (!oldMessages || !oldMessages.length) return true;
+    // If no previous messages, always scroll
+    if (!oldMessages.length || !newMessages.length) return true;
 
-    // Kiểm tra xem tin nhắn mới nhất được thêm vào cuối (tin nhắn đến)
+    // Check if the newest message was added at the end (incoming message)
     const oldLastMessage = oldMessages[oldMessages.length - 1];
     const newLastMessage = newMessages[newMessages.length - 1];
 
-    // Cuộn xuống nếu:
-    // 1. Có tin nhắn mới ở cuối VÀ
-    // 2. Nó là từ người dùng hiện tại hoặc chúng ta đang ở gần phía dưới
-    if (oldLastMessage?._id !== newLastMessage?._id) {
-      const isFromCurrentUser = newLastMessage?.sender?._id === user._id;
+    // Check if both messages exist and have _id
+    if (!oldLastMessage || !newLastMessage) return true;
+
+    // Scroll if:
+    // 1. New message at the end AND
+    // 2. It's either from current user or we're very close to the bottom already
+    if (oldLastMessage._id !== newLastMessage._id) {
+      // Check if sender exists before accessing its _id
+      const isFromCurrentUser = newLastMessage.sender &&
+        user &&
+        newLastMessage.sender._id === user._id;
       const isNearBottom = chatContainerRef.current &&
         (chatContainerRef.current.scrollHeight - chatContainerRef.current.scrollTop -
           chatContainerRef.current.clientHeight < 100);
@@ -840,7 +846,7 @@ export default function ChatPerson(props) {
     // Tách nội dung từ dòng 2 trở đi (nếu có \n)
     const parts = selectedMessage.msg.split('\n\n');
     let contentAfterFirstLine = parts.length > 1 ? parts.slice(1).join('\n') : selectedMessage.msg;
-    
+
     if (contentAfterFirstLine.startsWith("https://monhoc1.s3.ap-southeast-1.amazonaws.com/media")) {
       contentAfterFirstLine = "*file*"
     }

@@ -204,38 +204,38 @@ export default function ChatGroup(props) {
   // Hàm tải tin nhắn cũ hơn
   const loadOlderMessages = async () => {
     if (!hasMoreMessages || isLoadingOlder || messages.length === 0) return;
-    
+
     setIsLoadingOlder(true);
-    
+
     try {
       // Lưu vị trí scroll hiện tại và tin nhắn đầu tiên đang hiển thị
       const chatContainer = chatContainerRef.current;
       const oldScrollHeight = chatContainer.scrollHeight;
       const scrollPosition = chatContainer.scrollTop;
-      
+
       const response = await loadMessagesService(
-        user._id, 
-        props.roomData.receiver._id, 
+        user._id,
+        props.roomData.receiver._id,
         props.roomData.receiver.type,
         page + 1,
         20
       );
-      
+
       if (response.EC === 0) {
         const olderMessages = response.DT;
-        
+
         if (olderMessages && olderMessages.length > 0) {
           // Sử dụng Set để lọc các tin nhắn trùng lặp
           const uniqueMessages = [...olderMessages];
           const existingIds = new Set(messages.map(msg => msg._id));
-          
+
           // Lọc những tin nhắn chưa có trong danh sách hiện tại
           const filteredMessages = uniqueMessages.filter(msg => !existingIds.has(msg._id));
-          
+
           // Thêm tin nhắn cũ vào đầu danh sách
           setMessages(prevMessages => [...filteredMessages, ...prevMessages]);
           setPage(prev => prev + 1);
-          
+
           // Kiểm tra xem còn tin nhắn để tải không
           setHasMoreMessages(olderMessages.length === 20 && response.pagination?.hasMore);
 
@@ -247,7 +247,7 @@ export default function ChatGroup(props) {
               chatContainer.scrollTop = heightDifference + scrollPosition;
             }
           };
-        
+
           maintainScrollPosition();
           // Gọi nhiều lần để đảm bảo vị trí cuộn được khôi phục sau khi render
           setTimeout(maintainScrollPosition, 10);
@@ -270,10 +270,10 @@ export default function ChatGroup(props) {
   // Xử lý sự kiện scroll
   const handleScroll = (e) => {
     const { scrollTop, scrollHeight, clientHeight } = e.target;
-    
+
     // Lưu vị trí scroll hiện tại
     setScrollPositionY(scrollTop);
-    
+
     // Hiển thị nút cuộn về dưới khi kéo lên trên
     const isScrolledUp = scrollTop < scrollHeight - clientHeight - 300;
     setShowScrollToBottom(isScrolledUp);
@@ -282,7 +282,7 @@ export default function ChatGroup(props) {
     if (scrollTop < 150 && !isLoadingOlder && hasMoreMessages && !preventInitialFetch.current) {
       loadOlderMessages();
     }
-    
+
     // Đánh dấu là đã có tương tác người dùng thực sự sau khi render lần đầu
     if (preventInitialFetch.current && initialLoadComplete.current) {
       preventInitialFetch.current = false;
@@ -292,8 +292,8 @@ export default function ChatGroup(props) {
   useEffect(() => {
     // Chỉ cuộn xuống khi có tin nhắn mới hoặc lần đầu tiên load tin nhắn
     if (!isLoadingOlder) {
-      const isNewMessage = prevMessagesLengthRef.current > 0 && 
-        messages.length > prevMessagesLengthRef.current && 
+      const isNewMessage = prevMessagesLengthRef.current > 0 &&
+        messages.length > prevMessagesLengthRef.current &&
         messages[messages.length - 1]._id !== prevLastMessageIdRef.current;
 
       if (initialLoadComplete.current === false || isNewMessage) {
@@ -323,26 +323,26 @@ export default function ChatGroup(props) {
   useEffect(() => {
     // Store previous messages for comparison
     const prevMessages = prevMessagesRef.current;
-    
+
     // Update the ref with current messages
     prevMessagesRef.current = messages;
-    
+
     // First load, always scroll to bottom
     if (!prevMessages || prevMessages.length === 0) {
       scrollToBottom();
       return;
     }
-    
+
     // Skip auto-scroll logic if we're loading older messages
     if (isLoadingOlder) return;
-    
+
     // If messages were added to the beginning (older messages loaded), don't auto-scroll
-    if (messages.length > prevMessages.length && 
-        messages[0]._id !== prevMessages[0]._id && 
-        messages[messages.length - 1]._id === prevMessages[prevMessages.length - 1]._id) {
+    if (messages.length > prevMessages.length &&
+      messages[0]._id !== prevMessages[0]._id &&
+      messages[messages.length - 1]._id === prevMessages[prevMessages.length - 1]._id) {
       return;
     }
-    
+
     // Check if we should auto-scroll for new messages
     if (shouldAutoScrollToBottom(prevMessages, messages)) {
       scrollToBottom();
@@ -355,13 +355,13 @@ export default function ChatGroup(props) {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
-    
+
     // Đặt lại các biến kiểm soát
     preventInitialFetch.current = true;
     initialLoadComplete.current = false;
     setPage(1);
     setHasMoreMessages(true);
-    
+
     return () => {
       // Reset các biến khi unmount component
       preventInitialFetch.current = true;
@@ -371,23 +371,23 @@ export default function ChatGroup(props) {
 
   const handlePaste = (e) => {
     const items = e.clipboardData.items;
-    
+
     // Duyệt qua tất cả các items trong clipboard
     for (let i = 0; i < items.length; i++) {
       if (items[i].type.indexOf('image') !== -1) {
         // Ngăn chặn paste mặc định
         e.preventDefault();
-        
+
         // Lấy file từ clipboard
         const file = items[i].getAsFile();
-        
+
         // Kiểm tra file
         if (!file) return;
-        
+
         // Thêm file vào danh sách đã chọn
         const files = [file];
         setSelectedFiles((prev) => [...prev, ...files]);
-        
+
         // Tạo URL xem trước
         const reader = new FileReader();
         reader.onload = () => {
@@ -396,7 +396,7 @@ export default function ChatGroup(props) {
           setHasSelectedImages(true);
         };
         reader.readAsDataURL(file);
-        
+
         // Chỉ xử lý file hình ảnh đầu tiên tìm thấy
         break;
       }
@@ -702,11 +702,11 @@ export default function ChatGroup(props) {
 
   useEffect(() => {
     const inputElement = messageInputRef.current;
-    
+
     if (inputElement) {
       inputElement.addEventListener('paste', handlePaste);
     }
-    
+
     return () => {
       if (inputElement) {
         inputElement.removeEventListener('paste', handlePaste);
@@ -809,12 +809,12 @@ export default function ChatGroup(props) {
         return prev.map(msg => {
           // Tìm tin nhắn trong props.allMsg có cùng nội dung và người gửi
           const matchingNewMsg = props.allMsg.find(
-            newMsg => 
-              newMsg.sender._id === msg.sender._id && 
+            newMsg =>
+              newMsg.sender._id === msg.sender._id &&
               newMsg.msg === msg.msg &&
               Math.abs(new Date(newMsg.createdAt).getTime() - new Date(msg.createdAt).getTime()) < 30000 // Thời gian tạo gần nhau (30 giây)
           );
-          
+
           if (matchingNewMsg && (msg.status === "pending" || msg.status === "fail")) {
             // Cập nhật tin nhắn tạm thời với dữ liệu chính thức từ server
             return { ...matchingNewMsg, status: "sent" };
@@ -836,24 +836,30 @@ export default function ChatGroup(props) {
 
   const shouldAutoScrollToBottom = (oldMessages, newMessages) => {
     // If no previous messages, always scroll
-    if (!oldMessages.length) return true;
-    
+    if (!oldMessages.length || !newMessages.length) return true;
+
     // Check if the newest message was added at the end (incoming message)
     const oldLastMessage = oldMessages[oldMessages.length - 1];
     const newLastMessage = newMessages[newMessages.length - 1];
-    
+
+    // Check if both messages exist and have _id
+    if (!oldLastMessage || !newLastMessage) return true;
+
     // Scroll if:
     // 1. New message at the end AND
     // 2. It's either from current user or we're very close to the bottom already
     if (oldLastMessage._id !== newLastMessage._id) {
-      const isFromCurrentUser = newLastMessage.sender._id === user._id;
-      const isNearBottom = chatContainerRef.current && 
-        (chatContainerRef.current.scrollHeight - chatContainerRef.current.scrollTop - 
-        chatContainerRef.current.clientHeight < 100);
-        
+      // Check if sender exists before accessing its _id
+      const isFromCurrentUser = newLastMessage.sender &&
+        user &&
+        newLastMessage.sender._id === user._id;
+      const isNearBottom = chatContainerRef.current &&
+        (chatContainerRef.current.scrollHeight - chatContainerRef.current.scrollTop -
+          chatContainerRef.current.clientHeight < 100);
+
       return isFromCurrentUser || isNearBottom;
     }
-    
+
     return false;
   };
 
@@ -907,10 +913,10 @@ export default function ChatGroup(props) {
 
     // Thiết lập timeout để kiểm tra sau 10 giây
     setTimeout(() => {
-      setMessages(prev => 
-        prev.map(m => 
-          (m._id === tempId && m.status === "pending") 
-            ? { ...m, status: "fail" } 
+      setMessages(prev =>
+        prev.map(m =>
+          (m._id === tempId && m.status === "pending")
+            ? { ...m, status: "fail" }
             : m
         )
       );
@@ -921,7 +927,7 @@ export default function ChatGroup(props) {
   const handleResendMessage = (msg) => {
     // Xóa tin nhắn cũ
     setMessages(prev => prev.filter(m => m._id !== msg._id));
-    
+
     // Gửi lại tin nhắn
     sendMessage(msg.msg, msg.type);
   };
@@ -959,16 +965,16 @@ export default function ChatGroup(props) {
   // Hàm trích xuất ID từ các định dạng khác nhau
   const extractId = (idObject) => {
     if (!idObject) return null;
-    
+
     // Nếu là object với $oid
     if (idObject.$oid) return idObject.$oid;
-    
+
     // Nếu là string
     if (typeof idObject === 'string') return idObject;
-    
+
     // Nếu là object MongoDB đã chuyển đổi
     if (idObject.toString) return idObject.toString();
-    
+
     return null;
   };
 
@@ -977,7 +983,7 @@ export default function ChatGroup(props) {
     if (!readBy || !Array.isArray(readBy) || readBy.length === 0) {
       return { readers: [], count: 0 };
     }
-    
+
     // Lọc bỏ người dùng hiện tại
     const filteredReaders = readBy.filter(readerId => {
       const id1 = extractId(readerId);
@@ -988,7 +994,7 @@ export default function ChatGroup(props) {
     if (filteredReaders.length === 0) {
       return { readers: [], count: 0 };
     }
-    
+
     // Tìm thông tin chi tiết của người đọc (tối đa 3 người)
     const detailedReaders = filteredReaders
       .slice(0, 3)
@@ -997,7 +1003,7 @@ export default function ChatGroup(props) {
         const member = members.find(m => extractId(m._id) === id);
         return member || { _id: id, avatar: "/placeholder.svg", username: "Unknown" };
       });
-    
+
     return {
       readers: detailedReaders,
       count: filteredReaders.length
@@ -1263,7 +1269,7 @@ export default function ChatGroup(props) {
           // Thêm lớp animation cho tin nhắn đã chọn trước đó và tin nhắn hiện tại
           prevMessageElement.classList.add('slide-down');
           currentMessageElement.classList.add('slide-up', 'selected');
-          
+
           // Xóa lớp animation sau khi hoàn thành
           setTimeout(() => {
             prevMessageElement.classList.remove('slide-down');
@@ -1611,9 +1617,8 @@ export default function ChatGroup(props) {
                 return (
                   <div
                     key={index}
-                    className={`px-2 my-1 d-flex chat-message ${
-                      msg.sender._id === user._id ? "justify-content-end" : "justify-content-start"
-                    } ${selectedReadStatus === msg._id ? "selected" : ""}`}
+                    className={`px-2 my-1 d-flex chat-message ${msg.sender._id === user._id ? "justify-content-end" : "justify-content-start"
+                      } ${selectedReadStatus === msg._id ? "selected" : ""}`}
                     data-message-id={msg._id}
                   >
                     {/* Hiển thị avatar cho người khác (không phải mình) */}
@@ -1631,10 +1636,9 @@ export default function ChatGroup(props) {
                       </div>
                     )}
 
-                    <div 
-                      className={`message-content ${isSameSender ? "message-group" : ""} ${
-                        selectedReadStatus === msg._id ? "selected" : ""
-                      }`}
+                    <div
+                      className={`message-content ${isSameSender ? "message-group" : ""} ${selectedReadStatus === msg._id ? "selected" : ""
+                        }`}
                       style={{ maxWidth: "70%" }}
                       onClick={() => msg.sender._id === user._id && handleMessageClick(msg._id)}
                     >
@@ -1768,54 +1772,53 @@ export default function ChatGroup(props) {
                       </div>
 
                       {msg.sender._id === user._id && (
-                        <div className={`message-status d-flex align-items-center small text-muted ${
-                          (index === filteredMessages.length - 1 || selectedReadStatus === msg._id) ? "show-status" : ""}`}
+                        <div className={`message-status d-flex align-items-center small text-muted ${(index === filteredMessages.length - 1 || selectedReadStatus === msg._id) ? "show-status" : ""}`}
                         >
                           {(index === filteredMessages.length - 1 || selectedReadStatus === msg._id) && (
                             <>
                               {msg.readBy && msg.readBy.length > 0 ? (
                                 <div className="d-flex align-items-center" title="Đã xem">
                                   <div className="read-avatars d-flex">
-                                  {(() => {
-                                    // Lấy ID của current user
-                                    const currentUserId = user._id.$oid || user._id;
-                                    
-                                    // Xử lý dữ liệu readBy
-                                    const { readers, count } = processReadByData(msg.readBy, currentUserId, members);
-                                    
-                                    // Render avatars của những người đã đọc
-                                    return (
-                                      <>
-                                        {readers.map((reader, index) => (
-                                              reader.avatar ? (
-                                                <div
-                                                  key={index}
-                                                  className="reader-avatar"
-                                                  style={{
-                                                    marginLeft: index > 0 ? '-8px' : '0',
-                                                    zIndex: 10 - index,
-                                                    position: 'relative'
-                                                  }}
-                                                >
-                                                  <img
-                                                    src={reader.avatar || "/placeholder.svg"}
-                                                    alt={reader.username || "User"}
-                                                    className="rounded-circle border border-white"
-                                                    style={{ width: '16px', height: '16px', objectFit: 'cover', backgroundColor: 'white' }}
-                                                  />
-                                                </div>
-                                              ) : null
-                                            ))}
-                                        
-                                        {/* Hiển thị số người còn lại đã đọc nếu > 3 */}
-                                        {count > 3 && (
-                                          <span className="ms-1 text-muted small">
-                                            +{count - 3}
-                                          </span>
-                                        )}
-                                      </>
-                                    );
-                                  })()}
+                                    {(() => {
+                                      // Lấy ID của current user
+                                      const currentUserId = user._id.$oid || user._id;
+
+                                      // Xử lý dữ liệu readBy
+                                      const { readers, count } = processReadByData(msg.readBy, currentUserId, members);
+
+                                      // Render avatars của những người đã đọc
+                                      return (
+                                        <>
+                                          {readers.map((reader, index) => (
+                                            reader.avatar ? (
+                                              <div
+                                                key={index}
+                                                className="reader-avatar"
+                                                style={{
+                                                  marginLeft: index > 0 ? '-8px' : '0',
+                                                  zIndex: 10 - index,
+                                                  position: 'relative'
+                                                }}
+                                              >
+                                                <img
+                                                  src={reader.avatar || "/placeholder.svg"}
+                                                  alt={reader.username || "User"}
+                                                  className="rounded-circle border border-white"
+                                                  style={{ width: '16px', height: '16px', objectFit: 'cover', backgroundColor: 'white' }}
+                                                />
+                                              </div>
+                                            ) : null
+                                          ))}
+
+                                          {/* Hiển thị số người còn lại đã đọc nếu > 3 */}
+                                          {count > 3 && (
+                                            <span className="ms-1 text-muted small">
+                                              +{count - 3}
+                                            </span>
+                                          )}
+                                        </>
+                                      );
+                                    })()}
                                   </div>
                                 </div>
                               ) : msg.status !== "pending" && msg.status !== "fail" ? (
@@ -1823,15 +1826,15 @@ export default function ChatGroup(props) {
                               ) : null}
                             </>
                           )}
-                          
+
                           {msg.status === "pending" && (
                             <span className="small text-warning">• Đang gửi</span>
                           )}
                           {msg.status === "fail" && (
                             <div className="d-flex align-items-center">
                               <span className="small text-danger me-2">• Gửi thất bại</span>
-                              <button 
-                                className="btn btn-sm p-0 text-danger" 
+                              <button
+                                className="btn btn-sm p-0 text-danger"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleResendMessage(msg);
@@ -1855,8 +1858,8 @@ export default function ChatGroup(props) {
 
         {/* Nút cuộn về tin nhắn mới nhất */}
         {showScrollToBottom && (
-          <button 
-            className="btn btn-primary rounded-circle position-absolute" 
+          <button
+            className="btn btn-primary rounded-circle position-absolute"
             onClick={scrollToBottom}
             style={{
               bottom: '80px',
@@ -1869,7 +1872,7 @@ export default function ChatGroup(props) {
               alignItems: 'center'
             }}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
           </button>
         )}
 

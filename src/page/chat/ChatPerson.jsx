@@ -375,17 +375,23 @@ export default function ChatPerson(props) {
 
   const shouldAutoScrollToBottom = (oldMessages, newMessages) => {
     // If no previous messages, always scroll
-    if (!oldMessages.length) return true;
+    if (!oldMessages.length || !newMessages.length) return true;
 
     // Check if the newest message was added at the end (incoming message)
     const oldLastMessage = oldMessages[oldMessages.length - 1];
     const newLastMessage = newMessages[newMessages.length - 1];
 
+    // Check if both messages exist and have _id
+    if (!oldLastMessage || !newLastMessage) return true;
+
     // Scroll if:
     // 1. New message at the end AND
     // 2. It's either from current user or we're very close to the bottom already
     if (oldLastMessage._id !== newLastMessage._id) {
-      const isFromCurrentUser = newLastMessage.sender._id === user._id;
+      // Check if sender exists before accessing its _id
+      const isFromCurrentUser = newLastMessage.sender &&
+        user &&
+        newLastMessage.sender._id === user._id;
       const isNearBottom = chatContainerRef.current &&
         (chatContainerRef.current.scrollHeight - chatContainerRef.current.scrollTop -
           chatContainerRef.current.clientHeight < 100);

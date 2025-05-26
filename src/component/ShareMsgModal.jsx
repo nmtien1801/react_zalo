@@ -22,7 +22,6 @@ export default function ShareMsgModal({ show, onHide, message, conversations, on
         setConversations1(conversations);
     }, [conversations]);
 
-    console.log("message", message);
 
 
 

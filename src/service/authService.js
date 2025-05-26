@@ -49,6 +49,14 @@ const logoutUserService = () => {
   return customizeAxios.post("/api/logout");
 };
 
+const generateQRLoginService = () => {
+  return customizeAxios.post("/api/generate-qr-login");
+};
+
+const checkQRStatusService = (sessionId) => {
+  return customizeAxios.get(`/api/check-qr-status/${sessionId}`);
+};
+
 export {
   loginService,
   registerService,
@@ -58,4 +66,6 @@ export {
   resetPasswordService,
   changePasswordService,
   verifyEmailService,
+  generateQRLoginService,
+  checkQRStatusService,
 };

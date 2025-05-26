@@ -136,7 +136,7 @@ export default function LoginForm() {
           {/* QR Code Login Link */}
           <div className="text-center mb-3">
             <a
-              href="#"
+              href="/login-qr"
               className="text-decoration-none"
               style={{ color: "#2962ff" }}
             >

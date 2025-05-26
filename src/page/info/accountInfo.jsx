@@ -257,8 +257,8 @@ const AccountInfo = ({ isOpen, closeModal, user, socketRef }) => {
                                             <button className="footer-btn">Báo xấu</button>
                                         </div>
                                         <div className="groups">
-                                            <RiDeleteBin7Line />
-                                            <button className="footer-btn"
+                                            <RiDeleteBin7Line style={{ color: "red" }} />
+                                            <button className="footer-btn delete-friend"
                                                 onClick={() => handleDeleteFriend(userInfo?._id)}
                                             >Xóa danh sách bạn bè</button>
                                         </div>

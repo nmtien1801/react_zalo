@@ -29,12 +29,6 @@ const DanhBa = (props) => {
 
     socketRef.current.on("RES_ADD_FRIEND", getFriendRequests);
     socketRef.current.on("RES_REJECT_FRIEND", getFriendRequests);
-
-    // Cleanup
-    return () => {
-      socketRef.current.off("RES_ADD_FRIEND", getFriendRequests);
-      socketRef.current.off("RES_REJECT_FRIEND", getFriendRequests);
-    };
   }, [socketRef]);
   const handleSearchFocus = () => {
     setIsSearchFocused(true);

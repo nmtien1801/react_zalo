@@ -940,7 +940,17 @@ export default function ChatPerson(props) {
   // Xử lý recall for me
   const handleDeleteMessageForMe = async (id) => {
     try {
-      const response = await deleteMessageForMeService(id, user);
+      let member;
+      if (receiver.type === 2) {
+        member = {
+          ...receiver,
+          memberDel: user._id,
+        };
+      } else {
+        member = user;
+      }
+
+      const response = await deleteMessageForMeService(id, member);
       if (response.EC === 0) {
         console.log("Tin nhắn đã được xóa chỉ ở phía tôi:", response.DT);
 

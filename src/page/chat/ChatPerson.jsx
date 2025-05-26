@@ -1,4 +1,7 @@
+import React from 'react';
 import { useState, useRef, useEffect } from "react";
+import { Modal, Tab, Tabs } from "react-bootstrap"; // Import Bootstrap components
+
 import {
   ImageIcon,
   File,
@@ -34,14 +37,17 @@ import {
   Share2
 } from "lucide-react";
 import "./Chat.scss";
-import AccountInfo from "../info/AccountInfo.jsx";
 import { useSelector, useDispatch } from "react-redux";
 import CallScreen from "../../component/CallScreen.jsx";
 import { uploadAvatar } from '../../redux/profileSlice.js'
 import IconModal from '../../component/IconModal.jsx'
-import { deleteMessageForMeService, getReactionMessageService, recallMessageService, sendReactionService } from "../../service/chatService.js";
+import { deleteMessageForMeService, getReactionMessageService, recallMessageService, sendReactionService, markMessageAsReadService, markAllMessagesAsReadService, loadMessagesService } from "../../service/chatService.js";
 import ImageViewer from "./ImageViewer.jsx";
 import ShareMsgModal from "../../component/ShareMsgModal.jsx";
+import AccountInfo from "../info/accountInfo.jsx";
+import { reloadMessages } from "../../redux/chatSlice.js";
+import VideoCallModal from "../../component/VideoCallModal.jsx"
+import EmojiPopup from '../../component/EmojiPopup.jsx';
 
 export default function ChatPerson(props) {
   const dispatch = useDispatch();
@@ -50,6 +56,8 @@ export default function ChatPerson(props) {
   const fileInputRef = useRef(null); // Ref để truy cập input file ẩn
   const imageInputRef = useRef(null);
   const messagesEndRef = useRef(null);
+  const { setAllMsg } = props;
+  const socketRef = props.socketRef;
 
   const [showSidebar, setShowSidebar] = useState(true);
   const [message, setMessage] = useState("");
@@ -75,6 +83,35 @@ export default function ChatPerson(props) {
   //Reaction
   const [reactionPopupVisible, setReactionPopupVisible] = useState(null);
   const [reactions, setReactions] = useState({});
+  const [hideReactionTimeout, setHideReactionTimeout] = useState(null);
+
+  // Thêm state để theo dõi typing
+  const [typingUsers, setTypingUsers] = useState({});
+  const typingTimeout = useRef(null);
+
+  // Emoji Popup
+  const [showEmojiPopup, setShowEmojiPopup] = useState(false);
+  const [emojiButtonPosition, setEmojiButtonPosition] = useState({ top: 0, left: 0, right: 0 });
+  const emojiButtonRef = useRef(null);
+
+  // Status theo dõi click tin nhắn
+  const [selectedReadStatus, setSelectedReadStatus] = useState(null);
+
+  // Ref cho input msg
+  const messageInputRef = useRef(null);
+
+  // State phân trang
+  const [isLoadingOlder, setIsLoadingOlder] = useState(false);
+  const [hasMoreMessages, setHasMoreMessages] = useState(true);
+  const [page, setPage] = useState(1);
+  const [scrollPositionY, setScrollPositionY] = useState(0);
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+  const chatContainerRef = useRef(null);
+  const initialLoadComplete = useRef(false);
+  const preventInitialFetch = useRef(true);
+  const prevMessagesLengthRef = useRef(0);
+  const prevLastMessageIdRef = useRef(null);
+  const prevMessagesRef = useRef([]);
 
   //Object Ánh xạ Emoji
   const emojiToTextMap = {
@@ -105,6 +142,116 @@ export default function ChatPerson(props) {
   };
 
   useEffect(() => {
+    if (props.allMsg && props.allMsg.length > 0) {
+      setMessages(prev => {
+        return prev.map(msg => {
+          // Tìm tin nhắn trong props.allMsg có cùng nội dung và người gửi
+          const matchingNewMsg = props.allMsg.find(
+            newMsg =>
+              newMsg.sender._id === msg.sender._id &&
+              newMsg.msg === msg.msg &&
+              Math.abs(new Date(newMsg.createdAt).getTime() - new Date(msg.createdAt).getTime()) < 30000 // Thời gian tạo gần nhau (30 giây)
+          );
+
+          if (matchingNewMsg && (msg.status === "pending" || msg.status === "fail")) {
+            // Cập nhật tin nhắn tạm thời với dữ liệu chính thức từ server
+            return { ...matchingNewMsg, status: "sent" };
+          }
+          return msg;
+        });
+      });
+    }
+  }, [props.allMsg]);
+
+  useEffect(() => {
+    if (props.allMsg && props.allMsg.length > 0) {
+      // Tìm tin nhắn chưa đọc từ người khác
+      const unreadMessages = props.allMsg.filter(
+        msg => msg.sender._id !== user._id &&
+          (!msg.readBy || !msg.readBy.includes(user._id))
+      );
+
+      // Đánh dấu từng tin nhắn chưa đọc
+      unreadMessages.forEach(msg => {
+        markMessageAsRead(msg._id);
+      });
+    }
+  }, [props.allMsg]);
+
+  // Đánh dấu đã đọc khi vào phòng chat
+  useEffect(() => {
+    if (props.roomData && props.roomData.receiver && user) {
+      // Đánh dấu tất cả tin nhắn trong phòng là đã đọc
+      markAllMessagesAsRead(props.roomData.receiver._id);
+    }
+  }, [props.roomData]);
+
+  const handleMessageClick = (msgId) => {
+
+    const previousMessageId = selectedReadStatus;
+
+    if (selectedReadStatus === msgId) {
+      setSelectedReadStatus(null);
+    } else {
+      setSelectedReadStatus(msgId);
+
+      if (previousMessageId) {
+        // Tìm phần tử tin nhắn trước đó và hiện tại
+        const prevMessageElement = document.querySelector(`[data-message-id="${previousMessageId}"]`);
+        const currentMessageElement = document.querySelector(`[data-message-id="${msgId}"]`);
+
+        if (prevMessageElement && currentMessageElement) {
+          // Thêm lớp animation cho tin nhắn đã chọn trước đó và tin nhắn hiện tại
+          prevMessageElement.classList.add('slide-down');
+          currentMessageElement.classList.add('slide-up', 'selected');
+
+          // Xóa lớp animation sau khi hoàn thành
+          setTimeout(() => {
+            prevMessageElement.classList.remove('slide-down');
+            currentMessageElement.classList.remove('slide-up');
+          }, 300);
+        }
+      }
+    }
+  };
+
+  // Hàm đánh dấu một tin nhắn đã đọc
+  const markMessageAsRead = async (messageId) => {
+    try {
+      // Chỉ đánh dấu tin nhắn của người khác gửi đến
+      if (messageId) {
+        const response = await markMessageAsReadService(messageId, user._id);
+        if (response.EC === 0) {
+          // Emit socket event
+          props.socketRef.current.emit("MARK_READ", {
+            messageId,
+            userId: user._id,
+            conversationId: props.roomData.receiver._id
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Error marking message as read:", error);
+    }
+  };
+
+  // Hàm đánh dấu tất cả tin nhắn là đã đọc
+  const markAllMessagesAsRead = async (conversationId) => {
+    try {
+      const response = await markAllMessagesAsReadService(conversationId, user._id);
+      if (response.EC === 0) {
+        // Emit socket event
+        props.socketRef.current.emit("MARK_ALL_READ", {
+          userId: user._id,
+          conversationId: conversationId
+        });
+      }
+    } catch (error) {
+      console.error("Error marking all messages as read:", error);
+    }
+  };
+
+  useEffect(() => {
     if (props.allMsg) {
       setMessages(props.allMsg);
     }
@@ -112,12 +259,73 @@ export default function ChatPerson(props) {
 
   const scrollToBottom = () => {
     if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      messagesEndRef.current.scrollIntoView({ behavior: "auto", block: "end" });
+    }
+
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   };
 
   useEffect(() => {
-    scrollToBottom();
+    // Chỉ cuộn xuống khi có tin nhắn mới hoặc lần đầu tiên load tin nhắn
+    if (!isLoadingOlder) {
+
+      const isNewMessage = prevMessagesLengthRef.current > 0 &&
+        messages.length > prevMessagesLengthRef.current &&
+        messages[messages.length - 1]._id !== prevLastMessageIdRef.current;
+
+      if (initialLoadComplete.current === false || isNewMessage) {
+        scrollToBottom();
+
+        // Đánh dấu đã hoàn thành render lần đầu
+        if (!initialLoadComplete.current) {
+          initialLoadComplete.current = true;
+          // Delay ngắn để tránh kích hoạt loadOlderMessages do sự kiện scroll tự động
+          setTimeout(() => {
+            if (chatContainerRef.current) {
+              // Đặt scroll position tới cuối luôn
+              chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+            }
+          }, 100);
+        }
+      }
+    }
+
+    if (messages.length > 0) {
+      prevMessagesLengthRef.current = messages.length;
+      prevLastMessageIdRef.current = messages[messages.length - 1]._id;
+    }
+  }, [messages, isLoadingOlder]);
+
+  // Add this useEffect for better message update handling
+  useEffect(() => {
+    // Store previous messages for comparison
+    const prevMessages = prevMessagesRef.current;
+
+    // Update the ref with current messages
+    prevMessagesRef.current = messages;
+
+    // First load, always scroll to bottom
+    if (!prevMessages || prevMessages.length === 0) {
+      scrollToBottom();
+      return;
+    }
+
+    // Skip auto-scroll logic if we're loading older messages
+    if (isLoadingOlder) return;
+
+    // If messages were added to the beginning (older messages loaded), don't auto-scroll
+    if (messages.length > prevMessages.length &&
+      messages[0]._id !== prevMessages[0]._id &&
+      messages[messages.length - 1]._id === prevMessages[prevMessages.length - 1]._id) {
+      return;
+    }
+
+    // Check if we should auto-scroll for new messages
+    if (shouldAutoScrollToBottom(prevMessages, messages)) {
+      scrollToBottom();
+    }
   }, [messages]);
 
   // useEffect(() => {
@@ -133,23 +341,23 @@ export default function ChatPerson(props) {
 
   const handlePaste = (e) => {
     const items = e.clipboardData.items;
-    
+
     // Duyệt qua tất cả các items trong clipboard
     for (let i = 0; i < items.length; i++) {
       if (items[i].type.indexOf('image') !== -1) {
         // Ngăn chặn paste mặc định
         e.preventDefault();
-        
+
         // Lấy file từ clipboard
         const file = items[i].getAsFile();
-        
+
         // Kiểm tra file
         if (!file) return;
-        
+
         // Thêm file vào danh sách đã chọn
         const files = [file];
         setSelectedFiles((prev) => [...prev, ...files]);
-        
+
         // Tạo URL xem trước
         const reader = new FileReader();
         reader.onload = () => {
@@ -158,7 +366,7 @@ export default function ChatPerson(props) {
           setHasSelectedImages(true);
         };
         reader.readAsDataURL(file);
-        
+
         // Chỉ xử lý file hình ảnh đầu tiên tìm thấy
         break;
       }
@@ -168,61 +376,61 @@ export default function ChatPerson(props) {
   const shouldAutoScrollToBottom = (oldMessages, newMessages) => {
     // If no previous messages, always scroll
     if (!oldMessages.length) return true;
-    
+
     // Check if the newest message was added at the end (incoming message)
     const oldLastMessage = oldMessages[oldMessages.length - 1];
     const newLastMessage = newMessages[newMessages.length - 1];
-    
+
     // Scroll if:
     // 1. New message at the end AND
     // 2. It's either from current user or we're very close to the bottom already
     if (oldLastMessage._id !== newLastMessage._id) {
       const isFromCurrentUser = newLastMessage.sender._id === user._id;
-      const isNearBottom = chatContainerRef.current && 
-        (chatContainerRef.current.scrollHeight - chatContainerRef.current.scrollTop - 
-        chatContainerRef.current.clientHeight < 100);
-        
+      const isNearBottom = chatContainerRef.current &&
+        (chatContainerRef.current.scrollHeight - chatContainerRef.current.scrollTop -
+          chatContainerRef.current.clientHeight < 100);
+
       return isFromCurrentUser || isNearBottom;
     }
-    
+
     return false;
   };
 
   // Hàm tải tin nhắn cũ hơn
   const loadOlderMessages = async () => {
     if (!hasMoreMessages || isLoadingOlder || messages.length === 0) return;
-    
+
     setIsLoadingOlder(true);
-    
+
     try {
       // Lưu vị trí scroll hiện tại và tin nhắn đầu tiên đang hiển thị
       const chatContainer = chatContainerRef.current;
       const oldScrollHeight = chatContainer.scrollHeight;
       const scrollPosition = chatContainer.scrollTop;
-      
+
       const response = await loadMessagesService(
-        user._id, 
-        props.roomData.receiver._id, 
+        user._id,
+        props.roomData.receiver._id,
         props.roomData.receiver.type,
         page + 1,
         20
       );
-      
+
       if (response.EC === 0) {
         const olderMessages = response.DT;
-        
+
         if (olderMessages && olderMessages.length > 0) {
           // Sử dụng Set để lọc các tin nhắn trùng lặp
           const uniqueMessages = [...olderMessages];
           const existingIds = new Set(messages.map(msg => msg._id));
-          
+
           // Lọc những tin nhắn chưa có trong danh sách hiện tại
           const filteredMessages = uniqueMessages.filter(msg => !existingIds.has(msg._id));
-          
+
           // Thêm tin nhắn cũ vào đầu danh sách
           setMessages(prevMessages => [...filteredMessages, ...prevMessages]);
           setPage(prev => prev + 1);
-          
+
           // Kiểm tra xem còn tin nhắn để tải không
           setHasMoreMessages(olderMessages.length === 20 && response.pagination?.hasMore);
 
@@ -233,7 +441,7 @@ export default function ChatPerson(props) {
               chatContainer.scrollTop = heightDifference + scrollPosition;
             }
           };
-        
+
           maintainScrollPosition();
           setTimeout(maintainScrollPosition, 10);
           setTimeout(maintainScrollPosition, 50);
@@ -255,10 +463,10 @@ export default function ChatPerson(props) {
   // Xử lý sự kiện scroll
   const handleScroll = (e) => {
     const { scrollTop, scrollHeight, clientHeight } = e.target;
-    
+
     // Lưu vị trí scroll hiện tại
     setScrollPositionY(scrollTop);
-    
+
     // Hiển thị nút cuộn về dưới khi kéo lên trên
     const isScrolledUp = scrollTop < scrollHeight - clientHeight - 300;
     setShowScrollToBottom(isScrolledUp);
@@ -267,7 +475,7 @@ export default function ChatPerson(props) {
     if (scrollTop < 150 && !isLoadingOlder && hasMoreMessages && !preventInitialFetch.current) {
       loadOlderMessages();
     }
-    
+
     // Đánh dấu là đã có tương tác người dùng thực sự sau khi render lần đầu
     if (preventInitialFetch.current && initialLoadComplete.current) {
       preventInitialFetch.current = false;
@@ -311,8 +519,44 @@ export default function ChatPerson(props) {
       }
     }
 
+    // Tạo ID tạm thời cho tin nhắn
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+    // Thêm tin nhắn vào state với trạng thái "pending"
+    const tempMessage = {
+      _id: tempId,
+      msg: msg,
+      type: type,
+      sender: user,
+      receiver: receiver,
+      createdAt: new Date().toISOString(),
+      status: "pending",
+      tempId: tempId
+    };
+    setMessages(prev => [...prev, tempMessage]);
+
     props.handleSendMsg(msg, type);
     setMessage("");
+
+    // Thiết lập timeout để kiểm tra sau 10 giây
+    setTimeout(() => {
+      setMessages(prev =>
+        prev.map(m =>
+          (m._id === tempId && m.status === "pending")
+            ? { ...m, status: "fail" }
+            : m
+        )
+      );
+    }, 10000); // 10 giây
+  };
+
+  // Hàm gửi lại tin nhắn
+  const handleResendMessage = (msg) => {
+    // Xóa tin nhắn cũ
+    setMessages(prev => prev.filter(m => m._id !== msg._id));
+
+    // Gửi lại tin nhắn
+    sendMessage(msg.msg, msg.type);
   };
 
   const [sections] = useState([
@@ -321,10 +565,172 @@ export default function ChatPerson(props) {
     { id: "links", title: "Link", icon: LinkIcon },
   ]);
 
+
+  // nghiem
+  const [mediaMessages, setMediaMessages] = useState([]);
+  const [fileMessages, setFileMessages] = useState([]);
+  const [linkMessages, setLinkMessages] = useState([]);
+
+  const [showAllModal, setShowAllModal] = useState(false);
+  const [activeTab, setActiveTab] = useState("media"); // Default tab is "media"
+
+  useEffect(() => {
+    const media = messages.flatMap((msg) => {
+      if (msg.type === "image") {
+        // Nếu msg chứa nhiều URL, tách chúng thành mảng
+        return msg.msg.split(",").map((url) => ({
+          ...msg,
+          msg: url.trim(), // Loại bỏ khoảng trắng thừa
+        }));
+      }
+      if (msg.type === "video") {
+        return [msg]; // Giữ nguyên video
+      }
+      return [];
+    });
+
+    const files = messages.filter((msg) => msg.type === "file");
+    const links = messages.filter(
+      (msg) =>
+        msg.type === "text" && // Chỉ lấy tin nhắn có type là "text"
+        msg.msg.match(/https?:\/\/[^\s]+/g) // Kiểm tra xem msg có chứa URL
+    );
+
+    setMediaMessages(media); // Cập nhật mediaMessages
+    setFileMessages(files);
+    setLinkMessages(links); // Lưu các tin nhắn dạng URL
+  }, [messages]);
+
+  useEffect(() => {
+    const inputElement = messageInputRef.current;
+
+    if (inputElement) {
+      inputElement.addEventListener('paste', handlePaste);
+    }
+
+    return () => {
+      if (inputElement) {
+        inputElement.removeEventListener('paste', handlePaste);
+      }
+    };
+  }, []);
+
+  const cleanFileName = (fileName) => {
+    // Loại bỏ các ký tự hoặc số không cần thiết ở đầu tên file
+    return fileName.replace(/^\d+_|^\d+-/, ""); // Loại bỏ số và dấu gạch dưới hoặc gạch ngang ở đầu
+  };
+
+  // nghiem
+
   const [isOpen, setIsOpen] = useState(false);
 
   const openModal = () => setIsOpen(true);
   const closeModal = () => setIsOpen(false);
+
+  // Thêm hàm xử lý typing khi người dùng nhập
+  const handleInputChange = (e) => {
+    const text = e.target.value;
+    setMessage(text);
+
+    // Xóa timeout hiện có để reset
+    if (typingTimeout.current) {
+      clearTimeout(typingTimeout.current);
+    }
+
+    // Gửi sự kiện TYPING nếu đang nhập
+    if (text.trim() !== "") {
+      if (props.socketRef.current) {
+        const typingData = {
+          userId: user._id,
+          username: user.username,
+          receiver: props.roomData.receiver,
+          conversationId: props.roomData.receiver._id
+        };
+
+        console.log("Sending typing data:", typingData);
+
+        props.socketRef.current.emit("TYPING", typingData);
+      }
+
+      // Set timeout để dừng typing sau 1.5 giây không nhập
+      typingTimeout.current = setTimeout(() => {
+        if (props.socketRef.current) {
+          const typingData = {
+            userId: user._id,
+            receiver: props.roomData.receiver,
+            conversationId: props.roomData.receiver._id
+          };
+
+          console.log("Typing stop", typingData);
+
+          props.socketRef.current.emit("STOP_TYPING", typingData);
+        }
+      }, 1500);
+    } else {
+      // Nếu input rỗng, gửi sự kiện dừng typing ngay lập tức
+      if (props.socketRef.current) {
+        const typingData = {
+          userId: user._id,
+          receiver: props.roomData.receiver,
+          conversationId: props.roomData.receiver._id
+        };
+
+        console.log("Typing stop", typingData);
+
+        props.socketRef.current.emit("STOP_TYPING", typingData);
+      }
+    }
+  };
+
+  // useEffect để lắng nghe sự kiện typing từ server
+  useEffect(() => {
+    if (props.socketRef.current) {
+      // Lắng nghe khi có người đang typing
+      props.socketRef.current.on("USER_TYPING", (data) => {
+        const { userId, username, conversationId } = data;
+
+        // Kiểm tra đúng cuộc trò chuyện hiện tại
+        if (userId === props.roomData.receiver._id) {
+          setTypingUsers(prev => ({
+            ...prev,
+            [userId]: username
+          }));
+          console.log("Updated typing users:", userId, username);
+        }
+      });
+
+      // Lắng nghe khi có người dừng typing
+      props.socketRef.current.on("USER_STOP_TYPING", (data) => {
+        const { userId, conversationId } = data;
+
+        if (userId === props.roomData.receiver._id) {
+          setTypingUsers(prev => {
+            const newState = { ...prev };
+            delete newState[userId];
+            return newState;
+          });
+        }
+      });
+
+      // Cleanup khi component unmount
+      return () => {
+        props.socketRef.current.off("USER_TYPING");
+        props.socketRef.current.off("USER_STOP_TYPING");
+
+        // Dừng typing khi unmount
+        if (props.socketRef.current) {
+          props.socketRef.current.emit("STOP_TYPING", {
+            userId: user._id,
+            receiver: props.roomData.receiver
+          });
+        }
+
+        if (typingTimeout.current) {
+          clearTimeout(typingTimeout.current);
+        }
+      };
+    }
+  }, [props.roomData.receiver]);
 
   // Sự kiện nhấn chuột phải
   const handleShowPopup = (e, msg) => {
@@ -357,24 +763,24 @@ export default function ChatPerson(props) {
   };
 
   // Xử lý sự kiện incoming-call từ socket
-  useEffect(() => {
-    if (!props.socketRef.current) return;
+  // useEffect(() => {
+  //   if (!props.socketRef.current) return;
 
-    const socket = props.socketRef.current;
-    socket.on("incoming-call", () => {
-      setShowCallScreen(true); // Hiển thị modal khi có cuộc gọi đến
-      setIsInitiator(false); // Người nhận không phải là người khởi tạo
-    });
+  //   const socket = props.socketRef.current;
+  //   socket.on("incoming-call", () => {
+  //     setShowCallScreen(true); // Hiển thị modal khi có cuộc gọi đến
+  //     setIsInitiator(false); // Người nhận không phải là người khởi tạo
+  //   });
 
-    return () => {
-      socket.off("incoming-call");
-    };
-  }, [props.socketRef]);
+  //   return () => {
+  //     socket.off("incoming-call");
+  //   };
+  // }, [props.socketRef]);
 
-  const handleStartCall = () => {
-    setShowCallScreen(true); // Mở modal
-    setIsInitiator(true); // Đặt người dùng hiện tại là người khởi tạo
-  };
+  // const handleStartCall = () => {
+  //   setShowCallScreen(true); // Mở modal
+  //   setIsInitiator(true); // Đặt người dùng hiện tại là người khởi tạo
+  // };
 
   // Xử lý upload file
   const handleFileChange = async (e) => {
@@ -416,30 +822,26 @@ export default function ChatPerson(props) {
     const selectedImages = e.target.files;
 
     if (selectedImages && selectedImages.length > 0) {
-
       if (selectedImages.length > 10) {
         setHasSelectedImages(false);
         alert("Số lượng ảnh không được quá 10!");
         return;
       }
 
-      const previews = [];
       const files = Array.from(e.target.files);
+      const previews = await Promise.all(
+        Array.from(selectedImages).map((image) => {
+          return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.readAsDataURL(image);
+          });
+        })
+      );
 
-      for (let image of selectedImages) {
-        // Tạo URL xem trước
-        const reader = new FileReader();
-        reader.onload = () => {
-          previews.push(reader.result); // Lưu URL xem trước vào mảng
-          setPreviewImages([...previews]); // Cập nhật state xem trước
-          setHasSelectedImages(true);
-        };
-        reader.readAsDataURL(image);
-      }
-
-      if (files.length > 0) {
-        setSelectedFiles((prev) => [...prev, ...files]);
-      }
+      setPreviewImages(previews);
+      setSelectedFiles((prev) => [...prev, ...files]);
+      setHasSelectedImages(true);
     } else {
       setHasSelectedImages(false);
     }
@@ -451,6 +853,8 @@ export default function ChatPerson(props) {
   };
 
   const handleButtonClickImage = () => {
+    setPreviewImages([]);
+    setSelectedFiles([]);
     imageInputRef.current.click(); // Mở dialog chọn file
   };
 
@@ -471,6 +875,25 @@ export default function ChatPerson(props) {
       hour12: false,
       timeZone: "Asia/Ho_Chi_Minh",
     });
+  };
+
+  const convertTimeAction = (time) => {
+    const now = Date.now();
+    const past = Number(time);
+    const diff = now - past;
+
+    const seconds = Math.floor(diff / 1000);
+    const minutes = Math.floor(diff / (1000 * 60));
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+    if (seconds < 60) return "Vừa xong";
+    if (minutes < 60) return `${minutes} phút trước`;
+    if (hours < 24) return `${hours} giờ trước`;
+    if (days === 1) return "Hôm qua";
+
+    const date = new Date(past);
+    return date.toLocaleDateString("vi-VN");
   };
 
   const handleEmojiSelect = (emoji) => {
@@ -535,9 +958,15 @@ export default function ChatPerson(props) {
   };
 
   const handleRemovePreview = (index) => {
+
     const updatedPreviews = [...previewImages];
+    const updatedFiles = [...selectedFiles];
+
     updatedPreviews.splice(index, 1);
+    updatedFiles.splice(index, 1);
+
     setPreviewImages(updatedPreviews);
+    setSelectedFiles(updatedFiles);
 
     if (updatedPreviews.length === 0) {
       setHasSelectedImages(false);
@@ -546,7 +975,13 @@ export default function ChatPerson(props) {
 
   const handleMessage = async (message) => {
     if (previewImages.length === 0) {
-      sendMessage(message, "text");
+      if (previewReply !== "") {
+        sendMessage(`${previewReply}\n\n\t${message}`, "text");
+        setHasSelectedImages(false);
+        setPreviewReply("")
+      } else {
+        sendMessage(message, "text");
+      }
     } else if (previewImages.length > 0) {
 
       const listUrlImage = [];
@@ -587,71 +1022,81 @@ export default function ChatPerson(props) {
 
   // Nhấp phản ứng
   const handleShowReactionPopup = async (messageId, event) => {
-    const rect = event.currentTarget.getBoundingClientRect(); // Lấy tọa độ phần tử
-    let x = rect.left;
-    let y = rect.bottom;
 
+    // Lấy vị trí của reaction-icon (phần tử gây sự kiện)
+    const iconRect = event.currentTarget.getBoundingClientRect();
+
+    // Lấy vị trí của chat-container
     const chatContainer = document.querySelector(".chat-container");
     const containerRect = chatContainer.getBoundingClientRect();
 
-    if (x > containerRect.right - 200) { 
-      x = rect.left - containerRect.right - 50;
-    }else {
-      x = 0;
+    // Kích thước ước tính của popup
+    const popupWidth = 230;  // Chiều rộng ước lượng của popup
+    const popupHeight = 60;  // Chiều cao ước lượng của popup
+
+    // Tính toán vị trí tương đối với reaction-container
+    // Vì popup là absolute và container là relative
+
+    // Hiển thị popup phía trên reaction-icon
+    let x = 0;  // Tọa độ x tương đối với reaction-container
+    let y = 0; // Đặt popup phía trên icon, giá trị âm để đi lên
+
+    // Đảm bảo popup không vượt quá biên phải của chat container
+    // Tính toán vị trí phải của popup tương đối với container
+    const iconOffsetLeft = iconRect.left - containerRect.left;
+    const popupRight = iconOffsetLeft + popupWidth;
+
+    if (popupRight > containerRect.width - 20) {
+      // Nếu popup vượt quá biên phải, điều chỉnh x để popup nằm trong container
+      x = containerRect.width - popupWidth - 20 - iconOffsetLeft;
     }
 
-    y = 0;
-  
+    // Đảm bảo popup không vượt quá biên trái
+    if (iconOffsetLeft + x < 10) {
+      x = 10 - iconOffsetLeft;
+    }
+
+    // Đặt popup ở vị trí đã tính
     setReactionPopupVisible({
       messageId,
       position: { x, y },
     });
   };
-  
+
   const handleHideReactionPopup = (messageId) => {
-    if (reactionPopupVisible?.messageId === messageId) {
-      setReactionPopupVisible(null);
+    // Clear any existing timeout
+    if (hideReactionTimeout) {
+      clearTimeout(hideReactionTimeout);
     }
+
+    // Set a new timeout to hide the popup after a delay
+    const timeout = setTimeout(() => {
+      if (reactionPopupVisible?.messageId === messageId) {
+        setReactionPopupVisible(null);
+      }
+    }, 300); // 300ms delay
+
+    setHideReactionTimeout(timeout);
   };
-  
+
   //Hàm phản ứng
   const handleReactToMessage = (messageId, emoji) => {
     const emojiText = emojiToTextMap[emoji];
     if (!emojiText) return;
-  
-    sendReactionService(messageId, user._id, emojiText)
-      .then((response) => {
-        if (response.EC === 0) {
-          console.log("Reaction sent successfully:", response.DT);
 
-          setReactions((prevReactions) => {
-            const currentReactions = prevReactions[messageId] || [];
-            const existingReactionIndex = currentReactions.findIndex(
-              (reaction) => reaction.emoji === emojiText && reaction.userId === user._id
-            );
-  
-            if (existingReactionIndex !== -1) {
-              currentReactions.splice(existingReactionIndex, 1);
-            } else {
-              currentReactions.push({
-                emoji: emojiText,
-                userId: user._id,
-                count: 1,
-              });
-            }
-            
-            return {
-              ...prevReactions,
-              [messageId]: [...currentReactions],
-            };
-          });
-        } else {
-          console.error("Failed to send reaction:", response.EM);
-        }
-      })
-      .catch((error) => {
-        console.error("Error sending reaction:", error);
-      });
+    const reactionData = {
+      messageId,
+      userId: user._id,
+      username: user.username,
+      emoji: emojiText,
+      receiver: props.roomData.receiver
+    };
+
+    // Gửi reaction qua socket thay vì gọi API trực tiếp
+    if (socketRef.current) {
+      socketRef.current.emit("REACTION", reactionData);
+    }
+
   };
 
   // Lấy phản ứng từng message
@@ -670,6 +1115,15 @@ export default function ChatPerson(props) {
     }
   };
 
+  // Clean up timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (hideReactionTimeout) {
+        clearTimeout(hideReactionTimeout);
+      }
+    };
+  }, [hideReactionTimeout]);
+
   //Lấy phản ứng của từng message khi thay đổi messages
   useEffect(() => {
     const fetchReactions = async () => {
@@ -681,11 +1135,67 @@ export default function ChatPerson(props) {
       setReactions(reactionsData); // Cập nhật state reactions
       console.log(reactions);
     };
-  
+
     if (messages.length > 0) {
       fetchReactions();
     }
   }, [messages]);
+
+  useEffect(() => {
+    if (props.socketRef.current) {
+      // Giữ nguyên các listeners hiện có
+
+      // Thêm listener cho RECEIVED_REACTION
+      props.socketRef.current.on("RECEIVED_REACTION", (data) => {
+        console.log("Received reaction:", data);
+        const { messageId, userId, emoji } = data;
+
+        setReactions(prevReactions => {
+          const currentReactions = prevReactions[messageId] || [];
+
+          // Tìm reaction hiện có
+          const existingReactionIndex = currentReactions.findIndex(
+            reaction => String(reaction.userId) === String(userId) && reaction.emoji === emoji
+          );
+
+          let updatedReactions;
+          if (existingReactionIndex !== -1) {
+            // Nếu đã tồn tại -> xóa (toggle)
+            updatedReactions = currentReactions.filter((_, index) =>
+              index !== existingReactionIndex
+            );
+          } else {
+            // Nếu chưa tồn tại -> thêm mới
+            updatedReactions = [
+              ...currentReactions,
+              {
+                userId: userId,
+                emoji: emoji,
+                count: 1
+              }
+            ];
+          }
+
+          return {
+            ...prevReactions,
+            [messageId]: updatedReactions
+          };
+        });
+      });
+
+      // Bắt lỗi reaction nếu có
+      props.socketRef.current.on("REACTION_ERROR", (data) => {
+        console.error("Reaction error:", data.error);
+      });
+
+      // Clean up function
+      return () => {
+        // Giữ nguyên cleanup code hiện có
+        props.socketRef.current.off("RECEIVED_REACTION");
+        props.socketRef.current.off("REACTION_ERROR");
+      };
+    }
+  }, [props.roomData.receiver]);
 
   // Hàm làm sạch ảnh review
   const handleClearAllPreviews = () => {
@@ -698,34 +1208,166 @@ export default function ChatPerson(props) {
 
   }
 
+  // Hàm trích xuất ID từ các định dạng khác nhau
+  const extractId = (idObject) => {
+    if (!idObject) return null;
+
+    // Nếu là object với $oid
+    if (idObject.$oid) return idObject.$oid;
+
+    // Nếu là string
+    if (typeof idObject === 'string') return idObject;
+
+    // Nếu là object MongoDB đã chuyển đổi
+    if (idObject.toString) return idObject.toString();
+
+    return null;
+  };
+
+  // Hàm xử lý dữ liệu ReadBy
+  const processReadByData = (msg, currentUserId, conversations) => {
+    // Nếu không có dữ liệu readBy
+    if (!msg.readBy || !Array.isArray(msg.readBy) || msg.readBy.length === 0) {
+      return { readers: [], count: 0 };
+    }
+
+    // Lọc bỏ người dùng hiện tại và người gửi tin nhắn
+    const filteredReaderIds = msg.readBy.filter(readerId => {
+      const id = extractId(readerId);
+      const currentId = extractId(currentUserId);
+      const senderId = extractId(msg.sender._id);
+
+      // Chỉ quan tâm đến người khác đã đọc (không phải người dùng hiện tại hoặc người gửi)
+      return id !== currentId && id !== senderId;
+    });
+
+    if (filteredReaderIds.length === 0) {
+      return { readers: [], count: 0 };
+    }
+
+    // Tạo mapping người dùng từ thông tin đã có và conversations
+    const userMap = new Map();
+
+    // Thêm người gửi và người nhận vào map để tìm kiếm nhanh hơn
+    if (msg.sender) {
+      userMap.set(extractId(msg.sender._id), {
+        _id: msg.sender._id,
+        avatar: msg.sender.avatar || "/placeholder.svg",
+        username: msg.sender.name || "Unknown"
+      });
+    }
+
+    if (msg.receiver) {
+      userMap.set(extractId(msg.receiver._id), {
+        _id: msg.receiver._id,
+        avatar: msg.receiver.avatar || "/placeholder.svg",
+        username: msg.receiver.name || "Unknown"
+      });
+    }
+
+    // Thêm thành viên từ receiver.members nếu có
+    if (msg.receiver && msg.receiver.members) {
+      // Nếu là nhóm, lấy thông tin thành viên từ conversations
+      conversations.forEach(conv => {
+        if (conv._id && conv.avatar) {
+          userMap.set(extractId(conv._id), {
+            _id: conv._id,
+            avatar: conv.avatar,
+            username: conv.username || conv.name || "Unknown"
+          });
+        }
+      });
+    }
+
+    // Lấy thông tin chi tiết của tối đa 3 người đọc
+    const detailedReaders = filteredReaderIds.slice(0, 3).map(readerId => {
+      const id = extractId(readerId);
+      // Tìm thông tin từ userMap trước
+      if (userMap.has(id)) {
+        return userMap.get(id);
+      }
+
+      // Nếu không tìm thấy trong userMap, tìm trong conversations
+      const readerInfo = conversations.find(conv =>
+        extractId(conv._id) === id ||
+        (conv.members && conv.members.some(m => extractId(m) === id))
+      );
+
+      return readerInfo || {
+        _id: id,
+        avatar: "/placeholder.svg",
+        username: "Unknown"
+      };
+    });
+
+    return {
+      readers: detailedReaders,
+      count: filteredReaderIds.length
+    };
+  };
+
+  // reply mess
+  let [previewReply, setPreviewReply] = useState("")
+  const handleReply = async (selectedMessage) => {
+    // Tách nội dung từ dòng 2 trở đi (nếu có \n)
+    const parts = selectedMessage.msg.split('\n\n');
+    let contentAfterFirstLine = parts.length > 1 ? parts.slice(1).join('\n') : selectedMessage.msg;
+
+    if (contentAfterFirstLine.startsWith("https://monhoc1.s3.ap-southeast-1.amazonaws.com/media")) {
+      contentAfterFirstLine = "*file*"
+    }
+
+    setPreviewReply(selectedMessage.sender.name + ": " + contentAfterFirstLine);
+    setHasSelectedImages(true)
+  }
+
+  const handleClearReply = async () => {
+    setPreviewReply("")
+    setHasSelectedImages(false);
+  }
+
+  // call
+  const handleStartCall = props?.handleStartCall;
+
+  // lọc xóa tin nhắn phía tôi
+  const filteredMessages = messages.filter((item) =>
+    !(
+      (item.isDeletedBySender && item.sender._id === user._id) ||
+      (item.isDeletedByReceiver && item.receiver._id === user._id) ||
+      (Array.isArray(item.memberDel) && item.memberDel.includes(user._id))
+    )
+  );
+
   return (
     <div className="row g-0 h-100">
       {/* Main Chat Area */}
-      <div className="col bg-light">
+      <div className="col bg-light" style={{ position: "relative" }}>
         {/* Chat Header */}
         <div className="bg-white p-2 d-flex align-items-center border-bottom justify-content-between">
           <div className="d-flex align-items-center">
             <img
-              src="/placeholder.svg"
+              src={receiver.avatar ? receiver.avatar : "/placeholder.svg"}
               className="rounded-circle"
               alt=""
               style={{ width: "40px", height: "40px" }}
               onClick={openModal}
             />
-            <AccountInfo isOpen={isOpen} closeModal={closeModal} user={receiver} />
+            <AccountInfo isOpen={isOpen} closeModal={closeModal} user={receiver} socketRef={props.socketRef} />
             <div className="ms-2">
               <div className="fw-medium">{props.roomData.receiver.username}</div>
-              <small className="text-muted">Hoạt động 2 giờ trước</small>
+              <small className="text-muted">Hoạt động {convertTimeAction(receiver.time)}</small>
             </div>
           </div>
           <div className="d-flex align-items-center gap-2">
             <span
               className="btn btn-light rounded-circle mb-1"
-              onClick={handleStartCall} // Gọi hàm handleStartCall khi bấm
+              onClick={() => handleStartCall(user, receiver)} // Gọi hàm handleStartCall khi bấm
             >
               <Phone size={16} />
             </span>
-            <span className="btn btn-light rounded-circle mb-1">
+            <span className="btn btn-light rounded-circle mb-1"
+            // onClick={handleStartCall} // Gọi hàm handleStartCall khi bấm
+            >
               <Video size={16} />
             </span>
             <span className="btn btn-light rounded-circle mb-1">
@@ -745,81 +1387,161 @@ export default function ChatPerson(props) {
           className="chat-container p-3"
           style={{
             height: hasSelectedImages
-              ? "calc(100vh - 278px)" // Khi có ảnh được chọn
-              : "calc(100vh - 120px)", // Khi không có ảnh nào được chọn
+              ? "calc(100vh - 230px)" // Khi có ảnh được chọn
+              : "calc(100vh - 130px)", // Khi không có ảnh nào được chọn
             overflowY: "auto",
+            position: "relative"
           }}
+          ref={chatContainerRef}
+          onScroll={handleScroll}
         >
+
+          {/* Vị trí loading tin nhắn */}
+          {isLoadingOlder && (
+            <div className="text-center py-3">
+              <div className="spinner-border spinner-border-sm text-primary" role="status">
+                <span className="visually-hidden">Đang tải...</span>
+              </div>
+              <span className="ms-2 text-muted">Đang tải tin nhắn cũ...</span>
+            </div>
+          )}
+
+          {/* Thông báo hiển thị hết tin nhắn */}
+          {!hasMoreMessages && messages.length > 0 && (
+            <div className="text-center py-3">
+              <small className="text-muted fst-italic">Bạn đã xem hết tin nhắn</small>
+            </div>
+          )}
+
           <div className="flex flex-col justify-end">
-            {messages &&
-              messages.map((msg, index) => (
-                <div
-                  key={index}
-                  className={`p-2 my-1 d-flex ${msg.sender._id === user._id ? "justify-content-end" : "justify-content-start"
-                    }`}
-                >
-                  <div
-                    className={`p-3 max-w-[70%] break-words rounded-3 ${msg.type === "text" || msg.type === "file" || msg.type === "system"
-                      ? msg.sender._id === user._id
-                        ? "bg-primary text-white"
-                        : "bg-light text-dark"
-                      : "bg-transparent"
-                      }`}
-                    onContextMenu={(e) => handleShowPopup(e, msg)}
-                  >
-                    {/* Hiển thị nội dung tin nhắn */}
-                    {msg.type === "image" ? (
-                      msg.msg.includes(",") ? (
-                        <div
-                          className={`grid-container multiple-images`}
-                        >
-                          {msg.msg.split(",").map((url, index) => (
-                            <div key={index} className="grid-item">
-                              <img
-                                src={url.trim()}
-                                alt={`image-${index}`}
-                                className="image-square"
-                                onClick={() => handleImageClick(url.trim())}
-                                style={{ cursor: "pointer" }}
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        // Nếu chỉ có một URL ảnh, hiển thị ảnh đó
-                        <div className={`grid-container multiple-images`}>
-                          <div className="grid-item">
-                            <img
-                              src={msg.msg}
-                              alt="image"
-                              className="image-square"
-                              onClick={() => handleImageClick(msg.msg)}
-                              style={{ cursor: "pointer" }}
-                            />
-                          </div>
-                        </div>
-                      )
-                    ) : msg.type === "video" ? (
-                      <video
-                        src={msg.msg}
-                        controls
-                        className="rounded-lg"
-                        style={{ width: 250, height: 200, backgroundColor: "black" }}
-                      />
-                    ) : msg.type === "file" ? (
-                      <a
-                        href={msg.msg}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={`fw-semibold ${msg.sender._id === user._id ? "text-white" : "text-dark"}`}
-                      >
-                        🡇 {msg.msg.split("_").pop() || "Tệp đính kèm"}
-                      </a>
-                    ) : msg.type === "system" ? (
-                      <span><i>{msg.msg || ""}</i></span>
-                    ) : (
-                      <span>{msg.msg || ""}</span>
+            {filteredMessages &&
+              filteredMessages.map((msg, index) => {
+
+                // Kiểm tra khoảng thời gian giữa tin nhắn hiện tại và tin nhắn trước
+                const prevMsg = index > 0 ? filteredMessages[index - 1] : null;
+
+                // Kiểm tra nếu tin nhắn này và tin nhắn trước đó có cùng người gửi
+                const isSameSender = prevMsg && prevMsg.sender._id === msg.sender._id;
+
+                // Kiểm tra khoảng thời gian giữa 2 tin nhắn (> 10 phút = 600000ms)
+                const timeDiff = prevMsg
+                  ? new Date(msg.createdAt).getTime() - new Date(prevMsg.createdAt).getTime()
+                  : 0;
+                const isLongTimeDiff = timeDiff > 600000; // 10 phút
+
+                // Hiển thị avatar khi: tin nhắn đầu tiên, người gửi khác, hoặc khoảng cách > 10p
+                const showAvatar = !isSameSender || isLongTimeDiff || index === 0;
+
+                // Hiển thị dấu thời gian khi khoảng cách > 10p
+                const showTimestamp = isLongTimeDiff || index === 0;
+
+                return (
+                  <React.Fragment key={index}>
+
+                    {/* Hiển thị timestamp khi thời gian > 10 phút */}
+                    {showTimestamp && (
+                      <div className="time-divider text-center my-3">
+                        <span className="bg-light px-3 py-1 rounded-pill text-muted small">
+                          {new Date(msg.createdAt).toLocaleString('vi-VN', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric'
+                          })}
+                        </span>
+                      </div>
                     )}
+
+                    <div
+                      key={index}
+                      className={`px-2 my-1 d-flex chat-message ${msg.sender._id === user._id ? "justify-content-end" : "justify-content-start"
+                        } ${selectedReadStatus === msg._id ? "selected" : ""}`}
+                      data-message-id={msg._id}
+                    >
+
+                      {/* Hiển thị avatar cho người khác (không phải mình) */}
+                      {msg.sender._id !== user._id && (
+                        <div className="me-2" style={{ minWidth: "36px", alignSelf: "flex-start" }}>
+                          {showAvatar ? (
+                            <img
+                              src={receiver.avatar || "https://i.imgur.com/l5HXBdTg.jpg"}
+                              alt="avatar"
+                              className="message-avatar"
+                              style={{ width: "32px", height: "32px", borderRadius: "50%" }}
+                            />
+                          ) : (
+                            <div style={{ width: "32px", height: "32px" }}></div>
+                          )}
+                        </div>
+                      )}
+
+                      <div
+                        className={`message-content ${isSameSender ? "message-group" : ""} ${selectedReadStatus === msg._id ? "selected" : ""
+                          }`}
+                        style={{ maxWidth: "70%" }}
+                        onClick={() => msg.sender._id === user._id && handleMessageClick(msg._id)}
+                      >
+                        <div
+                          className={`message-bubble ${msg.sender._id === user._id ? "own" : "other"} ${msg.type !== "text" && msg.type !== "file" && msg.type !== "system" ? "bg-transparent" : ""
+                            }`}
+                          onContextMenu={(e) => handleShowPopup(e, msg)}
+                        >
+                          {/* Hiển thị nội dung tin nhắn */}
+                          {msg.type === "image" ? (
+                            msg.msg.includes(",") ? (
+                              <div
+                                className={`grid-container multiple-images`}
+                              >
+                                {msg.msg.split(",").map((url, index) => (
+                                  <div key={index} className="grid-item">
+                                    <img
+                                      src={url.trim()}
+                                      alt={`image-${index}`}
+                                      className="image-square"
+                                      onClick={() => handleImageClick(url.trim())}
+                                      style={{ cursor: "pointer" }}
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              // Nếu chỉ có một URL ảnh, hiển thị ảnh đó
+                              <div className={`grid-container single-image`}>
+                                <div key={index} className="grid-item">
+                                  <img
+                                    src={msg.msg}
+                                    alt="image"
+                                    className="image-square"
+                                    onClick={() => handleImageClick(msg.msg)}
+                                    style={{ cursor: "pointer" }}
+                                  />
+                                </div>
+                              </div>
+                            )
+                          ) : msg.type === "video" ? (
+                            <video
+                              src={msg.msg}
+                              controls
+                              className="rounded-lg"
+                              style={{ width: 250, height: 200, backgroundColor: "black" }}
+                            />
+                          ) : msg.type === "file" ? (
+                            <a
+                              href={msg.msg}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={`fw-semibold ${msg.sender._id === user._id ? "text-white" : "text-dark"}`}
+                            >
+                              🡇 {msg.msg.split("_").pop() || "Tệp đính kèm"}
+                            </a>
+                          ) : msg.type === "system" ? (
+                            <span><i>{msg.msg || ""}</i></span>
+                          ) : (
+                            <div style={{ whiteSpace: 'pre-line' }}>
+                              {msg.msg || ""}
+                            </div>
+                          )}
 
                           {/* Phản ứng và thời gian */}
                           <div className="reaction-time-container">
@@ -881,8 +1603,7 @@ export default function ChatPerson(props) {
                         </div>
 
                         {msg.sender._id === user._id && (
-                          <div className={`message-status d-flex align-items-center small text-muted ${
-                            (index === filteredMessages.length - 1 || selectedReadStatus === msg._id) ? "show-status" : ""}`}
+                          <div className={`message-status d-flex align-items-center small text-muted ${(index === filteredMessages.length - 1 || selectedReadStatus === msg._id) ? "show-status" : ""}`}
                           >
                             {(index === filteredMessages.length - 1 || selectedReadStatus === msg._id) && (
                               <>
@@ -892,34 +1613,36 @@ export default function ChatPerson(props) {
                                       {(() => {
                                         // Lấy ID của current user
                                         const currentUserId = user._id.$oid || user._id;
-                                        
+
                                         console.log("Current User ID:", currentUserId);
-                                        
+
                                         // Sử dụng hàm processReadByData để xử lý dữ liệu readBy
                                         const { readers, count } = processReadByData(msg, currentUserId, props.conversations);
-                                        
+
                                         // Render avatars của những người đã đọc
                                         return (
                                           <>
                                             {readers.map((reader, index) => (
-                                              <div 
-                                                key={index} 
-                                                className="reader-avatar" 
-                                                style={{
-                                                  marginLeft: index > 0 ? '-8px' : '0',
-                                                  zIndex: 10 - index,
-                                                  position: 'relative'
-                                                }}
-                                              >
-                                                <img 
-                                                  src={reader.avatar || "/placeholder.svg"} 
-                                                  alt={reader.username || "User"} 
-                                                  className="rounded-circle border border-white" 
-                                                  style={{width: '16px', height: '16px', objectFit: 'cover', backgroundColor: 'white'}}
-                                                />
-                                              </div>
+                                              reader.avatar ? (
+                                                <div
+                                                  key={index}
+                                                  className="reader-avatar"
+                                                  style={{
+                                                    marginLeft: index > 0 ? '-8px' : '0',
+                                                    zIndex: 10 - index,
+                                                    position: 'relative'
+                                                  }}
+                                                >
+                                                  <img
+                                                    src={reader.avatar || "/placeholder.svg"}
+                                                    alt={reader.username || "User"}
+                                                    className="rounded-circle border border-white"
+                                                    style={{ width: '16px', height: '16px', objectFit: 'cover', backgroundColor: 'white' }}
+                                                  />
+                                                </div>
+                                              ) : null
                                             ))}
-                                            
+
                                             {/* Hiển thị số người còn lại đã đọc nếu > 3 */}
                                             {count > 3 && (
                                               <span className="ms-1 text-muted small">
@@ -936,7 +1659,7 @@ export default function ChatPerson(props) {
                                 ) : null}
                               </>
                             )}
-                            
+
                             {/* Luôn hiển thị trạng thái "Đang gửi" và "Gửi thất bại" cho mọi tin nhắn */}
                             {msg.status === "pending" && (
                               <span className="small text-warning">• Đang gửi</span>
@@ -944,8 +1667,8 @@ export default function ChatPerson(props) {
                             {msg.status === "fail" && (
                               <div className="d-flex align-items-center">
                                 <span className="small text-danger me-2">• Gửi thất bại</span>
-                                <button 
-                                  className="btn btn-sm p-0 text-danger" 
+                                <button
+                                  className="btn btn-sm p-0 text-danger"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     handleResendMessage(msg);
@@ -968,8 +1691,82 @@ export default function ChatPerson(props) {
           </div>
         </div>
 
+        {/* Nút cuộn về tin nhắn mới nhất */}
+        {showScrollToBottom && (
+          <button
+            className="btn btn-primary rounded-circle position-absolute"
+            onClick={scrollToBottom}
+            style={{
+              bottom: '80px',
+              right: '20px',
+              zIndex: 100,
+              width: '40px',
+              height: '40px',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center'
+            }}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
+          </button>
+        )}
+
         {/* Message Input */}
         <div className="bg-white p-2 border-top" >
+          {/* Xem hình ảnh trước khi gửi */}
+          <div
+            className="preview-container d-flex flex-wrap gap-2 mt-2 position-relative"
+            style={{
+              maxHeight: "100px",
+              overflowY: "auto",
+            }}
+          >
+            {previewImages.map((image, index) => (
+              <div key={index} className="preview-item position-relative">
+                <img
+                  src={image}
+                  alt={`Xem trước ${index + 1}`}
+                  className="rounded"
+                  style={{ width: "100px", height: "100px", objectFit: "cover" }}
+                />
+                <button
+                  className="btn btn-danger btn-sm position-absolute top-0 end-0 d-flex justify-content-center align-items-center"
+                  onClick={() => handleRemovePreview(index)}
+                  style={{ borderRadius: "50%" }}
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            ))}
+
+            {/* Xóa tất cả */}
+            {previewImages.length > 0 && (
+              <button
+                className="btn btn-link text-danger position-absolute top-0 end-0"
+                onClick={handleClearAllPreviews}
+                style={{ fontSize: "12px", lineHeight: "1" }}
+              >
+                Xóa tất cả
+              </button>
+            )}
+          </div>
+
+          {/* Xem tin nhắn reply */}
+          {previewReply && (
+            <div className="">
+              <label className="form-label fw-bold">Trả lời tin nhắn:</label>
+              <div className="alert alert-secondary d-flex justify-content-between align-items-start">
+                <div>{previewReply}</div>
+                <button
+                  type="button"
+                  className="btn-close ms-3"
+                  aria-label="Bỏ"
+                  onClick={handleClearReply}
+                ></button>
+              </div>
+            </div>
+          )}
+
           {/* Vùng nhập tin nhắn */}
           <div className="d-flex align-items-center">
             <input
@@ -1001,20 +1798,36 @@ export default function ChatPerson(props) {
               className="form-control flex-1 p-2 border rounded-lg outline-none"
               type="text"
               value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && sendMessage(message, "text")}
+              onChange={handleInputChange}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleMessage(message);
+                }
+              }}
               placeholder="Nhập tin nhắn..."
+              ref={messageInputRef}
             />
 
             {/* Nút smile */}
             <button
               className="btn btn-light ms-2"
-              data-bs-toggle="modal"
-              data-bs-target="#iconModal"
+              // data-bs-toggle="modal"
+              // data-bs-target="#iconModal"
+              onClick={handleShowEmojiPopup}
+              ref={emojiButtonRef}
             >
               <Smile size={20} />
             </button>
-            <IconModal onSelect={handleEmojiSelect} />
+            {/* <IconModal onSelect={handleEmojiSelect} /> */}
+
+            <EmojiPopup
+              isOpen={showEmojiPopup}
+              position={emojiButtonPosition}
+              showSidebar={showSidebar}
+              onClose={() => setShowEmojiPopup(false)}
+              onSelect={handleEmojiSelect}
+            />
 
             {/* Nút gửi */}
             <button
@@ -1024,33 +1837,20 @@ export default function ChatPerson(props) {
               <Send size={20} />
             </button>
           </div>
-          <div className="preview-container d-flex flex-wrap gap-2 mt-2" >
-            {previewImages.map((image, index) => (
-              <div key={index} className="preview-item position-relative">
-                <img
-                  src={image}
-                  alt={`Xem trước ${index + 1}`}
-                  className="rounded"
-                  style={{ width: "100px", height: "100px", objectFit: "cover" }}
-                />
-                <button
-                  className="btn btn-danger btn-sm position-absolute top-0 end-0 d-flex justify-content-center align-items-center"
-                  onClick={() => handleRemovePreview(index)}
-                  style={{ borderRadius: "50%" }}
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            ))}
-            {previewImages.length > 0 && (
-              <button
-                className="btn btn-link text-danger mt-2"
-                onClick={handleClearAllPreviews}
-              >
-                Xóa tất cả
-              </button>
-            )}
-          </div>
+
+          {Object.values(typingUsers).length > 0 && (
+            <div className={`typing-indicator ${previewImages.length > 0 ? 'with-preview' : 'normal'}`}>
+              <small className="text-muted d-flex align-items-center">
+                <span>
+                  {Object.values(typingUsers).length === 1
+                    ? `${Object.values(typingUsers)[0]} đang nhập...`
+                    : `${Object.values(typingUsers).length} người đang nhập...`}
+                </span>
+                <span className="typing-dots"></span>
+              </small>
+            </div>
+          )}
+
         </div>
       </div>
 
@@ -1071,7 +1871,7 @@ export default function ChatPerson(props) {
 
       {/* Right Sidebar */}
       {showSidebar && (
-        <div className="col-auto bg-white border-start" style={{ width: "300px", height: "100vh", overflowY: "auto" }}>
+        <div className="col-auto bg-white border-start responsive-sidebar">
           <div className="border-bottom header-right-sidebar">
             <h6 className="text-center">Thông tin hội thoại</h6>
           </div>
@@ -1109,16 +1909,7 @@ export default function ChatPerson(props) {
               </div>
             </div>
           </div>
-          <div className="border-bottom">
-            <div className="d-flex align-items-center p-3 hover-bg-light cursor-pointer">
-              <Clock size={20} className="text-muted me-2" />
-              <div>Danh sách nhắc hẹn</div>
-            </div>
-            <div className="d-flex align-items-center p-3 hover-bg-light cursor-pointer">
-              <Users size={20} className="text-muted me-2" />
-              <div>20 nhóm chung</div>
-            </div>
-          </div>
+
           <div className="accordion accordion-flush" id="chatInfo">
             {sections.map(({ id, title, icon: Icon }) => (
               <div key={id} className="accordion-item">
@@ -1134,12 +1925,296 @@ export default function ChatPerson(props) {
                 </h2>
                 <div id={`${id}Collapse`} className="accordion-collapse collapse">
                   <div className="accordion-body text-center text-muted">
-                    <small>{`Chưa có ${title} được chia sẻ trong hội thoại này`}</small>
+                    {id === "media" && mediaMessages.length > 0 ? (
+                      <>
+                        <div className="media-list d-flex flex-wrap gap-2">
+                          {mediaMessages.slice(0, 8).map((msg, index) => (
+                            // {mediaMessages.map((msg, index) => (
+                            <div
+                              key={index}
+                              className="media-item"
+                              style={{
+                                width: "calc(25% - 10px)", // 4 media mỗi hàng
+                                height: "60px",
+                                overflow: "hidden",
+                                borderRadius: "8px",
+                              }}
+                            >
+                              {msg.type === "image" ? (
+                                <img
+                                  src={msg.msg}
+                                  alt={`Media ${index + 1}`}
+                                  style={{
+                                    width: "100%",
+                                    height: "100%",
+                                    objectFit: "cover",
+                                    cursor: "pointer",
+                                  }}
+                                  onClick={() => handleImageClick(msg.msg)}
+                                />
+                              ) : (
+                                <video
+                                  src={msg.msg}
+                                  controls
+                                  style={{
+                                    width: "100%",
+                                    height: "100%",
+                                    objectFit: "cover",
+                                    cursor: "pointer",
+                                  }}
+                                />
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                        {/* {mediaMessages.length > 8 && ( */}
+                        <button
+                          className="btn btn-link mt-2"
+                          onClick={() => {
+                            setActiveTab("media"); // Set default tab
+                            setShowAllModal(true); // Open modal
+                          }}
+                        >
+                          Xem tất cả
+                        </button>
+                        {/* )} */}
+                      </>
+                    ) : id === "files" && fileMessages.length > 0 ? (
+                      <>
+                        <div className="file-list">
+                          {fileMessages.slice(0, 4).map((msg, index) => (
+                            <div
+                              key={index}
+                              className="d-flex align-items-center mb-2"
+                              style={{
+                                borderBottom: "1px solid #ddd",
+                                paddingBottom: "5px",
+                              }}
+                            >
+                              {/* Icon loại file */}
+                              <File size={20} className="me-2 text-primary" />
+                              {/* Tên file */}
+                              <a
+                                href={msg.msg}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-truncate"
+                                style={{ maxWidth: "200px" }}
+                              >
+                                {cleanFileName(msg.msg.split("/").pop()) || `File ${index + 1}`}
+                              </a>
+                            </div>
+                          ))}
+                        </div>
+                        {/* {fileMessages.length > 4 && ( */}
+                        <button
+                          className="btn btn-link mt-2"
+                          onClick={() => {
+                            setActiveTab("files"); // Set default tab
+                            setShowAllModal(true); // Open modal
+                          }}
+                        >
+                          Xem tất cả
+                        </button>
+                        {/* )} */}
+                      </>
+
+                    ) : id === "links" && linkMessages.length > 0 ? (
+                      <>
+                        <div className="link-list">
+                          {linkMessages.slice(0, 4).map((msg, index) => (
+                            <div key={index} className="d-flex align-items-center mb-2">
+                              <LinkIcon size={20} className="me-2 text-primary" />
+                              <a
+                                href={msg.msg}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-truncate"
+                                style={{ maxWidth: "200px", color: "black", textDecoration: "none" }}
+                              >
+                                {msg.msg}
+                              </a>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* {linkMessages.length > 4 && ( */}
+                        <button
+                          className="btn btn-link mt-2"
+                          onClick={() => {
+                            setActiveTab("links"); // Set default tab
+                            setShowAllModal(true); // Open modal
+                          }}
+                        >
+                          Xem tất cả
+                        </button>
+                        {/* )} */}
+
+
+                      </>
+
+
+                    ) : (
+                      <small>{`Chưa có ${title} được chia sẻ trong hội thoại này`}</small>
+                    )}
                   </div>
                 </div>
               </div>
             ))}
           </div>
+
+          <Modal
+            show={showAllModal}
+            onHide={() => setShowAllModal(false)}
+            centered
+          >
+            <Modal.Header closeButton>
+              <Modal.Title>Xem tất cả</Modal.Title>
+            </Modal.Header>
+            <Modal.Body
+              style={{
+                overflowY: "auto", // Thêm cuộn dọc nếu nội dung vượt quá chiều cao
+                // height: "calc(100% - 56px)", // Trừ chiều cao của header
+                height: "400px", // Giới hạn chiều cao của modal
+                backgroundColor: "#dddada", // Màu gray mờ   
+
+              }}
+            >
+              <Tabs
+                activeKey={activeTab}
+                onSelect={(tab) => setActiveTab(tab)}
+                className="mb-3"
+              >
+                <Tab eventKey="media" title="Ảnh/Video">
+                  <div
+                    className="d-flex flex-wrap gap-2"
+                    style={{
+                      alignItems: "center",
+                      justifyContent: "center",
+                      backgroundColor: "#dddada", // Màu gray mờ   
+                      paddingTop: "10px",
+                      paddingBottom: "10px",
+                    }}
+
+                  >
+                    {mediaMessages.map((msg, index) => (
+                      <div
+                        key={index}
+                        className="media-item"
+                        style={{
+                          width: "calc(25% - 10px)",
+                          height: "100px",
+                          overflow: "hidden",
+                          borderRadius: "8px",
+                        }}
+                      >
+                        {msg.type === "image" ? (
+                          <img
+                            src={msg.msg}
+                            alt={`Media ${index + 1}`}
+                            style={{
+                              width: "100%",
+                              height: "100%",
+                              objectFit: "cover",
+                              cursor: "pointer",
+                            }}
+                            onClick={() => {
+                              handleImageClick(msg.msg); // Hiển thị ảnh
+                              setShowAllModal(false); // Đóng modal
+                            }}
+                          />
+                        ) : (
+                          <video
+                            src={msg.msg}
+                            controls
+                            style={{
+                              width: "100%",
+                              height: "100%",
+                              objectFit: "cover",
+                              cursor: "pointer",
+                            }}
+                          // onClick={() => {
+                          //   setShowAllModal(false); // Đóng modal
+                          // }}
+                          />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </Tab>
+                <Tab eventKey="files" title="File">
+                  <div
+                    className="file-list"
+                    style={{
+                      alignItems: "center",
+                      justifyContent: "center",
+                      backgroundColor: "#dddada", // Màu gray mờ   
+                      paddingTop: "10px",
+                      paddingBottom: "10px",
+
+                    }}
+                  >
+                    {fileMessages.map((msg, index) => (
+                      <div
+                        key={index}
+                        className="d-flex align-items-center mb-2"
+                        style={{
+                          borderBottom: "1px solid black",
+                          paddingBottom: "5px",
+                        }}
+                      >
+                        <File size={20} className="me-2 text-primary" />
+                        <a
+                          href={msg.msg}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-truncate"
+                        >
+                          {cleanFileName(msg.msg.split("/").pop()) || `File ${index + 1}`}
+                        </a>
+                      </div>
+                    ))}
+                  </div>
+                </Tab>
+                <Tab eventKey="links" title="Link">
+                  <div
+                    className="link-list"
+                    style={{
+                      alignItems: "center",
+                      justifyContent: "center",
+                      backgroundColor: "#dddada", // Màu gray mờ   
+                      paddingTop: "10px",
+                      paddingBottom: "10px",
+                    }}
+                  >
+                    {linkMessages.map((msg, index) => (
+                      <div key={index} className="d-flex align-items-center mb-2"
+                        style={{
+                          borderBottom: "1px solid black",
+                          paddingBottom: "5px",
+                        }}
+                      >
+                        <LinkIcon size={20} className="me-2 text-primary" />
+                        <a
+                          href={msg.msg}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-truncate"
+                          style={{
+                            color: "black",
+                            textDecoration: "none",
+                          }}
+                        >
+                          {msg.msg}
+                        </a>
+                      </div>
+                    ))}
+                  </div>
+                </Tab>
+              </Tabs>
+            </Modal.Body>
+          </Modal>
+
           <div className="accordion accordion-flush" id="securitySettings">
             <div className="accordion-item">
               <h2 className="accordion-header">
@@ -1202,7 +2277,7 @@ export default function ChatPerson(props) {
             padding: "10px",
           }}
         >
-          <div className="popup-item d-flex align-items-center" onClick={() => console.log("Trả lời")}>
+          <div className="popup-item d-flex align-items-center" onClick={() => handleReply(selectedMessage)}>
             <Reply size={16} className="me-2" />
             <span>Trả lời</span>
           </div>
@@ -1250,6 +2325,7 @@ export default function ChatPerson(props) {
 
       )}
 
+
       {selectedImage && (
         <ImageViewer imageUrl={selectedImage} onClose={handleCloseImageViewer} />
       )}
@@ -1262,6 +2338,10 @@ export default function ChatPerson(props) {
         message={selectedMessageShareModal}
         conversations={conversations}
         onlineUsers={props.onlineUsers}
+        socketRef={props.socketRef}
+        setAllMsg={props.setAllMsg}
+        user={user}
+        selectedUser={props.selectedUser}
       />
     </div>
   );

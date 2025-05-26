@@ -123,11 +123,11 @@ export default function ChatPerson(props) {
 
   useEffect(() => {
     const inputElement = messageInputRef.current;
-    
+
     if (inputElement) {
       inputElement.addEventListener('paste', handlePaste);
     }
-    
+
     return () => {
       if (inputElement) {
         inputElement.removeEventListener('paste', handlePaste);
@@ -149,8 +149,8 @@ export default function ChatPerson(props) {
     // Chỉ cuộn xuống khi có tin nhắn mới hoặc lần đầu tiên load tin nhắn
     if (!isLoadingOlder) {
 
-      const isNewMessage = prevMessagesLengthRef.current > 0 && 
-        messages.length > prevMessagesLengthRef.current && 
+      const isNewMessage = prevMessagesLengthRef.current > 0 &&
+        messages.length > prevMessagesLengthRef.current &&
         messages[messages.length - 1]?._id !== prevLastMessageIdRef.current;
 
       if (initialLoadComplete.current === false || isNewMessage) {
@@ -179,26 +179,26 @@ export default function ChatPerson(props) {
   useEffect(() => {
     // Store previous messages for comparison
     const prevMessages = prevMessagesRef.current;
-    
+
     // Update the ref with current messages
     prevMessagesRef.current = messages;
-    
+
     // First load, always scroll to bottom
     if (!prevMessages || prevMessages.length === 0) {
       scrollToBottom();
       return;
     }
-    
+
     // Skip auto-scroll logic if we're loading older messages
     if (isLoadingOlder) return;
-    
+
     // If messages were added to the beginning (older messages loaded), don't auto-scroll
-    if (messages.length > prevMessages.length && 
-        messages[0]?._id !== prevMessages[0]?._id && 
-        messages[messages.length - 1]?._id === prevMessages[prevMessages.length - 1]?._id) {
+    if (messages.length > prevMessages.length &&
+      messages[0]?._id !== prevMessages[0]?._id &&
+      messages[messages.length - 1]?._id === prevMessages[prevMessages.length - 1]?._id) {
       return;
     }
-    
+
     // Check if we should auto-scroll for new messages
     if (shouldAutoScrollToBottom(prevMessages, messages)) {
       scrollToBottom();
@@ -211,13 +211,13 @@ export default function ChatPerson(props) {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
-    
+
     // Đặt lại các biến kiểm soát
     preventInitialFetch.current = true;
     initialLoadComplete.current = false;
     setPage(1);
     setHasMoreMessages(true);
-    
+
     return () => {
       // Reset các biến khi unmount component
       preventInitialFetch.current = true;
@@ -292,41 +292,47 @@ export default function ChatPerson(props) {
     setLinkMessages(links); // Lưu các tin nhắn dạng URL
   }, [messages]);
 
-   const cleanFileName = (fileName) => {
+  const cleanFileName = (fileName) => {
     // Loại bỏ các ký tự hoặc số không cần thiết ở đầu tên file
     return fileName.replace(/^\d+_|^\d+-/, ""); // Loại bỏ số và dấu gạch dưới hoặc gạch ngang ở đầu
   };
 
   // Hàm kiểm tra xem có nên tự động cuộn xuống dưới cùng không
   const shouldAutoScrollToBottom = (oldMessages, newMessages) => {
-    // Nếu không có tin nhắn trước đó, luôn cuộn xuống dưới
-    if (!oldMessages || !oldMessages.length) return true;
-    
-    // Kiểm tra xem tin nhắn mới nhất được thêm vào cuối (tin nhắn đến)
+    // If no previous messages, always scroll
+    if (!oldMessages.length || !newMessages.length) return true;
+
+    // Check if the newest message was added at the end (incoming message)
     const oldLastMessage = oldMessages[oldMessages.length - 1];
     const newLastMessage = newMessages[newMessages.length - 1];
-    
-    // Cuộn xuống nếu:
-    // 1. Có tin nhắn mới ở cuối VÀ
-    // 2. Nó là từ người dùng hiện tại hoặc chúng ta đang ở gần phía dưới
-    if (oldLastMessage?._id !== newLastMessage?._id) {
-      const isFromCurrentUser = newLastMessage?.sender?._id === user._id;
-      const isNearBottom = chatContainerRef.current && 
-        (chatContainerRef.current.scrollHeight - chatContainerRef.current.scrollTop - 
-        chatContainerRef.current.clientHeight < 100);
-        
+
+    // Check if both messages exist and have _id
+    if (!oldLastMessage || !newLastMessage) return true;
+
+    // Scroll if:
+    // 1. New message at the end AND
+    // 2. It's either from current user or we're very close to the bottom already
+    if (oldLastMessage._id !== newLastMessage._id) {
+      // Check if sender exists before accessing its _id
+      const isFromCurrentUser = newLastMessage.sender &&
+        user &&
+        newLastMessage.sender._id === user._id;
+      const isNearBottom = chatContainerRef.current &&
+        (chatContainerRef.current.scrollHeight - chatContainerRef.current.scrollTop -
+          chatContainerRef.current.clientHeight < 100);
+
       return isFromCurrentUser || isNearBottom;
     }
-    
+
     return false;
   };
 
   // Hàm tải tin nhắn cũ hơn
   const loadOlderMessages = async () => {
     if (!hasMoreMessages || isLoadingOlder || messages.length === 0) return;
-    
+
     setIsLoadingOlder(true);
-    
+
     try {
       // Kiểm tra tồn tại của chatContainerRef.current
       const chatContainer = chatContainerRef.current;
@@ -335,33 +341,33 @@ export default function ChatPerson(props) {
         setIsLoadingOlder(false);
         return;
       }
-      
+
       const oldScrollHeight = chatContainer.scrollHeight;
       const scrollPosition = chatContainer.scrollTop;
-      
+
       const response = await loadMessagesService(
-        user._id, 
-        props.roomData.receiver._id, 
+        user._id,
+        props.roomData.receiver._id,
         props.roomData.receiver.type,
         page + 1,
         20
       );
-      
+
       if (response.EC === 0) {
         const olderMessages = response.DT;
-        
+
         if (olderMessages && olderMessages.length > 0) {
           // Sử dụng Set để lọc các tin nhắn trùng lặp
           const uniqueMessages = [...olderMessages];
           const existingIds = new Set(messages.map(msg => msg._id));
-          
+
           // Lọc những tin nhắn chưa có trong danh sách hiện tại
           const filteredMessages = uniqueMessages.filter(msg => !existingIds.has(msg._id));
-          
+
           // Thêm tin nhắn cũ vào đầu danh sách
           setMessages(prevMessages => [...filteredMessages, ...prevMessages]);
           setPage(prev => prev + 1);
-          
+
           // Kiểm tra xem còn tin nhắn để tải không
           setHasMoreMessages(olderMessages.length === 20 && response.pagination?.hasMore);
 
@@ -374,7 +380,7 @@ export default function ChatPerson(props) {
               chatContainerRef.current.scrollTop = heightDifference + scrollPosition;
             }
           };
-          
+
           // Gọi nhiều lần để đảm bảo thực hiện sau khi DOM đã cập nhật
           maintainScrollPosition();
           setTimeout(maintainScrollPosition, 10);
@@ -397,12 +403,12 @@ export default function ChatPerson(props) {
   // Xử lý sự kiện scroll
   const handleScroll = (e) => {
     if (!chatContainerRef.current) return; // Nếu không có container thì không xử lý
-    
+
     const { scrollTop, scrollHeight, clientHeight } = e.target;
-    
+
     // Lưu vị trí scroll hiện tại
     setScrollPositionY(scrollTop);
-    
+
     // Hiển thị nút cuộn về dưới khi kéo lên trên
     const isScrolledUp = scrollTop < scrollHeight - clientHeight - 300;
     setShowScrollToBottom(isScrolledUp);
@@ -411,7 +417,7 @@ export default function ChatPerson(props) {
     if (scrollTop < 150 && !isLoadingOlder && hasMoreMessages && !preventInitialFetch.current) {
       loadOlderMessages();
     }
-    
+
     // Đánh dấu là đã có tương tác người dùng thực sự sau khi render lần đầu
     if (preventInitialFetch.current && initialLoadComplete.current) {
       preventInitialFetch.current = false;
@@ -425,23 +431,23 @@ export default function ChatPerson(props) {
 
   const handlePaste = (e) => {
     const items = e.clipboardData.items;
-    
+
     // Duyệt qua tất cả các items trong clipboard
     for (let i = 0; i < items.length; i++) {
       if (items[i].type.indexOf('image') !== -1) {
         // Ngăn chặn paste mặc định
         e.preventDefault();
-        
+
         // Lấy file từ clipboard
         const file = items[i].getAsFile();
-        
+
         // Kiểm tra file
         if (!file) return;
-        
+
         // Thêm file vào danh sách đã chọn
         const files = [file];
         setSelectedFiles((prev) => [...prev, ...files]);
-        
+
         // Tạo URL xem trước
         const reader = new FileReader();
         reader.onload = () => {
@@ -450,7 +456,7 @@ export default function ChatPerson(props) {
           setHasSelectedImages(true);
         };
         reader.readAsDataURL(file);
-        
+
         // Chỉ xử lý file hình ảnh đầu tiên tìm thấy
         break;
       }
@@ -640,7 +646,17 @@ export default function ChatPerson(props) {
   // Xử lý recall for me
   const handleDeleteMessageForMe = async (id) => {
     try {
-      const response = await deleteMessageForMeService(id, user);
+      let member;
+      if (receiver.type === 2) {
+        member = {
+          ...receiver,
+          memberDel: user._id,
+        };
+      } else {
+        member = user;
+      }
+
+      const response = await deleteMessageForMeService(id, member);
       if (response.EC === 0) {
         console.log("Tin nhắn đã được xóa chỉ ở phía tôi:", response.DT);
 
@@ -839,7 +855,11 @@ export default function ChatPerson(props) {
   const handleReply = async (selectedMessage) => {
     // Tách nội dung từ dòng 2 trở đi (nếu có \n)
     const parts = selectedMessage.msg.split('\n\n');
-    const contentAfterFirstLine = parts.length > 1 ? parts.slice(1).join('\n') : selectedMessage.msg;
+    let contentAfterFirstLine = parts.length > 1 ? parts.slice(1).join('\n') : selectedMessage.msg;
+
+    if (contentAfterFirstLine.startsWith("https://monhoc1.s3.ap-southeast-1.amazonaws.com/media")) {
+      contentAfterFirstLine = "*file*"
+    }
 
     setPreviewReply(selectedMessage.sender.name + ": " + contentAfterFirstLine);
     setHasSelectedImages(true)
@@ -1175,8 +1195,7 @@ export default function ChatPerson(props) {
       {/* Right Sidebar */}
       {showSidebar && (
         <div
-          className="col-auto bg-white border-start"
-          style={{ width: "300px", height: "100vh", overflowY: "auto" }}
+          className="col-auto bg-white border-start responsive-sidebar"
         >
           {/* Header */}
           <div className="border-bottom header-right-sidebar">

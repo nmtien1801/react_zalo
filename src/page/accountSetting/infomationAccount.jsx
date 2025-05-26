@@ -111,6 +111,7 @@ const infomationAccount = ({ toggleModalInfomation, socketRef, user }) => {
             let data = {
                 ...userUpdate,
                 avatar: avatarUrl,
+                userId: user._id,
             };
 
             let res = await dispatch(uploadProfile(data));
@@ -202,7 +203,7 @@ const infomationAccount = ({ toggleModalInfomation, socketRef, user }) => {
         }}>
             <div className="modern-modal">
                 <div className="modern-modal-header">
-                    <h5 className="modern-modal-title">Thông tin tài khoản</h5>
+                    <h5 className="modern-modal-title">Thông tin tài khoảnssss</h5>
                     <button className="modern-modal-close" onClick={toggleModalInfomation}>&times;</button>
                 </div>
                 

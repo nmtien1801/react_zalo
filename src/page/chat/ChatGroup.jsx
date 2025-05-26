@@ -1497,7 +1497,11 @@ export default function ChatGroup(props) {
   const handleReply = async (selectedMessage) => {
     // Tách nội dung từ dòng 2 trở đi (nếu có \n)
     const parts = selectedMessage.msg.split('\n\n');
-    const contentAfterFirstLine = parts.length > 1 ? parts.slice(1).join('\n') : selectedMessage.msg;
+    let contentAfterFirstLine = parts.length > 1 ? parts.slice(1).join('\n') : selectedMessage.msg;
+
+    if (contentAfterFirstLine.startsWith("https://monhoc1.s3.ap-southeast-1.amazonaws.com/media")) {
+      contentAfterFirstLine = "*file*"
+    }
 
     setPreviewReply(selectedMessage.sender.name + ": " + contentAfterFirstLine);
     setHasSelectedImages(true)
@@ -1783,23 +1787,25 @@ export default function ChatGroup(props) {
                                     return (
                                       <>
                                         {readers.map((reader, index) => (
-                                          <div 
-                                            key={index} 
-                                            className="reader-avatar" 
-                                            style={{
-                                              marginLeft: index > 0 ? '-8px' : '0',
-                                              zIndex: 10 - index,
-                                              position: 'relative'
-                                            }}
-                                          >
-                                            <img 
-                                              src={reader.avatar || "/placeholder.svg"} 
-                                              alt={reader.username || "User"} 
-                                              className="rounded-circle border border-white" 
-                                              style={{width: '16px', height: '16px', objectFit: 'cover', backgroundColor: 'white'}}
-                                            />
-                                          </div>
-                                        ))}
+                                              reader.avatar ? (
+                                                <div
+                                                  key={index}
+                                                  className="reader-avatar"
+                                                  style={{
+                                                    marginLeft: index > 0 ? '-8px' : '0',
+                                                    zIndex: 10 - index,
+                                                    position: 'relative'
+                                                  }}
+                                                >
+                                                  <img
+                                                    src={reader.avatar || "/placeholder.svg"}
+                                                    alt={reader.username || "User"}
+                                                    className="rounded-circle border border-white"
+                                                    style={{ width: '16px', height: '16px', objectFit: 'cover', backgroundColor: 'white' }}
+                                                  />
+                                                </div>
+                                              ) : null
+                                            ))}
                                         
                                         {/* Hiển thị số người còn lại đã đọc nếu > 3 */}
                                         {count > 3 && (
@@ -2013,8 +2019,7 @@ export default function ChatGroup(props) {
       {
         showSidebar &&
         <div
-          className="col-auto bg-white border-start"
-          style={{ width: "300px", height: "100vh", overflowY: "auto" }}
+          className="col-auto bg-white border-start responsive-sidebar"
         >
           {
             showManageGroup ?

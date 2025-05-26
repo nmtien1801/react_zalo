@@ -77,11 +77,11 @@ const Header = (props) => {
     <Navbar
       className="d-flex flex-column bg-primary h-100 py-2"
       sticky="top"
-      style={{ width: "64px" }}
+      style={{ width: "56px" }}
     >
       <Container fluid className="d-flex flex-column align-items-center">
         {/* Logo or app name */}
-        <Navbar.Brand as={NavLink} className="mb-4 mt-2 m-3">
+        <Navbar.Brand as={NavLink} className="mb-4 mt-2 m-0">
           <img
             src={user.avatar ? user.avatar : "https://i.imgur.com/cIRFqAL.png"}
             alt="Profile"
@@ -91,7 +91,7 @@ const Header = (props) => {
         </Navbar.Brand>
 
         {/* Menu content */}
-        <Nav className="d-flex flex-column w-100">
+        <Nav className="d-flex flex-column w-85">
           <Nav.Link as={NavLink} to="/chat" className="fw-normal" onClick={handleClick}>
             <MessageCircle size={24} />
           </Nav.Link>

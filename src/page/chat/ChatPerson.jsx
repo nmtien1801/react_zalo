@@ -714,9 +714,6 @@ export default function ChatPerson(props) {
 
       // Cleanup khi component unmount
       return () => {
-        props.socketRef.current.off("USER_TYPING");
-        props.socketRef.current.off("USER_STOP_TYPING");
-
         // Dừng typing khi unmount
         if (props.socketRef.current) {
           props.socketRef.current.emit("STOP_TYPING", {
@@ -1187,13 +1184,6 @@ export default function ChatPerson(props) {
       props.socketRef.current.on("REACTION_ERROR", (data) => {
         console.error("Reaction error:", data.error);
       });
-
-      // Clean up function
-      return () => {
-        // Giữ nguyên cleanup code hiện có
-        props.socketRef.current.off("RECEIVED_REACTION");
-        props.socketRef.current.off("REACTION_ERROR");
-      };
     }
   }, [props.roomData.receiver]);
 

@@ -225,12 +225,6 @@ export default function ChatInterface(props) {
       );
       console.log("ALL_MESSAGES_READ: ", data);
     });
-
-    return () => {
-      socketRef.current.off("MESSAGE_READ");
-      socketRef.current.off("ALL_MESSAGES_READ");
-    };
-
   }, [socketRef]);
 
   useEffect(() => {
@@ -243,11 +237,6 @@ export default function ChatInterface(props) {
       if (data.receiver._id === selectedUser._id)
         setAllMsg((prevState) => [...prevState, data]);
     });
-
-    // Cleanup
-    return () => {
-      socketRef.current.off("RECEIVED_MSG");
-    };
   }, [socketRef, selectedUser]);
 
 

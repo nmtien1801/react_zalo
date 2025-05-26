@@ -528,9 +528,6 @@ export default function ChatGroup(props) {
 
       // Cleanup khi component unmount
       return () => {
-        socketRef.current.off("USER_TYPING");
-        socketRef.current.off("USER_STOP_TYPING");
-
         // Dừng typing khi unmount
         if (socketRef.current) {
           socketRef.current.emit("STOP_TYPING", {
@@ -663,13 +660,6 @@ export default function ChatGroup(props) {
       socketRef.current.on("REACTION_ERROR", (data) => {
         console.error("Reaction error:", data.error);
       });
-
-      // Clean up
-      return () => {
-        // Giữ nguyên cleanup code hiện có
-        socketRef.current.off("RECEIVED_REACTION");
-        socketRef.current.off("REACTION_ERROR");
-      };
     }
   }, [receiver]);
 

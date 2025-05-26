@@ -72,7 +72,7 @@ instance.interceptors.response.use(
       case 401: {
         const path = window.location.pathname;
 
-        if (path === "/" || path === "/login" || path === "/register" || path === "/forgot-password") {
+        if (path === "/" || path === "/login" || path === "/register" || path === "/forgot-password" || path === "/login-qr") {
           console.warn("401 on auth page, skip refresh");
           return Promise.reject(error); 
         }

@@ -1090,3 +1090,24 @@
     display: none !important;
   }
 }
+
+.responsive-sidebar {
+  width: 300px;
+  height: 100vh;
+  overflow-y: auto;
+  transition: width 0.3s ease;
+}
+
+/* Khi màn hình nhỏ hơn 768px (tablet trở xuống) */
+@media (max-width: 860px) {
+  .responsive-sidebar {
+    width: 260px;
+  }
+}
+
+/* Khi nhỏ hơn 576px (mobile) */
+@media (max-width: 590px) {
+  .responsive-sidebar {
+    width: 100px;
+  }
+}

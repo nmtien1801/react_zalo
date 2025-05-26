@@ -94,9 +94,6 @@ export default function ChatPerson(props) {
   const [emojiButtonPosition, setEmojiButtonPosition] = useState({ top: 0, left: 0, right: 0 });
   const emojiButtonRef = useRef(null);
 
-  // Status theo dõi click tin nhắn
-  const [selectedReadStatus, setSelectedReadStatus] = useState(null);
-
   // Ref cho input msg
   const messageInputRef = useRef(null);
 
@@ -185,35 +182,6 @@ export default function ChatPerson(props) {
       markAllMessagesAsRead(props.roomData.receiver._id);
     }
   }, [props.roomData]);
-
-  const handleMessageClick = (msgId) => {
-
-    const previousMessageId = selectedReadStatus;
-
-    if (selectedReadStatus === msgId) {
-      setSelectedReadStatus(null);
-    } else {
-      setSelectedReadStatus(msgId);
-
-      if (previousMessageId) {
-        // Tìm phần tử tin nhắn trước đó và hiện tại
-        const prevMessageElement = document.querySelector(`[data-message-id="${previousMessageId}"]`);
-        const currentMessageElement = document.querySelector(`[data-message-id="${msgId}"]`);
-
-        if (prevMessageElement && currentMessageElement) {
-          // Thêm lớp animation cho tin nhắn đã chọn trước đó và tin nhắn hiện tại
-          prevMessageElement.classList.add('slide-down');
-          currentMessageElement.classList.add('slide-up', 'selected');
-
-          // Xóa lớp animation sau khi hoàn thành
-          setTimeout(() => {
-            prevMessageElement.classList.remove('slide-down');
-            currentMessageElement.classList.remove('slide-up');
-          }, 300);
-        }
-      }
-    }
-  };
 
   // Hàm đánh dấu một tin nhắn đã đọc
   const markMessageAsRead = async (messageId) => {
@@ -525,35 +493,8 @@ export default function ChatPerson(props) {
       }
     }
 
-    // Tạo ID tạm thời cho tin nhắn
-    const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
-    // Thêm tin nhắn vào state với trạng thái "pending"
-    const tempMessage = {
-      _id: tempId,
-      msg: msg,
-      type: type,
-      sender: user,
-      receiver: receiver,
-      createdAt: new Date().toISOString(),
-      status: "pending",
-      tempId: tempId
-    };
-    setMessages(prev => [...prev, tempMessage]);
-
     props.handleSendMsg(msg, type);
     setMessage("");
-
-    // Thiết lập timeout để kiểm tra sau 10 giây
-    setTimeout(() => {
-      setMessages(prev =>
-        prev.map(m =>
-          (m._id === tempId && m.status === "pending")
-            ? { ...m, status: "fail" }
-            : m
-        )
-      );
-    }, 10000); // 10 giây
   };
 
   // Hàm gửi lại tin nhắn
@@ -1471,9 +1412,7 @@ export default function ChatPerson(props) {
 
                     <div
                       key={index}
-                      className={`px-2 my-1 d-flex chat-message ${msg.sender._id === user._id ? "justify-content-end" : "justify-content-start"
-                        } ${selectedReadStatus === msg._id ? "selected" : ""}`}
-                      data-message-id={msg._id}
+                      className={`p-1 my-1 d-flex chat-message ${msg.sender._id === user._id ? "justify-content-end" : "justify-content-start"}`}
                     >
 
                       {/* Hiển thị avatar cho người khác (không phải mình) */}
@@ -1493,10 +1432,8 @@ export default function ChatPerson(props) {
                       )}
 
                       <div
-                        className={`message-content ${isSameSender ? "message-group" : ""} ${selectedReadStatus === msg._id ? "selected" : ""
-                          }`}
+                        className={`message-content ${isSameSender ? "message-group" : ""}`}
                         style={{ maxWidth: "70%" }}
-                        onClick={() => msg.sender._id === user._id && handleMessageClick(msg._id)}
                       >
                         <div
                           className={`message-bubble ${msg.sender._id === user._id ? "own" : "other"} ${msg.type !== "text" && msg.type !== "file" && msg.type !== "system" ? "bg-transparent" : ""
@@ -1617,86 +1554,6 @@ export default function ChatPerson(props) {
                         <Share2 size={16} className="text-muted" />
                       </button> */}
                         </div>
-
-                        {msg.sender._id === user._id && (
-                          <div className={`message-status d-flex align-items-center small text-muted ${(index === filteredMessages.length - 1 || selectedReadStatus === msg._id) ? "show-status" : ""}`}
-                          >
-                            {(index === filteredMessages.length - 1 || selectedReadStatus === msg._id) && (
-                              <>
-                                {msg.readBy && msg.readBy.length > 0 ? (
-                                  <div className="d-flex align-items-center" title="Đã xem">
-                                    <div className="read-avatars d-flex">
-                                      {(() => {
-                                        // Lấy ID của current user
-                                        const currentUserId = user._id.$oid || user._id;
-
-                                        console.log("Current User ID:", currentUserId);
-
-                                        // Sử dụng hàm processReadByData để xử lý dữ liệu readBy
-                                        const { readers, count } = processReadByData(msg, currentUserId, props.conversations);
-
-                                        // Render avatars của những người đã đọc
-                                        return (
-                                          <>
-                                            {readers.map((reader, index) => (
-                                              reader.avatar ? (
-                                                <div
-                                                  key={index}
-                                                  className="reader-avatar"
-                                                  style={{
-                                                    marginLeft: index > 0 ? '-8px' : '0',
-                                                    zIndex: 10 - index,
-                                                    position: 'relative'
-                                                  }}
-                                                >
-                                                  <img
-                                                    src={reader.avatar || "/placeholder.svg"}
-                                                    alt={reader.username || "User"}
-                                                    className="rounded-circle border border-white"
-                                                    style={{ width: '16px', height: '16px', objectFit: 'cover', backgroundColor: 'white' }}
-                                                  />
-                                                </div>
-                                              ) : null
-                                            ))}
-
-                                            {/* Hiển thị số người còn lại đã đọc nếu > 3 */}
-                                            {count > 3 && (
-                                              <span className="ms-1 text-muted small">
-                                                +{count - 3}
-                                              </span>
-                                            )}
-                                          </>
-                                        );
-                                      })()}
-                                    </div>
-                                  </div>
-                                ) : msg.status !== "pending" && msg.status !== "fail" ? (
-                                  <span className="small text-success">• Đã gửi</span>
-                                ) : null}
-                              </>
-                            )}
-
-                            {/* Luôn hiển thị trạng thái "Đang gửi" và "Gửi thất bại" cho mọi tin nhắn */}
-                            {msg.status === "pending" && (
-                              <span className="small text-warning">• Đang gửi</span>
-                            )}
-                            {msg.status === "fail" && (
-                              <div className="d-flex align-items-center">
-                                <span className="small text-danger me-2">• Gửi thất bại</span>
-                                <button
-                                  className="btn btn-sm p-0 text-danger"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleResendMessage(msg);
-                                  }}
-                                >
-                                  <RotateCw size={14} /> Gửi lại
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        )}
-
                       </div>
 
                     </div>

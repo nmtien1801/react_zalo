@@ -10,7 +10,7 @@ import { updatePermission } from '../redux/chatSlice'
 import { useSelector, useDispatch } from "react-redux";
 // import { sendGroupJoinRequestsService } from "../service/friendRequestService"; // API gửi yêu cầu tham gia nhóm
 
-const AddMemberModal = ({ show, onHide, roomId, socketRef, user, roomData }) => {
+const AddMemberModal = ({ show, onHide, roomId, socketRef, user, roomData , receiver}) => {
     const [friends, setFriends] = useState([]); // Danh sách bạn bè
     const [members, setMembers] = useState([]); // Danh sách thành viên nhóm
     const [selectedFriends, setSelectedFriends] = useState([]); // Danh sách bạn bè đã được tích
@@ -112,7 +112,7 @@ const AddMemberModal = ({ show, onHide, roomId, socketRef, user, roomData }) => 
                     friends.some(f => f._id === member)
                 );
 // update permission
-                let res = await dispatch(updatePermission({ groupId: roomId, newPermission: roomData.receiver.permission }))
+                let res = await dispatch(updatePermission({ groupId: roomId, newPermission: receiver.permission }))
                 socketRef.current.emit("REQ_MEMBER_PERMISSION", res.payload.DT);
                 
                 if (!allExistInFriends) {

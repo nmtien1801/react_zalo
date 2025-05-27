@@ -92,7 +92,7 @@ export default function LoginForm() {
             </div>
 
             {/* Captcha Input */}
-            <div className="mb-3">
+            {/* <div className="mb-3">
               <div className="input-group">
                 <input
                   type="text"
@@ -110,7 +110,7 @@ export default function LoginForm() {
                   <RefreshCw size={20} />
                 </button>
               </div>
-            </div>
+            </div> */}
 
             {/* Submit Button */}
             <button

@@ -111,7 +111,10 @@ const AddMemberModal = ({ show, onHide, roomId, socketRef, user, roomData }) => 
                 const allExistInFriends = response.DT.members.every(member =>
                     friends.some(f => f._id === member)
                 );
-
+// update permission
+                let res = await dispatch(updatePermission({ groupId: roomId, newPermission: roomData.receiver.permission }))
+                socketRef.current.emit("REQ_MEMBER_PERMISSION", res.payload.DT);
+                
                 if (!allExistInFriends) {
                     // thêm nhóm k phải bạn
                     let groupsMember = {
@@ -129,9 +132,7 @@ const AddMemberModal = ({ show, onHide, roomId, socketRef, user, roomData }) => 
                     alert("Thêm thành viên thành công!");
 
                 }
-                // update permission
-                let res = await dispatch(updatePermission({ groupId: roomId, newPermission: roomData.receiver.permission }))
-                socketRef.current.emit("REQ_MEMBER_PERMISSION", res.payload.DT);
+                
 
                 handleClose(); // Đóng modal sau khi thêm thành viên thành công
             } else {

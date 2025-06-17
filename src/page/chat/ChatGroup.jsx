@@ -1975,7 +1975,6 @@ export default function ChatGroup(props) {
                     onHide={handleCloseAddMemberModal} // Truyền hàm đóng modal
                     roomId={receiver._id} // Truyền roomId của nhóm
                     roomData={roomData}
-                    receiver={receiver} // Truyền thông tin người nhận
                     socketRef={socketRef} // Truyền socketRef
                     user={user} // Truyền thông tin người dùng
                   />
